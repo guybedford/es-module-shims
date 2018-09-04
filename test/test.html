@@ -1,0 +1,24 @@
+<!doctype html>
+<script type="packagemap-shim">
+{
+  "packages": {
+    "test": {
+      "path": "/test",
+      "main": "test.js"
+    }
+  },
+  "scopes": {
+    "/": {
+      "packages": {
+        "test-dep": "/test/test-dep.js"
+      }
+    }
+  }
+}
+</script>
+<script type="module-shim">
+  import test from "test";
+  console.log(test);
+</script>
+<script type="module-shim" src="/test/test-cycle.js"></script>
+<script type="module" src="../src/es-module-shims.js"></script>
