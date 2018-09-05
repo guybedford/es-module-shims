@@ -27,7 +27,6 @@ function templateString (str, i, state) {
   }
   throw new Error('Unterminated string');
 }
-let depth = 0;
 
 function base (str, index, state) {
   let i = commentWhitespace(str, index, state);
@@ -36,7 +35,6 @@ function base (str, index, state) {
       state.bD++;
     // fallthrough
     case 40/*(*/:
-      depth++;
       state.tS = { i: state.tI, n: state.tS };
     break;
     
@@ -53,7 +51,6 @@ function base (str, index, state) {
       }
     // fallthrough
     case 41/*)*/:
-      depth--;
       if (!state.tS)
         throw new Error('Brace mismatch');
       state.otI = state.tS.i;
@@ -102,7 +99,6 @@ function base (str, index, state) {
           // dynamic import indicated by positive d
           state.iS.push({ s: start, e: start + 6, d: index + 1 });
           state.tS = { i: state.tI, n: state.tS };
-          depth++;
         }
         // import.meta
         else if (charCode === 46/*.*/) {
@@ -226,7 +222,7 @@ function readSourceString (str, i, state) {
   return i;
 }
 
-function parse (str, state) {
+export function parse (str, state) {
   const len = str.length;
   let index = 0;
   while (index < len)
@@ -238,6 +234,7 @@ function parse (str, state) {
       index = base(str, index, state);
   if (state.bD > 0 || state.TS.i !== -1 || state.iT || state.tS)
     throw new Error('Brace mismatch');
+  return state;
 }
 
 export function analyzeModuleSyntax (str) {
@@ -260,7 +257,7 @@ export function analyzeModuleSyntax (str) {
     // exportNames
     eN: []
   };
-  
+
   let err = null;
   try {
     parse(str, state);
@@ -268,6 +265,5 @@ export function analyzeModuleSyntax (str) {
   catch (e) {
     err = e;
   }
-  
   return [state.iS, state.eN, err];
 }

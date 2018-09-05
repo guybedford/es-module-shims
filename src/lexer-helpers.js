@@ -8,43 +8,54 @@ export function isBr (charCode) {
   return charCode === 10/*\n*/ || charCode === 13/*\r*/;
 }
 
+export function isBrOrWs (charCode) {
+  return charCode > 8 && charCode < 14 || charCode === 32 || charCode === 160 || charCode === 65279;
+}
+
 // TODO: update to regex approach which should be faster
 export function commentWhitespace (str, index) {
-  let inBlockComment = false;
-  let inLineComment = false;
   let charCode;
-  let nextCharCode = str.charCodeAt(index);
-  while (charCode = nextCharCode) {
-    nextCharCode = str.charCodeAt(index + 1);
-    if (inLineComment) {
-      if (isBr(charCode))
-        inLineComment = false;
-    }
-    else if (inBlockComment) {
-      if (charCode === 42/***/ && nextCharCode === 47/*/*/) {
-        nextCharCode = str.charCodeAt(++index + 1);
-        inBlockComment = false;
-      }
-    }
-    else {
-      if (charCode === 47/*/*/) {
-        if (nextCharCode === 47/*/*/) {
-          inLineComment = true;
-        }
-        else if (nextCharCode === 42/***/) {
-          inBlockComment = true;
-        }
-        else return index;
-        nextCharCode = str.charCodeAt(++index + 1);
-      }
-      else if (!isWs(charCode) && !isBr(charCode)) {
+  while (charCode = str.charCodeAt(index)) {
+    if (charCode === 47/*/*/) {
+      const nextCharCode = str.charCodeAt(index + 1);
+      if (nextCharCode === 47/*/*/)
+        index = lineComment(str, index + 2);
+      else if (nextCharCode === 42/***/)
+        index = blockComment(str, index + 2);
+      else
         return index;
-      }
+    }
+    else if (!isBrOrWs(charCode)) {
+      return index;
     }
     index++;
   }
-  if (inLineComment)
-    throw new Error('Unterminated comment');
+  return index;
+}
+
+function blockComment (str, index) {
+  let charCode = str.charCodeAt(index);
+  while (charCode) {
+    if (charCode === 42/***/) {
+      const nextCharCode = str.charCodeAt(++index);
+      if (nextCharCode === 47/*/*/)
+        return index;
+      charCode = nextCharCode;
+    }
+    else {
+      charCode = str.charCodeAt(++index);
+    }
+  }
+  return index;
+}
+
+function lineComment (str, index) {
+  let charCode;
+  while (charCode = str.charCodeAt(index)) {
+    if (isBr(charCode))
+      return index;
+    index++;
+  }
   return index;
 }
 
@@ -112,14 +123,14 @@ export function readPrecedingKeyword (str, endIndex) {
   while (nextChar && nextChar >= 97/*a*/ && nextChar <= 122/*z*/)
     nextChar = str.charCodeAt(--startIndex);
   // must be preceded by punctuator or whitespace
-  if (!nextChar || isBr(nextChar) || isWs(nextChar) || isPunctuator(nextChar))
+  if (!nextChar || isBrOrWs(nextChar) || isPunctuator(nextChar))
     return str.slice(startIndex + 1, endIndex + 1);
 }
 
 export function readToWsOrPunctuator (str, startIndex) {
   let endIndex = startIndex;
   let nextChar = str.charCodeAt(endIndex);
-  while (nextChar && !isBr(nextChar) && !isWs(nextChar) && !isPunctuator(nextChar))
+  while (nextChar && !isBrOrWs(nextChar) && !isPunctuator(nextChar))
     nextChar = str.charCodeAt(++endIndex);
   return str.slice(startIndex, endIndex);
 }

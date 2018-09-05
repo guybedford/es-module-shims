@@ -1,13 +1,20 @@
 import assert from 'assert';
 import { analyzeModuleSyntax } from '../src/lexer.js';
 
+function parse (source) {
+  const result = analyzeModuleSyntax(source);
+  if (result[2])
+    throw result[2];
+  return result;
+}
+
 suite('Lexer', () => {
   test('Simple import', () => {
     const source = `
       import test from "test";
       console.log(test);
     `;
-    const [imports, exports] = analyzeModuleSyntax(source);
+    const [imports, exports] = parse(source);
     assert.equal(imports.length, 1);
     const { s, e, d } = imports[0];
     assert.equal(d, -1);
@@ -20,7 +27,7 @@ suite('Lexer', () => {
     const source = `
       export { hello as default } from "test-dep";
     `;
-    const [imports, exports] = analyzeModuleSyntax(source);
+    const [imports, exports] = parse(source);
     assert.equal(imports.length, 1);
     const { s, e, d } = imports[0];
     assert.equal(d, -1);
@@ -35,7 +42,7 @@ suite('Lexer', () => {
       export var hello = 'world';
       console.log(import.meta.url);
     `;
-    const [imports, exports] = analyzeModuleSyntax(source);
+    const [imports, exports] = parse(source);
     assert.equal(imports.length, 1);
     const { s, e, d } = imports[0];
     assert.equal(d, -2);
@@ -50,7 +57,7 @@ suite('Lexer', () => {
       
       import { g } from './test-circular2.js';
     `;
-    const [imports, exports] = analyzeModuleSyntax(source);
+    const [imports, exports] = parse(source);
     assert.equal(imports.length, 1);
     const { s, e, d } = imports[0];
     assert.equal(d, -1);
@@ -61,7 +68,7 @@ suite('Lexer', () => {
   });
 
   test('Bracket matching', () => {
-    analyzeModuleSyntax(`
+    parse(`
       acorn.plugins.dynamicImport = function () {
         instance.extend('parseExprAtom', function (nextMethod) {
           return function () {
@@ -84,6 +91,7 @@ suite('Lexer', () => {
 
   test('Comments', () => {
     const source = `
+      /**/
       // '
       /* / */
       /*
@@ -91,14 +99,15 @@ suite('Lexer', () => {
          * export { b }
       \\*/ export { a }
     `
-    const [imports, exports] = analyzeModuleSyntax(source);
+    const [imports, exports] = parse(source);
     assert.equal(imports.length, 0);
     assert.equal(exports.length, 1);
     assert.equal(exports[0], 'a');
   });
 
-  test('Template strings', () => {
+  test('Strings', () => {
     const source = `
+      "";
       \`
         \${
           import(\`test/\${ import(b)  }\`); /*
@@ -108,7 +117,7 @@ suite('Lexer', () => {
       \`
       export { a }
     `
-    const [imports, exports] = analyzeModuleSyntax(source);
+    const [imports, exports] = parse(source);
     assert.equal(imports.length, 2);
     assert.notEqual(imports[0].d, -1);
     assert.equal(source.slice(imports[0].s, imports[0].e), 'import');
@@ -138,27 +147,9 @@ suite('Lexer', () => {
       /asdf/ / /as'df/; // '
       export { a };
     `;
-    const [imports, exports] = analyzeModuleSyntax(source);
+    const [imports, exports] = parse(source);
     assert.equal(imports.length, 0);
     assert.equal(exports.length, 1);
     assert.equal(exports[0], 'a');
-  })
-
-  // TODO pad out string, template (variable nesting), comment, etc cases tests
-  // including division operator distinguishing of if (x) /as`df/ sort of thing
-  /*
-
-  Can also test the bounds of openLastTokenIndex with nested brackets, parsings, inbetween:
-
-    x-/a/g
-    finally{}/a/g
-    =>{}/a/g
-    ){}/a/g
-    ;{}/a/g
-    {}/a/g
-    +{}/a/g
-    ('a')/a/g
-    if //x
-    ('a')/a/g
-  */
+  });
 });

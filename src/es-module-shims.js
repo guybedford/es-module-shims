@@ -94,8 +94,7 @@ async function resolveDeps (load, seen) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
             let hasDefault = false;
-            blobUrl = depLoad.s = createBlob(`
-              export function u$_(m){${
+            blobUrl = depLoad.s = createBlob(`export function u$_(m){${
                 depLoad.a[1].map(
                   n => name === 'default' ? `$_default=m.default` : `${n}=m.${n}`
                 ).join(',')
@@ -103,8 +102,7 @@ async function resolveDeps (load, seen) {
                 depLoad.a[1].map(name => 
                   name === 'default' ? (hasDefault = true, `let $_default;export{$_default as default}`) : `export let ${name}`
                 ).join(';')
-              }
-            `);
+              }`);
           }
         }
         // circular shell execution
@@ -209,13 +207,9 @@ function getOrCreateLoad (url, source) {
         const res = await fetch(url);
         source = await res.text();
       }
-      try {
-        load.a = analyzeModuleSyntax(source);
-      }
-      catch (e) {
-        importShim.e = [source, e];
-        load.a = [[], []];
-      }
+      load.a = analyzeModuleSyntax(source);
+      if (load.a[2])
+        importShim.e = [source, load.a[2]];
       load.d = load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
       
       return source;
