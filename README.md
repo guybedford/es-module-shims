@@ -82,7 +82,7 @@ Package map support is provided both for mapping into Web Assembly URLs, as well
 * Only flat scopes are supported.
 
 ### Web Assembly
-* Exports are snapshotted on execution. Unexecuted circular dependencies will be snapshotted as empty imports. This matches the [current integration plans for Web Assembly](Web Assembly snapshots exports on execution).
+* Exports are snapshotted on execution. Unexecuted circular dependencies will be snapshotted as empty imports. This matches the [current integration plans for Web Assembly](https://github.com/WebAssembly/esm-integration/).
 
 ## Inspiration
 
