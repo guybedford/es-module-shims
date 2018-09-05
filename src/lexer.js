@@ -25,8 +25,9 @@ function templateString (str, i, state) {
     }
     nextCharCode = str.charCodeAt(++i);
   }
-  throw new Error('Unterminated template string');
+  throw new Error('Unterminated string');
 }
+let depth = 0;
 
 function base (str, index, state) {
   let i = commentWhitespace(str, index, state);
@@ -35,20 +36,26 @@ function base (str, index, state) {
       state.bD++;
     // fallthrough
     case 40/*(*/:
+      depth++;
       state.tS = { i: state.tI, n: state.tS };
     break;
     
     case 125/*}*/:
+      if (state.bD === 0)
+        throw new Error('Brace mismatch');
       if (state.bD-- === state.TS.i) {
         state.TS = state.TS.n;
         state.iT = true;
         break;
       }
       else if (state.bD < state.TS.i) {
-        throw new Error('Template variable brace mismatch');
+        throw new Error('Brace mismatch');
       }
     // fallthrough
     case 41/*)*/:
+      depth--;
+      if (!state.tS)
+        throw new Error('Brace mismatch');
       state.otI = state.tS.i;
       state.tS = state.tS.n;
     break;
@@ -73,28 +80,33 @@ function base (str, index, state) {
        * handles all known ambiguities
        */
       const lastTokenIndex = state.tI;
-      if (isExpressionKeyword(str, lastTokenIndex) ||
-          isExpressionPunctuator(str.charCodeAt(lastTokenIndex)) ||
-          lastTokenIndex === 41/*)*/ && isParenKeyword(str, state.otI) ||
-          lastTokenIndex === 125/*}*/ && isExpressionTerminator(str, state.otI))
+      const lastTokenCode = str.charCodeAt(lastTokenIndex);
+      if (!lastTokenCode ||
+          isExpressionKeyword(str, lastTokenIndex) ||
+          isExpressionPunctuator(lastTokenCode) ||
+          lastTokenCode === 41/*)*/ && isParenKeyword(str, state.otI) ||
+          lastTokenCode === 125/*}*/ && isExpressionTerminator(str, state.otI))
         i = regularExpression(str, i + 1);
+      
     }
     break;
 
     case 105/*i*/: {
       if (str.substr(i, 6) === 'import' && (readToWsOrPunctuator(str, i) === 'import' || str.charCodeAt(i + 6) === 46/*.*/)) {
         const start = i;
-        i = commentWhitespace(str, i + 6);
-        const charCode = str.charCodeAt(i);
+        const index = commentWhitespace(str, i + 6);
+        const charCode = str.charCodeAt(index);
         // dynamic import
         if (charCode === 40/*(*/) {
+          i = index;
           // dynamic import indicated by positive d
-          state.iS.push({ s: start, e: start + 6, d: i + 1 });
+          state.iS.push({ s: start, e: start + 6, d: index + 1 });
           state.tS = { i: state.tI, n: state.tS };
+          depth++;
         }
         // import.meta
         else if (charCode === 46/*.*/) {
-          i = commentWhitespace(str, i + 1);
+          i = commentWhitespace(str, index + 1);
           // import.meta indicated by d === -2
           if (readToWsOrPunctuator(str, i) === 'meta')
             state.iS.push({ s: start, e: i + 4, d: -2 });
@@ -103,6 +115,7 @@ function base (str, index, state) {
         else if (state.tS === null) {
           i = readSourceString(str, i, state);
         }
+        // important that we don't bump i for non-match
       }
     }
     break;
@@ -169,10 +182,15 @@ function base (str, index, state) {
                 i = commentWhitespace(str, i + name.length);
                 charCode = str.charCodeAt(i);
               }
+              // ,
+              if (charCode === 44) {
+                i = commentWhitespace(str, i + 1)
+                charCode = str.charCodeAt(i);
+              }
               state.eN.push(name);
             } while (charCode && charCode !== 125/*}*/);
             if (!charCode)
-              throw new Error('Export brace mismatch.');
+              throw new Error('Brace mismatch');
           } 
           // fallthrough
 
@@ -208,6 +226,20 @@ function readSourceString (str, i, state) {
   return i;
 }
 
+function parse (str, state) {
+  const len = str.length;
+  let index = 0;
+  while (index < len)
+    // NB: see if it is an optimization to pass str.charCodeAt(index) as an arg
+    // TODO: regex optimization where possible
+    if (state.iT)
+      index = templateString(str, index, state);
+    else
+      index = base(str, index, state);
+  if (state.bD > 0 || state.TS.i !== -1 || state.iT || state.tS)
+    throw new Error('Brace mismatch');
+}
+
 export function analyzeModuleSyntax (str) {
   const state = {
     // inTemplate
@@ -229,15 +261,13 @@ export function analyzeModuleSyntax (str) {
     eN: []
   };
   
-  const len = str.length;
-  let index = 0;
-  while (index < len)
-    // NB: see if it is an optimization to pass str.charCodeAt(index) as an arg
-    // TODO: regex optimization where possible
-    if (state.iT)
-      index = templateString(str, index, state);
-    else
-      index = base(str, index, state);
+  let err = null;
+  try {
+    parse(str, state);
+  }
+  catch (e) {
+    err = e;
+  }
   
-  return [state.iS, state.eN];
+  return [state.iS, state.eN, err];
 }

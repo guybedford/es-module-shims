@@ -15,94 +15,105 @@ export function commentWhitespace (str, index) {
   let charCode;
   let nextCharCode = str.charCodeAt(index);
   while (charCode = nextCharCode) {
-    nextCharCode = str.charCodeAt(++index);
+    nextCharCode = str.charCodeAt(index + 1);
     if (inLineComment) {
       if (isBr(charCode))
         inLineComment = false;
     }
     else if (inBlockComment) {
       if (charCode === 42/***/ && nextCharCode === 47/*/*/) {
-        nextCharCode = str.charCodeAt(++index);
+        nextCharCode = str.charCodeAt(++index + 1);
         inBlockComment = false;
       }
     }
     else {
       if (charCode === 47/*/*/) {
-        if (nextCharCode === '/') {
+        if (nextCharCode === 47/*/*/) {
           inLineComment = true;
         }
         else if (nextCharCode === 42/***/) {
           inBlockComment = true;
         }
-        else continue;
-        nextCharCode = str.charCodeAt(++index);
+        else return index;
+        nextCharCode = str.charCodeAt(++index + 1);
       }
       else if (!isWs(charCode) && !isBr(charCode)) {
-        return index - 1;
+        return index;
       }
     }
+    index++;
   }
+  if (inLineComment)
+    throw new Error('Unterminated comment');
   return index;
 }
 
 export function singleQuoteString (str, index) {
-  let charCode = str.charCodeAt(index);
-  while (charCode !== 39/*'*/) {
-    charCode = str.charCodeAt(++index);
+  let charCode;
+  while (charCode = str.charCodeAt(index)) {
+    if (charCode === 39/*'*/)
+      return index;
     if (charCode === 92/*\*/)
-      charCode = str.charCodeAt(++index);
-    if (isBr(charCode))
+      index++;
+    else if (isBr(charCode))
       throw new Error('Unexpected newline');
+    index++;
   }
-  return index;
+  throw new Error('Unterminated string');
 }
 
 export function doubleQuoteString (str, index) {
-  let charCode = str.charCodeAt(index);
-  while (charCode !== 34/*"*/) {
-    charCode = str.charCodeAt(++index);
+  let charCode;
+  while (charCode = str.charCodeAt(index)) {
+    if (charCode === 34/*"*/)
+      return index;
     if (charCode === 92/*\*/)
-      charCode = str.charCodeAt(++index);
-    if (isBr(charCode))
+      index++;
+    else if (isBr(charCode))
       throw new Error('Unexpected newline');
+    index++;
   }
-  return index;
+  throw new Error('Unterminated string');
 }
 
 export function regexCharacterClass (str, index) {
-  let charCode = str.charCodeAt(index);
-  while (charCode !== 93/*]*/) {
-    charCode = str.charCodeAt(++index);
+  let charCode;
+  while (charCode = str.charCodeAt(index)) {
+    if (charCode === 93/*]*/)
+      return index;
     if (charCode === 92/*\*/)
-      charCode = str.charCodeAt(++index);
-    if (isBr(charCode))
+      index++;
+    else if (isBr(charCode))
       throw new Error('Unexpected newline');
+    index++;
   }
-  return index;
+  throw new Error('Unterminated regex');
 }
 
 export function regularExpression (str, index) {
-  let charCode = str.charCodeAt(index);
-  while (charCode !== 47/*/*/) {
-    charCode = str.charCodeAt(++index);
+  let charCode;
+  while (charCode = str.charCodeAt(index)) {
+    if (charCode === 47/*/*/)
+      return index;
     if (charCode === 91/*[*/)
       index = regexCharacterClass(str, index + 1);
     else if (charCode === 92/*\*/)
-      charCode = str.charCodeAt(++index);
-    if (isBr(charCode))
+      index++;
+    else if (isBr(charCode))
       throw new Error('Unexpected newline');
+    index++;
   }
-  return index + 1;
+  throw new Error('Unterminated regex');
 }
 
 export function readPrecedingKeyword (str, endIndex) {
   let startIndex = endIndex;
-  let nextChar = str.charCodeAt(startIndex - 1);
-  while (nextChar >= 97/*a*/ && nextChar <= 122/*z*/)
-    nextChar = str.charCodeAt(--startIndex - 1);
+  let nextChar = str.charCodeAt(startIndex);
+  while (nextChar && nextChar >= 97/*a*/ && nextChar <= 122/*z*/)
+    nextChar = str.charCodeAt(--startIndex);
   // must be preceded by punctuator or whitespace
-  if (isBr(nextChar) || isWs(nextChar) || nextChar === NaN || isPunctuator(nextChar))
-    return str.slice(startIndex, endIndex);
+  if (!nextChar || isBr(nextChar) || isWs(nextChar) || isPunctuator(nextChar))
+    return str.slice(startIndex + 1, endIndex + 1);
 }
 
 export function readToWsOrPunctuator (str, startIndex) {
@@ -145,7 +156,8 @@ function isPunctuator (charCode) {
   // 23 possible punctuator endings: !%&()*+,-./:;<=>?[]^{|~
   return charCode === 33 || charCode === 37 || charCode === 38 ||
     charCode > 39 && charCode < 48 || charCode > 57 && charCode < 64 ||
-    charCode === 91 || charCode === 93 || charCode === 94;
+    charCode === 91 || charCode === 93 || charCode === 94 ||
+    charCode === 123 || charCode === 124 || charCode === 126;
 }
 export function isExpressionPunctuator (charCode) {
   return charCode !== 93/*]*/ && charCode !== 41/*)*/ && isPunctuator(charCode);
@@ -160,13 +172,13 @@ export function isExpressionTerminator (str, lastTokenIndex) {
     case NaN:
       return true;
     case 62/*>*/:
-      return str.charCodeAt(lastTokenIndex - 1) === 63/*=*/;
+      return str.charCodeAt(lastTokenIndex - 1) === 61/*=*/;
     case 121/*y*/:
-      return str.slice(lastTokenIndex - 7, lastTokenIndex - 1) === 'finall';
+      return str.slice(lastTokenIndex - 6, lastTokenIndex) === 'finall';
     case 101/*e*/:
-      return str.slice(lastTokenIndex - 5, lastTokenIndex - 1) === 'whil';
+      return str.slice(lastTokenIndex - 4, lastTokenIndex) === 'whil';
     case 111/*o*/:
-      return str.charCodeAt(lastTokenIndex - 1) === 100/*o*/;
+      return str.charCodeAt(lastTokenIndex - 1) === 100/*d*/;
   }
   return false;
 }

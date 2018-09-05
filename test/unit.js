@@ -60,6 +60,90 @@ suite('Lexer', () => {
     assert.equal(exports[0], 'f');
   });
 
+  test('Bracket matching', () => {
+    analyzeModuleSyntax(`
+      acorn.plugins.dynamicImport = function () {
+        instance.extend('parseExprAtom', function (nextMethod) {
+          return function () {
+            function parseExprAtom(refDestructuringErrors) {
+              if (this.type === tt._import) {
+                return parseDynamicImport.call(this);
+              }
+              return nextMethod.call(this, refDestructuringErrors);
+            }
+      
+            return parseExprAtom;
+          }();
+        });
+      
+        return dynamicImportPlugin;
+      }();
+      export { a }
+    `);
+  });
+
+  test('Comments', () => {
+    const source = `
+      // '
+      /* / */
+      /*
+
+         * export { b }
+      \\*/ export { a }
+    `
+    const [imports, exports] = analyzeModuleSyntax(source);
+    assert.equal(imports.length, 0);
+    assert.equal(exports.length, 1);
+    assert.equal(exports[0], 'a');
+  });
+
+  test('Template strings', () => {
+    const source = `
+      \`
+        \${
+          import(\`test/\${ import(b)  }\`); /*
+              \`  }
+          */
+        }
+      \`
+      export { a }
+    `
+    const [imports, exports] = analyzeModuleSyntax(source);
+    assert.equal(imports.length, 2);
+    assert.notEqual(imports[0].d, -1);
+    assert.equal(source.slice(imports[0].s, imports[0].e), 'import');
+    assert.notEqual(imports[1].d, -1);
+    assert.equal(source.slice(imports[1].s, imports[1].e), 'import');
+    assert.equal(exports.length, 1);
+    assert.equal(exports[0], 'a');
+  });
+
+  test('Division / Regex ambiguity', () => {
+    const source = `
+      /as)df/; x();
+      a / 2; '  /  '
+      while (true)
+        /test'/
+      x-/a'/g
+      finally{}/a'/g
+      do{}/b'/g
+      =>{}/c'/g
+      (){}/d'export { b }/g
+      ;{}/e'/g; // TODO: can we make this semicolon unnecessary?
+      {}/f'/g
+      +{} /g -'/g'
+      ('a')/h -'/g'
+      if //x
+      ('a')/i'/g;
+      /asdf/ / /as'df/; // '
+      export { a };
+    `;
+    const [imports, exports] = analyzeModuleSyntax(source);
+    assert.equal(imports.length, 0);
+    assert.equal(exports.length, 1);
+    assert.equal(exports[0], 'a');
+  })
+
   // TODO pad out string, template (variable nesting), comment, etc cases tests
   // including division operator distinguishing of if (x) /as`df/ sort of thing
   /*

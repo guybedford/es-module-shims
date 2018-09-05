@@ -213,7 +213,7 @@ function getOrCreateLoad (url, source) {
         load.a = analyzeModuleSyntax(source);
       }
       catch (e) {
-        // importShim.error = [source, e];
+        importShim.e = [source, e];
         load.a = [[], []];
       }
       load.d = load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
@@ -225,7 +225,7 @@ function getOrCreateLoad (url, source) {
   load.dP = load.f.then(() => Promise.all(
     load.d.map(async depId => {
       const load = getOrCreateLoad(await resolve(depId, url));
-      await load.f
+      await load.f;
       return load;
     })
   ));
