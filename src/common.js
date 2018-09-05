@@ -1,5 +1,3 @@
-// Copied from SystemJS 2.0
-
 export const hasSelf = typeof self !== 'undefined';
 
 const envGlobal = hasSelf ? self : global;
