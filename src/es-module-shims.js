@@ -61,6 +61,9 @@ Object.defineProperty(self, 'importShim', { value: importShim });
 const meta = Object.create(null);
 Object.defineProperty(importShim, 'meta', { value: meta });
 
+const wasmModules = {};
+Object.defineProperty(importShim, 'wasmModules', { value: wasmModules });
+
 async function resolveDeps (load, seen) {
   seen[load.url] = true;
 
@@ -74,7 +77,7 @@ async function resolveDeps (load, seen) {
       if (!seen[depLoad.url])
         return resolveDeps(depLoad, seen);
     }));
-
+  
   if (!load.analysis[0].length) {
     resolvedSource = source;
   }
@@ -140,39 +143,85 @@ function getOrCreateLoad (url, source) {
   let load = registry[url];
   if (load)
     return load;
-  
-  const fetchPromise = source ? Promise.resolve(source) : fetch(url).then(res => res.text());
 
-  const depsPromise = async () => {
-    const source = await fetchPromise;
-    try {
-      load.analysis = analyzeModuleSyntax(source);
-    }
-    catch (e) {
-      importShim.error = [source, e];
-      load.analysis = [[], []];
-    }
-    load.deps = load.analysis[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
-    return Promise.all(
-      load.deps.map(async depId => {
-        const load = getOrCreateLoad(await resolve(depId, url));
-        await load.fetchPromise
-        return load;
-      })
-    );
-  };
-
-  return load = registry[url] = {
+  load = registry[url] = {
     url,
-    fetchPromise,
-    depsPromise: depsPromise(),
-    cycleDeps: undefined,
+    fetchPromise: undefined,
+    depsPromise: undefined,
     analysis: undefined,
     deps: undefined,
     blobUrl: undefined,
     shellUrl: undefined,
     shellDeps: undefined
   };
+
+  if (url.endsWith('.wasm')) {
+    load.fetchPromise = (async () => {
+      const res = await fetch(url);
+      const module = await WebAssembly.compileStreaming(res);
+
+      wasmModules[url] = module;
+      
+      if (WebAssembly.Module.imports)
+        load.deps = WebAssembly.Module.imports(module).map(impt => impt.module);
+      else
+        load.deps = [];
+
+      const aDeps = [];
+      load.analysis = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
+
+      const depStrs = load.deps.map(dep => JSON.stringify(dep));
+
+      let curIndex = 0;
+      return [
+        ...depStrs.map((depStr, idx) => {
+          const index = idx.toString();
+          const strStart = curIndex + 20 + index.length;
+          const strEnd = strStart + depStr.length - 2;
+          aDeps.push({
+            s: strStart,
+            e: strEnd,
+            d: -1
+          });
+          curIndex += strEnd + 3;
+          return `import * as m${index} from ${depStr};\n`
+        }),
+        `const module = importShim.wasmModules[${JSON.stringify(url)}];`,
+        `const exports = new WebAssembly.Instance(module, {`,
+        ...depStrs.map((depStr, idx) => `  ${depStr}: m${idx},`),
+        `}).exports;`,
+        ...load.analysis[1].map(exportName => `export const ${exportName} = exports.${exportName};`)
+      ].join('\n');
+    })();
+  }
+  else {
+    load.fetchPromise = (async () => {
+      if (!source) {
+        const res = await fetch(url);
+        source = await res.text();
+      }
+      try {
+        load.analysis = analyzeModuleSyntax(source);
+      }
+      catch (e) {
+        importShim.error = [source, e];
+        load.analysis = [[], []];
+      }
+      load.deps = load.analysis[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
+      
+      return source;
+    })();
+  }
+
+  load.depsPromise = load.fetchPromise.then(() => Promise.all(
+    load.deps.map(async depId => {
+      const load = getOrCreateLoad(await resolve(depId, url));
+      await load.fetchPromise
+      return load;
+    })
+  ));
+
+  return load;
 }
 
 let packageMapPromise, packageMapResolve;

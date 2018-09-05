@@ -54,6 +54,18 @@ Using this polyfill we can write:
 
 All modules are still loaded with the native browser module loader, just as Blob URLs, meaning there is minimal overhead to using a polyfill approach like this.
 
+### Web Assembly
+
+To load Web Assembly, just import it:
+
+```js
+import { fn } from './test.wasm';
+```
+
+Web Assembly imports are in turn supported.
+
+Package map support is provided both for mapping into Web Assembly URLs, as well as mapping import specifiers to JS or WebAssembly from within WASM.
+
 ## Technical Limitations
 
 ### Tokenizer Rewriting
@@ -68,6 +80,9 @@ All modules are still loaded with the native browser module loader, just as Blob
 * The package maps specification is under active development and will change, what is implemented is a faithful subset of the existing behaviour.
 * path_prefix in scopes is not supported.
 * Only flat scopes are supported.
+
+### Web Assembly
+* Exports are snapshotted on execution. Unexecuted circular dependencies will be snapshotted as empty imports. This matches the [current integration plans for Web Assembly](Web Assembly snapshots exports on execution).
 
 ## Inspiration
 

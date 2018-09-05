@@ -5,7 +5,8 @@
     "test": {
       "path": "/test",
       "main": "test.js"
-    }
+    },
+    "example": "/test/wasm/example.js"
   },
   "scopes": {
     "/": {
@@ -21,4 +22,8 @@
   console.log(test);
 </script>
 <script type="module-shim" src="/test/test-cycle.js"></script>
+<script type="module-shim">
+  import { exampleExport } from '/test/wasm/example.wasm';
+  console.log(exampleExport(1));
+</script>
 <script type="module" src="../src/es-module-shims.js"></script>
