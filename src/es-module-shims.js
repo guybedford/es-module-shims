@@ -17,7 +17,7 @@ catch (e) {
     self.addEventListener('error', e => errUrl = e.filename, err = e.error);
     dynamicImport = (blobUrl) => {
       const topLevelBlobUrl = createBlob(
-        `import * as m from '${load.blobUrl}'; self.importShim.lastModule = m;`
+        `import*as m from'${load.b}';self.importShim.lastModule=m;`
       );
   
       const s = document.createElement('script');
@@ -39,15 +39,15 @@ catch (e) {
     };
   }  
 }
-URL.revokeObjectURL(testBlob);
+// URL.revokeObjectURL(testBlob);
 
 async function topLevelLoad (url, source) {
   const load = await resolveDeps(getOrCreateLoad(url, source), {});
   return dynamicImport(
-    !load.shellUrl
-    ? load.blobUrl
+    !load.s
+    ? load.b
     // create a dummy head importer for top-level cycle import
-    : createBlob(renderShellExec(0, load.blobUrl, load.shellUrl) + ';\n')
+    : createBlob(renderShellExec(0, load.b, load.s))
   );
 }
 
@@ -59,26 +59,23 @@ async function importShim (id) {
 Object.defineProperty(self, 'importShim', { value: importShim });
 
 const meta = Object.create(null);
-Object.defineProperty(importShim, 'meta', { value: meta });
+Object.defineProperty(importShim, 'm', { value: meta });
 
 const wasmModules = {};
-Object.defineProperty(importShim, 'wasmModules', { value: wasmModules });
+Object.defineProperty(importShim, 'w', { value: wasmModules });
 
 async function resolveDeps (load, seen) {
-  seen[load.url] = true;
+  seen[load.u] = true;
 
-  const depLoads = await load.depsPromise;
+  const depLoads = await load.dP;
 
-  let source = await load.fetchPromise;
+  let source = await load.f;
   let resolvedSource;
 
   if (depLoads.length)
-    await Promise.all(depLoads.map(depLoad => {
-      if (!seen[depLoad.url])
-        return resolveDeps(depLoad, seen);
-    }));
+    await Promise.all(depLoads.map(depLoad => seen[depLoad.u] || resolveDeps(depLoad, seen)));
   
-  if (!load.analysis[0].length) {
+  if (!load.a[0].length) {
     resolvedSource = source;
   }
   else {
@@ -87,26 +84,34 @@ async function resolveDeps (load, seen) {
     let lastIndex = 0;
     resolvedSource = '';
     let depIndex = 0;
-    for (let i = 0; i < load.analysis[0].length; i++) {
-      const { s: start, e: end, d: dynamicImportIndex } = load.analysis[0][i];
+    for (let i = 0; i < load.a[0].length; i++) {
+      const { s: start, e: end, d: dynamicImportIndex } = load.a[0][i];
       // dependency source replacements
       if (dynamicImportIndex === -1) {
         const depLoad = depLoads[depIndex++];
-        let blobUrl = depLoad.blobUrl;
+        let blobUrl = depLoad.b;
         if (!blobUrl) {
           // circular shell creation
-          if (!(blobUrl = depLoad.shellUrl)) {
-            depLoad.shellDeps = [];
-            blobUrl = depLoad.shellUrl = createBlob(
-              `export let ${depLoad.analysis[1].join(',')};export function u$_(m){${depLoad.analysis[1].map(n => `${n}=m.${n}`).join(',')}}`
-            );
+          if (!(blobUrl = depLoad.s)) {
+            let hasDefault = false;
+            blobUrl = depLoad.s = createBlob(`
+              export function u$_(m){${
+                depLoad.a[1].map(
+                  n => name === 'default' ? `$_default=m.default` : `${n}=m.${n}`
+                ).join(',')
+              }}${
+                depLoad.a[1].map(name => 
+                  name === 'default' ? (hasDefault = true, `let $_default;export{$_default as default}`) : `export let ${name}`
+                ).join(';')
+              }
+            `);
           }
         }
         // circular shell execution
-        else if (depLoad.shellUrl) {
-          resolvedSource += source.slice(lastIndex, start) + blobUrl + source[end] + ';\n' + renderShellExec(depIndex, depLoad.blobUrl, depLoad.shellUrl);
+        else if (depLoad.s) {
+          resolvedSource += source.slice(lastIndex, start) + blobUrl + source[end] + ';\n' + renderShellExec(depIndex, depLoad.b, depLoad.s);
           lastIndex = end + 1;
-          depLoad.shellUrl = undefined;
+          depLoad.s = undefined;
           continue;
         }
         resolvedSource += source.slice(lastIndex, start) + blobUrl;
@@ -114,25 +119,25 @@ async function resolveDeps (load, seen) {
       }
       // import.meta
       else if (dynamicImportIndex === -2) {
-        meta[load.url] = { url: load.url };
-        resolvedSource += source.slice(lastIndex, start) + 'importShim.meta[' + JSON.stringify(load.url) + ']';
+        meta[load.u] = { url: load.u };
+        resolvedSource += source.slice(lastIndex, start) + 'importShim.m[' + JSON.stringify(load.u) + ']';
         lastIndex = end;
       }
       // dynamic import
       else {
-        resolvedSource += source.slice(lastIndex, start) + 'importShim' + source.slice(end, dynamicImportIndex) + JSON.stringify(load.url) + ', ';
+        resolvedSource += source.slice(lastIndex, start) + 'importShim' + source.slice(end, dynamicImportIndex) + JSON.stringify(load.u) + ', ';
         lastIndex = dynamicImportIndex;
       }
     }
     resolvedSource += source.slice(lastIndex);
   }
 
-  load.blobUrl = createBlob(resolvedSource);
+  load.b = createBlob(resolvedSource);
   return load;
 }
 function createBlob (source) {
   // TODO: test if it is faster to use combined string, or array of uncombined strings here
-  return URL.createObjectURL(new Blob([source], {type : 'application/javascript'}));
+  return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
 }
 function renderShellExec (index, blobUrl, shellUrl) {
   return `import * as m$_${index} from '${blobUrl}';
@@ -145,38 +150,43 @@ function getOrCreateLoad (url, source) {
     return load;
 
   load = registry[url] = {
-    url,
-    fetchPromise: undefined,
-    depsPromise: undefined,
-    analysis: undefined,
-    deps: undefined,
-    blobUrl: undefined,
-    shellUrl: undefined,
-    shellDeps: undefined
+    // url
+    u: url,
+    // fetchPromise
+    fP: undefined,
+    // depsPromise
+    dP: undefined,
+    // analysis
+    a: undefined,
+    // deps
+    d: undefined,
+    // blobUrl
+    b: undefined,
+    // shellUrl
+    s: undefined,
   };
 
   if (url.endsWith('.wasm')) {
-    load.fetchPromise = (async () => {
+    load.f = (async () => {
       const res = await fetch(url);
       const module = await WebAssembly.compileStreaming(res);
 
       wasmModules[url] = module;
       
       if (WebAssembly.Module.imports)
-        load.deps = WebAssembly.Module.imports(module).map(impt => impt.module);
+        load.d = WebAssembly.Module.imports(module).map(impt => impt.module);
       else
-        load.deps = [];
+        load.d = [];
 
       const aDeps = [];
-      load.analysis = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
+      load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
 
-      const depStrs = load.deps.map(dep => JSON.stringify(dep));
+      const depStrs = load.d.map(dep => JSON.stringify(dep));
 
       let curIndex = 0;
-      return [
-        ...depStrs.map((depStr, idx) => {
+      return depStrs.map((depStr, idx) => {
           const index = idx.toString();
-          const strStart = curIndex + 20 + index.length;
+          const strStart = curIndex + 17 + index.length;
           const strEnd = strStart + depStr.length - 2;
           aDeps.push({
             s: strStart,
@@ -184,39 +194,38 @@ function getOrCreateLoad (url, source) {
             d: -1
           });
           curIndex += strEnd + 3;
-          return `import * as m${index} from ${depStr};\n`
-        }),
-        `const module = importShim.wasmModules[${JSON.stringify(url)}];`,
-        `const exports = new WebAssembly.Instance(module, {`,
-        ...depStrs.map((depStr, idx) => `  ${depStr}: m${idx},`),
-        `}).exports;`,
-        ...load.analysis[1].map(exportName => `export const ${exportName} = exports.${exportName};`)
-      ].join('\n');
+          return `import*as m${index} from${depStr};`
+        }).join('') +
+        `const module=importShim.w[${JSON.stringify(url)}];` +
+        `const exports=new WebAssembly.Instance(module,{` +
+        depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
+        `}).exports;` +
+        load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';')
     })();
   }
   else {
-    load.fetchPromise = (async () => {
+    load.f = (async () => {
       if (!source) {
         const res = await fetch(url);
         source = await res.text();
       }
       try {
-        load.analysis = analyzeModuleSyntax(source);
+        load.a = analyzeModuleSyntax(source);
       }
       catch (e) {
-        importShim.error = [source, e];
-        load.analysis = [[], []];
+        // importShim.error = [source, e];
+        load.a = [[], []];
       }
-      load.deps = load.analysis[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
+      load.d = load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
       
       return source;
     })();
   }
 
-  load.depsPromise = load.fetchPromise.then(() => Promise.all(
-    load.deps.map(async depId => {
+  load.dP = load.f.then(() => Promise.all(
+    load.d.map(async depId => {
       const load = getOrCreateLoad(await resolve(depId, url));
-      await load.fetchPromise
+      await load.f
       return load;
     })
   ));
