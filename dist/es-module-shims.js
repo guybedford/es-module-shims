@@ -1,4 +1,4 @@
-/* ES Module Shims 0.1.0 */
+/* ES Module Shims 0.1.1 */
 (function () {
   'use strict';
 
@@ -195,94 +195,105 @@
     let charCode;
     let nextCharCode = str.charCodeAt(index);
     while (charCode = nextCharCode) {
-      nextCharCode = str.charCodeAt(++index);
+      nextCharCode = str.charCodeAt(index + 1);
       if (inLineComment) {
         if (isBr(charCode))
           inLineComment = false;
       }
       else if (inBlockComment) {
         if (charCode === 42/***/ && nextCharCode === 47/*/*/) {
-          nextCharCode = str.charCodeAt(++index);
+          nextCharCode = str.charCodeAt(++index + 1);
           inBlockComment = false;
         }
       }
       else {
         if (charCode === 47/*/*/) {
-          if (nextCharCode === '/') {
+          if (nextCharCode === 47/*/*/) {
             inLineComment = true;
           }
           else if (nextCharCode === 42/***/) {
             inBlockComment = true;
           }
-          else continue;
-          nextCharCode = str.charCodeAt(++index);
+          else return index;
+          nextCharCode = str.charCodeAt(++index + 1);
         }
         else if (!isWs(charCode) && !isBr(charCode)) {
-          return index - 1;
+          return index;
         }
       }
+      index++;
     }
+    if (inLineComment)
+      throw new Error('Unterminated comment');
     return index;
   }
 
   function singleQuoteString (str, index) {
-    let charCode = str.charCodeAt(index);
-    while (charCode !== 39/*'*/) {
-      charCode = str.charCodeAt(++index);
+    let charCode;
+    while (charCode = str.charCodeAt(index)) {
+      if (charCode === 39/*'*/)
+        return index;
       if (charCode === 92/*\*/)
-        charCode = str.charCodeAt(++index);
-      if (isBr(charCode))
+        index++;
+      else if (isBr(charCode))
         throw new Error('Unexpected newline');
+      index++;
     }
-    return index;
+    throw new Error('Unterminated string');
   }
 
   function doubleQuoteString (str, index) {
-    let charCode = str.charCodeAt(index);
-    while (charCode !== 34/*"*/) {
-      charCode = str.charCodeAt(++index);
+    let charCode;
+    while (charCode = str.charCodeAt(index)) {
+      if (charCode === 34/*"*/)
+        return index;
       if (charCode === 92/*\*/)
-        charCode = str.charCodeAt(++index);
-      if (isBr(charCode))
+        index++;
+      else if (isBr(charCode))
         throw new Error('Unexpected newline');
+      index++;
     }
-    return index;
+    throw new Error('Unterminated string');
   }
 
   function regexCharacterClass (str, index) {
-    let charCode = str.charCodeAt(index);
-    while (charCode !== 93/*]*/) {
-      charCode = str.charCodeAt(++index);
+    let charCode;
+    while (charCode = str.charCodeAt(index)) {
+      if (charCode === 93/*]*/)
+        return index;
       if (charCode === 92/*\*/)
-        charCode = str.charCodeAt(++index);
-      if (isBr(charCode))
+        index++;
+      else if (isBr(charCode))
         throw new Error('Unexpected newline');
+      index++;
     }
-    return index;
+    throw new Error('Unterminated regex');
   }
 
   function regularExpression (str, index) {
-    let charCode = str.charCodeAt(index);
-    while (charCode !== 47/*/*/) {
-      charCode = str.charCodeAt(++index);
+    let charCode;
+    while (charCode = str.charCodeAt(index)) {
+      if (charCode === 47/*/*/)
+        return index;
       if (charCode === 91/*[*/)
         index = regexCharacterClass(str, index + 1);
       else if (charCode === 92/*\*/)
-        charCode = str.charCodeAt(++index);
-      if (isBr(charCode))
+        index++;
+      else if (isBr(charCode))
         throw new Error('Unexpected newline');
+      index++;
     }
-    return index + 1;
+    throw new Error('Unterminated regex');
   }
 
   function readPrecedingKeyword (str, endIndex) {
     let startIndex = endIndex;
-    let nextChar = str.charCodeAt(startIndex - 1);
-    while (nextChar >= 97/*a*/ && nextChar <= 122/*z*/)
-      nextChar = str.charCodeAt(--startIndex - 1);
+    let nextChar = str.charCodeAt(startIndex);
+    while (nextChar && nextChar >= 97/*a*/ && nextChar <= 122/*z*/)
+      nextChar = str.charCodeAt(--startIndex);
     // must be preceded by punctuator or whitespace
-    if (isBr(nextChar) || isWs(nextChar) || nextChar === NaN || isPunctuator(nextChar))
-      return str.slice(startIndex, endIndex);
+    if (!nextChar || isBr(nextChar) || isWs(nextChar) || isPunctuator(nextChar))
+      return str.slice(startIndex + 1, endIndex + 1);
   }
 
   function readToWsOrPunctuator (str, startIndex) {
@@ -325,7 +336,8 @@
     // 23 possible punctuator endings: !%&()*+,-./:;<=>?[]^{|~
     return charCode === 33 || charCode === 37 || charCode === 38 ||
       charCode > 39 && charCode < 48 || charCode > 57 && charCode < 64 ||
-      charCode === 91 || charCode === 93 || charCode === 94;
+      charCode === 91 || charCode === 93 || charCode === 94 ||
+      charCode === 123 || charCode === 124 || charCode === 126;
   }
   function isExpressionPunctuator (charCode) {
     return charCode !== 93/*]*/ && charCode !== 41/*)*/ && isPunctuator(charCode);
@@ -340,13 +352,13 @@
       case NaN:
         return true;
       case 62/*>*/:
-        return str.charCodeAt(lastTokenIndex - 1) === 63/*=*/;
+        return str.charCodeAt(lastTokenIndex - 1) === 61/*=*/;
       case 121/*y*/:
-        return str.slice(lastTokenIndex - 7, lastTokenIndex - 1) === 'finall';
+        return str.slice(lastTokenIndex - 6, lastTokenIndex) === 'finall';
       case 101/*e*/:
-        return str.slice(lastTokenIndex - 5, lastTokenIndex - 1) === 'whil';
+        return str.slice(lastTokenIndex - 4, lastTokenIndex) === 'whil';
       case 111/*o*/:
-        return str.charCodeAt(lastTokenIndex - 1) === 100/*o*/;
+        return str.charCodeAt(lastTokenIndex - 1) === 100/*d*/;
     }
     return false;
   }
@@ -376,7 +388,7 @@
       }
       nextCharCode = str.charCodeAt(++i);
     }
-    throw new Error('Unterminated template string');
+    throw new Error('Unterminated string');
   }
 
   function base (str, index, state) {
@@ -390,16 +402,20 @@
       break;
       
       case 125/*}*/:
+        if (state.bD === 0)
+          throw new Error('Brace mismatch');
         if (state.bD-- === state.TS.i) {
           state.TS = state.TS.n;
           state.iT = true;
           break;
         }
         else if (state.bD < state.TS.i) {
-          throw new Error('Template variable brace mismatch');
+          throw new Error('Brace mismatch');
         }
       // fallthrough
       case 41/*)*/:
+        if (!state.tS)
+          throw new Error('Brace mismatch');
         state.otI = state.tS.i;
         state.tS = state.tS.n;
       break;
@@ -424,28 +440,32 @@
          * handles all known ambiguities
          */
         const lastTokenIndex = state.tI;
-        if (isExpressionKeyword(str, lastTokenIndex) ||
-            isExpressionPunctuator(str.charCodeAt(lastTokenIndex)) ||
-            lastTokenIndex === 41/*)*/ && isParenKeyword(str, state.otI) ||
-            lastTokenIndex === 125/*}*/ && isExpressionTerminator(str, state.otI))
+        const lastTokenCode = str.charCodeAt(lastTokenIndex);
+        if (!lastTokenCode ||
+            isExpressionKeyword(str, lastTokenIndex) ||
+            isExpressionPunctuator(lastTokenCode) ||
+            lastTokenCode === 41/*)*/ && isParenKeyword(str, state.otI) ||
+            lastTokenCode === 125/*}*/ && isExpressionTerminator(str, state.otI))
           i = regularExpression(str, i + 1);
+        
       }
       break;
 
       case 105/*i*/: {
         if (str.substr(i, 6) === 'import' && (readToWsOrPunctuator(str, i) === 'import' || str.charCodeAt(i + 6) === 46/*.*/)) {
           const start = i;
-          i = commentWhitespace(str, i + 6);
-          const charCode = str.charCodeAt(i);
+          const index = commentWhitespace(str, i + 6);
+          const charCode = str.charCodeAt(index);
           // dynamic import
           if (charCode === 40/*(*/) {
+            i = index;
             // dynamic import indicated by positive d
-            state.iS.push({ s: start, e: start + 6, d: i + 1 });
+            state.iS.push({ s: start, e: start + 6, d: index + 1 });
             state.tS = { i: state.tI, n: state.tS };
           }
           // import.meta
           else if (charCode === 46/*.*/) {
-            i = commentWhitespace(str, i + 1);
+            i = commentWhitespace(str, index + 1);
             // import.meta indicated by d === -2
             if (readToWsOrPunctuator(str, i) === 'meta')
               state.iS.push({ s: start, e: i + 4, d: -2 });
@@ -454,6 +474,7 @@
           else if (state.tS === null) {
             i = readSourceString(str, i, state);
           }
+          // important that we don't bump i for non-match
         }
       }
       break;
@@ -520,10 +541,15 @@
                   i = commentWhitespace(str, i + name.length);
                   charCode = str.charCodeAt(i);
                 }
+                // ,
+                if (charCode === 44) {
+                  i = commentWhitespace(str, i + 1);
+                  charCode = str.charCodeAt(i);
+                }
                 state.eN.push(name);
               } while (charCode && charCode !== 125/*}*/);
               if (!charCode)
-                throw new Error('Export brace mismatch.');
+                throw new Error('Brace mismatch');
             } 
             // fallthrough
 
@@ -559,6 +585,20 @@
     return i;
   }
 
+  function parse (str, state) {
+    const len = str.length;
+    let index = 0;
+    while (index < len)
+      // NB: see if it is an optimization to pass str.charCodeAt(index) as an arg
+      // TODO: regex optimization where possible
+      if (state.iT)
+        index = templateString(str, index, state);
+      else
+        index = base(str, index, state);
+    if (state.bD > 0 || state.TS.i !== -1 || state.iT || state.tS)
+      throw new Error('Brace mismatch');
+  }
+
   function analyzeModuleSyntax (str) {
     const state = {
       // inTemplate
@@ -580,17 +620,15 @@
       eN: []
     };
     
-    const len = str.length;
-    let index = 0;
-    while (index < len)
-      // NB: see if it is an optimization to pass str.charCodeAt(index) as an arg
-      // TODO: regex optimization where possible
-      if (state.iT)
-        index = templateString(str, index, state);
-      else
-        index = base(str, index, state);
+    let err = null;
+    try {
+      parse(str, state);
+    }
+    catch (e) {
+      err = e;
+    }
     
-    return [state.iS, state.eN];
+    return [state.iS, state.eN, err];
   }
 
   let id = 0;
@@ -804,7 +842,7 @@ u$_${index}(m$_${index})`;
           load.a = analyzeModuleSyntax(source);
         }
         catch (e) {
-          // importShim.error = [source, e];
+          importShim.e = [source, e];
           load.a = [[], []];
         }
         load.d = load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
