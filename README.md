@@ -11,7 +11,7 @@ This includes support for:
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
 * [Package Name Maps](https://github.com/domenic/package-name-maps) support.
-* Importing Web Assembly from the ".wasm" file extension.
+* Importing Web Assembly
 
 Because we are still using the native module loader the edge cases work out comprehensively, including:
 
