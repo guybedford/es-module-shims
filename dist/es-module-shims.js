@@ -179,52 +179,59 @@
   }
 
   // seeks through comments and multiline comments
-  function isWs (charCode) {
-    // Note there are even more than this - https://en.wikipedia.org/wiki/Whitespace_character#Unicode
-    return charCode === 32/* */ || charCode === 9/*\t*/ || charCode === 12/*\f*/ || charCode === 11/*\v*/ || charCode === 160/*\u00A0*/ || charCode === 65279/*\ufeff*/;
-  }
   function isBr (charCode) {
     // (8232 <LS> and 8233 <PS> omitted for now)
     return charCode === 10/*\n*/ || charCode === 13/*\r*/;
   }
 
+  function isBrOrWs (charCode) {
+    return charCode > 8 && charCode < 14 || charCode === 32 || charCode === 160 || charCode === 65279;
+  }
+
   // TODO: update to regex approach which should be faster
   function commentWhitespace (str, index) {
-    let inBlockComment = false;
-    let inLineComment = false;
     let charCode;
-    let nextCharCode = str.charCodeAt(index);
-    while (charCode = nextCharCode) {
-      nextCharCode = str.charCodeAt(index + 1);
-      if (inLineComment) {
-        if (isBr(charCode))
-          inLineComment = false;
-      }
-      else if (inBlockComment) {
-        if (charCode === 42/***/ && nextCharCode === 47/*/*/) {
-          nextCharCode = str.charCodeAt(++index + 1);
-          inBlockComment = false;
-        }
-      }
-      else {
-        if (charCode === 47/*/*/) {
-          if (nextCharCode === 47/*/*/) {
-            inLineComment = true;
-          }
-          else if (nextCharCode === 42/***/) {
-            inBlockComment = true;
-          }
-          else return index;
-          nextCharCode = str.charCodeAt(++index + 1);
-        }
-        else if (!isWs(charCode) && !isBr(charCode)) {
+    while (charCode = str.charCodeAt(index)) {
+      if (charCode === 47/*/*/) {
+        const nextCharCode = str.charCodeAt(index + 1);
+        if (nextCharCode === 47/*/*/)
+          index = lineComment(str, index + 2);
+        else if (nextCharCode === 42/***/)
+          index = blockComment(str, index + 2);
+        else
           return index;
-        }
+      }
+      else if (!isBrOrWs(charCode)) {
+        return index;
       }
       index++;
     }
-    if (inLineComment)
-      throw new Error('Unterminated comment');
+    return index;
+  }
+
+  function blockComment (str, index) {
+    let charCode = str.charCodeAt(index);
+    while (charCode) {
+      if (charCode === 42/***/) {
+        const nextCharCode = str.charCodeAt(++index);
+        if (nextCharCode === 47/*/*/)
+          return index;
+        charCode = nextCharCode;
+      }
+      else {
+        charCode = str.charCodeAt(++index);
+      }
+    }
+    return index;
+  }
+
+  function lineComment (str, index) {
+    let charCode;
+    while (charCode = str.charCodeAt(index)) {
+      if (isBr(charCode))
+        return index;
+      index++;
+    }
     return index;
   }
 
@@ -292,14 +299,14 @@
     while (nextChar && nextChar >= 97/*a*/ && nextChar <= 122/*z*/)
       nextChar = str.charCodeAt(--startIndex);
     // must be preceded by punctuator or whitespace
-    if (!nextChar || isBr(nextChar) || isWs(nextChar) || isPunctuator(nextChar))
+    if (!nextChar || isBrOrWs(nextChar) || isPunctuator(nextChar))
       return str.slice(startIndex + 1, endIndex + 1);
   }
 
   function readToWsOrPunctuator (str, startIndex) {
     let endIndex = startIndex;
     let nextChar = str.charCodeAt(endIndex);
-    while (nextChar && !isBr(nextChar) && !isWs(nextChar) && !isPunctuator(nextChar))
+    while (nextChar && !isBrOrWs(nextChar) && !isPunctuator(nextChar))
       nextChar = str.charCodeAt(++endIndex);
     return str.slice(startIndex, endIndex);
   }
@@ -597,6 +604,7 @@
         index = base(str, index, state);
     if (state.bD > 0 || state.TS.i !== -1 || state.iT || state.tS)
       throw new Error('Brace mismatch');
+    return state;
   }
 
   function analyzeModuleSyntax (str) {
@@ -619,7 +627,7 @@
       // exportNames
       eN: []
     };
-    
+
     let err = null;
     try {
       parse(str, state);
@@ -627,7 +635,6 @@
     catch (e) {
       err = e;
     }
-    
     return [state.iS, state.eN, err];
   }
 
@@ -723,8 +730,7 @@
           if (!blobUrl) {
             // circular shell creation
             if (!(blobUrl = depLoad.s)) {
-              blobUrl = depLoad.s = createBlob(`
-              export function u$_(m){${
+              blobUrl = depLoad.s = createBlob(`export function u$_(m){${
                 depLoad.a[1].map(
                   n => name === 'default' ? `$_default=m.default` : `${n}=m.${n}`
                 ).join(',')
@@ -732,8 +738,7 @@
                 depLoad.a[1].map(name => 
                   name === 'default' ? (`let $_default;export{$_default as default}`) : `export let ${name}`
                 ).join(';')
-              }
-            `);
+              }`);
             }
           }
           // circular shell execution
@@ -838,13 +843,9 @@ u$_${index}(m$_${index})`;
           const res = await fetch(url);
           source = await res.text();
         }
-        try {
-          load.a = analyzeModuleSyntax(source);
-        }
-        catch (e) {
-          importShim.e = [source, e];
-          load.a = [[], []];
-        }
+        load.a = analyzeModuleSyntax(source);
+        if (load.a[2])
+          importShim.e = [source, load.a[2]];
         load.d = load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
         
         return source;
