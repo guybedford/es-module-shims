@@ -13,114 +13,111 @@ export function isBrOrWs (charCode) {
 }
 
 // TODO: update to regex approach which should be faster
-export function commentWhitespace (str, index) {
+export function commentWhitespace (str, i) {
   let charCode;
-  while (charCode = str.charCodeAt(index)) {
+  while (charCode = str.charCodeAt(i)) {
     if (charCode === 47/*/*/) {
-      const nextCharCode = str.charCodeAt(index + 1);
+      const nextCharCode = str.charCodeAt(i + 1);
       if (nextCharCode === 47/*/*/)
-        index = lineComment(str, index + 2);
+        i = lineComment(str, i + 2);
       else if (nextCharCode === 42/***/)
-        index = blockComment(str, index + 2);
+        i = blockComment(str, i + 2);
       else
-        return index;
+        return i;
     }
     else if (!isBrOrWs(charCode)) {
-      return index;
+      return i;
     }
-    index++;
+    else {
+      i++;
+    }
   }
-  return index;
+  return i;
 }
 
-function blockComment (str, index) {
-  let charCode = str.charCodeAt(index);
+function blockComment (str, i) {
+  let charCode = str.charCodeAt(i++);
   while (charCode) {
     if (charCode === 42/***/) {
-      const nextCharCode = str.charCodeAt(++index);
+      const nextCharCode = str.charCodeAt(i++);
       if (nextCharCode === 47/*/*/)
-        return index;
+        return i;
       charCode = nextCharCode;
     }
     else {
-      charCode = str.charCodeAt(++index);
+      charCode = str.charCodeAt(i++);
     }
   }
-  return index;
+  return i;
 }
 
-function lineComment (str, index) {
+function lineComment (str, i) {
   let charCode;
-  while (charCode = str.charCodeAt(index)) {
+  while (charCode = str.charCodeAt(i++)) {
     if (isBr(charCode))
-      return index;
-    index++;
+      return i;
   }
-  return index;
+  return i;
 }
 
-export function singleQuoteString (str, index) {
+export function singleQuoteString (str, i) {
   let charCode;
-  while (charCode = str.charCodeAt(index)) {
+  while (charCode = str.charCodeAt(i++)) {
     if (charCode === 39/*'*/)
-      return index;
+      return i;
     if (charCode === 92/*\*/)
-      index++;
+      i++;
     else if (isBr(charCode))
-      throw new Error('Unexpected newline');
-    index++;
+      syntaxError();
   }
-  throw new Error('Unterminated string');
+  syntaxError();
 }
 
-export function doubleQuoteString (str, index) {
+export function doubleQuoteString (str, i) {
   let charCode;
-  while (charCode = str.charCodeAt(index)) {
+  while (charCode = str.charCodeAt(i++)) {
     if (charCode === 34/*"*/)
-      return index;
+      return i;
     if (charCode === 92/*\*/)
-      index++;
+      i++;
     else if (isBr(charCode))
-      throw new Error('Unexpected newline');
-    index++;
+      syntaxError();
   }
-  throw new Error('Unterminated string');
+  syntaxError();
 }
 
-export function regexCharacterClass (str, index) {
+export function regexCharacterClass (str, i) {
   let charCode;
-  while (charCode = str.charCodeAt(index)) {
+  while (charCode = str.charCodeAt(i++)) {
     if (charCode === 93/*]*/)
-      return index;
+      return i;
     if (charCode === 92/*\*/)
-      index++;
+      i++;
     else if (isBr(charCode))
-      throw new Error('Unexpected newline');
-    index++;
+      syntaxError();
   }
-  throw new Error('Unterminated regex');
+  syntaxError();
 }
 
-export function regularExpression (str, index) {
+export function regularExpression (str, i) {
   let charCode;
-  while (charCode = str.charCodeAt(index)) {
+  while (charCode = str.charCodeAt(i++)) {
     if (charCode === 47/*/*/)
-      return index;
+      return i;
     if (charCode === 91/*[*/)
-      index = regexCharacterClass(str, index + 1);
+      i = regexCharacterClass(str, i);
     else if (charCode === 92/*\*/)
-      index++;
+      i++;
     else if (isBr(charCode))
-      throw new Error('Unexpected newline');
-    index++;
+      syntaxError();
   }
-  throw new Error('Unterminated regex');
+  syntaxError();
 }
 
 export function readPrecedingKeyword (str, endIndex) {
   let startIndex = endIndex;
   let nextChar = str.charCodeAt(startIndex);
-  while (nextChar && nextChar >= 97/*a*/ && nextChar <= 122/*z*/)
+  while (nextChar && nextChar > 96/*a*/ && nextChar < 123/*z*/)
     nextChar = str.charCodeAt(--startIndex);
   // must be preceded by punctuator or whitespace
   if (!nextChar || isBrOrWs(nextChar) || isPunctuator(nextChar))
@@ -175,21 +172,25 @@ export function isExpressionPunctuator (charCode) {
 }
 export function isExpressionTerminator (str, lastTokenIndex) {
   // detects:
-  // ; ) -1 finally while do =>
+  // ; ) -1 finally while
   // as all of these followed by a { will indicate a statement brace
+  // in future we will need: "catch" (optional catch parameters)
+  //                         "do" (do expressions)
   switch (str.charCodeAt(lastTokenIndex)) {
     case 59/*;*/:
     case 41/*)*/:
     case NaN:
       return true;
-    case 62/*>*/:
-      return str.charCodeAt(lastTokenIndex - 1) === 61/*=*/;
     case 121/*y*/:
       return str.slice(lastTokenIndex - 6, lastTokenIndex) === 'finall';
     case 101/*e*/:
       return str.slice(lastTokenIndex - 4, lastTokenIndex) === 'whil';
-    case 111/*o*/:
-      return str.charCodeAt(lastTokenIndex - 1) === 100/*d*/;
   }
   return false;
+}
+
+export function syntaxError () {
+  // we just need the stack
+  // this isn't shown to users, only for diagnostics
+  throw new Error();
 }

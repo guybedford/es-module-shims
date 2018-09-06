@@ -135,16 +135,17 @@ suite('Lexer', () => {
         /test'/
       x-/a'/g
       finally{}/a'/g
-      do{}/b'/g
-      =>{}/c'/g
       (){}/d'export { b }/g
-      ;{}/e'/g; // TODO: can we make this semicolon unnecessary?
+      ;{}/e'/g;
       {}/f'/g
+      a / 'b' / c;
+      /a'/ - /b'/;
       +{} /g -'/g'
       ('a')/h -'/g'
       if //x
       ('a')/i'/g;
       /asdf/ / /as'df/; // '
+      \`\${/test/ + 5}\`
       export { a };
     `;
     const [imports, exports] = parse(source);
