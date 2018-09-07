@@ -1,21 +1,50 @@
-function templateString () {
-  while (charCode = str.charCodeAt(++i)) {
-    if (charCode === 92/*\*/) {
-      charCode = str.charCodeAt(++i);
-      continue;
-    }
-    else if (charCode === 36/*$*/) {
-      charCode = str.charCodeAt(++i);
-      if (charCode === 123/*{*/) {
-        templateStack = { i: ++braceDepth, n: templateStack };
-        return;
-      }
-    }
-    else if (charCode === 96/*`*/) {
-      return;
-    }
+export function analyzeModuleSyntax (_str) {
+  str = _str;
+  let err = null;
+  try {
+    baseParse();
   }
-  syntaxError();
+  catch (e) {
+    err = e;
+  }
+  return [oImports, oExports, err];
+}
+
+// State:
+// (for perf, works because this runs sync)
+let i, charCode, str;
+// lastTokenIndex
+let lastTokenIndex;
+// lastOpenTokenIndex
+let lastOpenTokenIndex;
+// lastTokenIndexStack
+// linked list of the form { i (item): index, n (next): nextInList }
+let lastTokenIndexStack = null;
+// braceDepth
+let braceDepth = 0;
+// templateStack
+let templateStack = { i: 0, n: null };
+// imports
+let oImports;
+// exports
+let oExports;
+
+function baseParse () {
+  lastTokenIndex = lastOpenTokenIndex = -1;
+  oImports = [];
+  oExports = [];
+  i = -1;
+  while (charCode = str.charCodeAt(++i)) {
+    // reads into the first non-ws / comment token
+    commentWhitespace();
+    // reads one token at a time
+    parseNext();
+    // stores the last (non ws/comment) token for division operator backtracking checks
+    // (including on lastTokenIndexStack as we nest structures)
+    lastTokenIndex = i;
+  }
+  if (braceDepth > 0 || templateStack.i !== 0 || lastTokenIndexStack)
+    syntaxError();
 }
 
 function parseNext () {
@@ -205,24 +234,32 @@ function parseNext () {
           commentWhitespace();
           if (str.slice(i, i += 4) === 'from')
             readSourceString();
-          return;
       }
     }
   }
 }
 
-// TODO: update to regex approach which should be faster
+
+/*
+ * Helper functions
+ */
+
+// seeks through comments and multiline comments
 function commentWhitespace () {
   do {
     if (charCode === 47/*/*/) {
-      charCode = str.charCodeAt(++i);
-      if (charCode === 47/*/*/)
+      const nextCharCode = str.charCodeAt(i + 1);
+      if (nextCharCode === 47/*/*/) {
+        charCode = nextCharCode;
+        i++;
         lineComment();
-      else if (charCode === 42/***/)
+      }
+      else if (nextCharCode === 42/***/) {
+        charCode = nextCharCode;
+        i++;
         blockComment();
+      }
       else {
-        charCode = 47;
-        i--;
         return;
       }
     }
@@ -230,7 +267,25 @@ function commentWhitespace () {
       return;
     }
   } while (charCode = str.charCodeAt(++i));
-  return;
+}
+
+function templateString () {
+  while (charCode = str.charCodeAt(++i)) {
+    if (charCode === 92/*\*/) {
+      charCode = str.charCodeAt(++i);
+    }
+    else if (charCode === 36/*$*/) {
+      charCode = str.charCodeAt(++i);
+      if (charCode === 123/*{*/) {
+        templateStack = { i: ++braceDepth, n: templateStack };
+        return;
+      }
+    }
+    else if (charCode === 96/*`*/) {
+      return;
+    }
+  }
+  syntaxError();
 }
 
 function readSourceString () {
@@ -252,61 +307,6 @@ function readSourceString () {
   syntaxError();
 }
 
-// State:
-// We are sync, so we can do this (for perf!)
-let i, charCode, str;
-// lastTokenIndex
-let lastTokenIndex;
-// lastOpenTokenIndex
-let lastOpenTokenIndex;
-// lastTokenIndexStack
-// linked list of the form { i (item): index, n (next): nextInList }
-let lastTokenIndexStack = null;
-// braceDepth
-let braceDepth = 0;
-// templateStack
-let templateStack = { i: 0, n: null };
-// imports
-let oImports;
-// exports
-let oExports;
-
-function baseParse () {
-  lastTokenIndex = lastOpenTokenIndex = -1;
-  oImports = [];
-  oExports = [];
-  i = -1;
-  while (charCode = str.charCodeAt(++i)) {
-    // reads into the first non-ws / comment token
-    commentWhitespace();
-    // reads one token at a time
-    parseNext();
-    // stores the last token for division operator backtracking checks
-    // (including on lastTokenIndexStack as we nest structures)
-    lastTokenIndex = i;
-  }
-  if (braceDepth > 0 || templateStack.i !== 0 || lastTokenIndexStack)
-    syntaxError();
-}
-
-export function analyzeModuleSyntax (_str) {
-  str = _str;
-  let err = null;
-  try {
-    baseParse();
-  }
-  catch (e) {
-    err = e;
-  }
-  return [oImports, oExports, err];
-}
-
-
-/*
- * Helper functions
- */
-
-// seeks through comments and multiline comments
 export function isWs () {
   // Note there are even more than this - https://en.wikipedia.org/wiki/Whitespace_character#Unicode
   return charCode === 32/* */ || charCode === 9/*\t*/ || charCode === 12/*\f*/ || charCode === 11/*\v*/ || charCode === 160/*\u00A0*/ || charCode === 65279/*\ufeff*/;
@@ -330,7 +330,6 @@ export function blockComment () {
     }
     charCode = str.charCodeAt(++i);
   }
-  return i;
 }
 
 export function lineComment () {
@@ -338,7 +337,6 @@ export function lineComment () {
     if (isBr(charCode))
       return;
   }
-  return;
 }
 
 export function singleQuoteString () {
@@ -397,8 +395,9 @@ export function readPrecedingKeyword (endIndex) {
   while (nextChar && nextChar > 96/*a*/ && nextChar < 123/*z*/)
     nextChar = str.charCodeAt(--startIndex);
   // must be preceded by punctuator or whitespace
-  if (!nextChar || isBrOrWs(nextChar) || isPunctuator(nextChar))
-    return str.slice(startIndex + 1, endIndex + 1);
+  if (nextChar && !isBrOrWs(nextChar) && !isPunctuator(nextChar))
+    return '';
+  return str.slice(startIndex + 1, endIndex + 1);
 }
 
 export function readToWsOrPunctuator (startIndex) {
@@ -426,16 +425,11 @@ const expressionKeywords = {
   await: 1
 };
 export function isExpressionKeyword (lastTokenIndex) {
-  const precedingKeyword = readPrecedingKeyword(lastTokenIndex);
-  return precedingKeyword && expressionKeywords[precedingKeyword];
+  return expressionKeywords[readPrecedingKeyword(lastTokenIndex)];
 }
 export function isParenKeyword  (lastTokenIndex) {
   const precedingKeyword = readPrecedingKeyword(lastTokenIndex);
-  return precedingKeyword && (
-    precedingKeyword === 'while' ||
-    precedingKeyword === 'for' ||
-    precedingKeyword === 'if'
-  );
+  return precedingKeyword === 'while' || precedingKeyword === 'for' || precedingKeyword === 'if';
 }
 function isPunctuator (charCode) {
   // 23 possible punctuator endings: !%&()*+,-./:;<=>?[]^{}|~
