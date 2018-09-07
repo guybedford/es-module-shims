@@ -40,16 +40,70 @@ function baseParse () {
   templateStack = [];
   lastTokenIndexStack = [];
   i = -1;
+
+  /*
+   * This is just the simple loop:
+   * 
+   * while (charCode = str.charCodeAt(++i)) {
+   *   // reads into the first non-ws / comment token
+   *   commentWhitespace();
+   *   // reads one token at a time
+   *   parseNext();
+   *   // stores the last (non ws/comment) token for division operator backtracking checks
+   *   // (including on lastTokenIndexStack as we nest structures)
+   *   lastTokenIndex = i;
+   * }
+   * 
+   * Optimized by:
+   * - Inlining comment whitespace to avoid repeated "/" checks (minor perf saving)
+   * - Inlining the division operator check from "parseNext" into this loop
+   * - Having "regularExpression()" start on the initial index (different to other parse functions)
+   */
   while (charCode = str.charCodeAt(++i)) {
     // reads into the first non-ws / comment token
-    commentWhitespace();
-    // reads one token at a time
-    parseNext();
-    // stores the last (non ws/comment) token for division operator backtracking checks
-    // (including on lastTokenIndexStack as we nest structures)
-    lastTokenIndex = i;
+    if (isBrOrWs(charCode))
+      continue;
+    if (charCode === 47/*/*/) {
+      charCode = str.charCodeAt(++i);
+      if (charCode === 47/*/*/)
+        lineComment();
+      else if (charCode === 42/***/)
+        blockComment();
+      else {
+        /*
+         * Division / regex ambiguity handling
+         * based on checking backtrack analysis of:
+         * - what token came previously (lastTokenIndex)
+         * - what token came before the opening paren or brace (lastOpenTokenIndex)
+         *
+         * Only known unhandled ambiguities are cases of regexes immediately followed
+         * by division, another regex or brace:
+         * 
+         * /regex/ / x
+         * 
+         * /regex/
+         * {}
+         * /regex/
+         * 
+         * And those cases only show errors when containing "'/` in the regex
+         * 
+         * Could be fixed tracking stack of last regex, but doesn't seem worth it, and bad for perf
+         */
+        const lastTokenCode = str.charCodeAt(lastTokenIndex);
+        if (!lastTokenCode || isExpressionKeyword(lastTokenIndex) ||
+            isExpressionPunctuator(lastTokenCode) ||
+            lastTokenCode === 41/*)*/ && isParenKeyword(lastOpenTokenIndex) ||
+            lastTokenCode === 125/*}*/ && isExpressionTerminator(lastOpenTokenIndex))
+          regularExpression();
+        lastTokenIndex = i;
+      }
+    }
+    else {
+      parseNext();
+      lastTokenIndex = i;
+    }
   }
-  if (braceDepth > 0 || templateStack.length !== 0 || lastTokenIndexStack.length)
+  if (braceDepth || templateDepth || lastTokenIndexStack.length)
     syntaxError();
 }
 
@@ -87,38 +141,6 @@ function parseNext () {
     case 96/*`*/:
       templateString();
       return;
-
-    case 47/*/*/: {
-      /*
-       * Division / regex ambiguity handling
-       * based on checking backtrack analysis of:
-       * - what token came previously (lastTokenIndex)
-       * - what token came before the opening paren or brace (lastOpenTokenIndex)
-       *
-       * Only known unhandled ambiguities are cases of regexes immediately followed
-       * by division, another regex or brace:
-       * 
-       * /regex/ / x
-       * 
-       * /regex/
-       * {}
-       * /regex/
-       * 
-       * And those cases only show errors when containing "'/` in the regex
-       * 
-       * Could be fixed tracking stack of last regex, but doesn't seem worth it, and bad for perf
-       */
-      const lastTokenCode = str.charCodeAt(lastTokenIndex);
-      if (!lastTokenCode || isExpressionKeyword(lastTokenIndex) ||
-          isExpressionPunctuator(lastTokenCode) ||
-          lastTokenCode === 41/*)*/ && isParenKeyword(lastOpenTokenIndex) ||
-          lastTokenCode === 125/*}*/ && isExpressionTerminator(lastOpenTokenIndex)) {
-        regularExpression();
-        return;
-      }
-      else
-        return;
-    }
 
     case 105/*i*/: {
       if (readPrecedingKeyword(i + 5) !== 'import' || readToWsOrPunctuator(i + 6) !== '' && str.charCodeAt(i + 6) !== 46/*.*/)
@@ -249,7 +271,7 @@ function parseNext () {
  * Helper functions
  */
 
-// seeks through comments and multiline comments
+// seeks through whitespace, comments and multiline comments
 function commentWhitespace () {
   do {
     if (charCode === 47/*/*/) {
@@ -276,10 +298,7 @@ function commentWhitespace () {
 
 function templateString () {
   while (charCode = str.charCodeAt(++i)) {
-    if (charCode === 92/*\*/) {
-      charCode = str.charCodeAt(++i);
-    }
-    else if (charCode === 36/*$*/) {
+    if (charCode === 36/*$*/) {
       charCode = str.charCodeAt(++i);
       if (charCode === 123/*{*/) {
         templateStack.push(templateDepth);
@@ -289,6 +308,9 @@ function templateString () {
     }
     else if (charCode === 96/*`*/) {
       return;
+    }
+    else if (charCode === 92/*\*/) {
+      charCode = str.charCodeAt(++i);
     }
   }
   syntaxError();
@@ -382,7 +404,7 @@ export function regexCharacterClass () {
 }
 
 export function regularExpression () {
-  while (charCode = str.charCodeAt(++i)) {
+  do {
     if (charCode === 47/*/*/)
       return;
     if (charCode === 91/*[*/)
@@ -391,7 +413,7 @@ export function regularExpression () {
       i++;
     else if (isBr(charCode))
       syntaxError();
-  }
+  } while (charCode = str.charCodeAt(++i));
   syntaxError();
 }
 
