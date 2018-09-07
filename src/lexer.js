@@ -19,11 +19,13 @@ let lastTokenIndex;
 let lastOpenTokenIndex;
 // lastTokenIndexStack
 // linked list of the form { i (item): index, n (next): nextInList }
-let lastTokenIndexStack = null;
+let lastTokenIndexStack;
 // braceDepth
-let braceDepth = 0;
+let braceDepth;
+// templateDepth
+let templateDepth;
 // templateStack
-let templateStack = { i: 0, n: null };
+let templateStack;
 // imports
 let oImports;
 // exports
@@ -33,6 +35,10 @@ function baseParse () {
   lastTokenIndex = lastOpenTokenIndex = -1;
   oImports = [];
   oExports = [];
+  braceDepth = 0;
+  templateDepth = 0;
+  templateStack = [];
+  lastTokenIndexStack = [];
   i = -1;
   while (charCode = str.charCodeAt(++i)) {
     // reads into the first non-ws / comment token
@@ -43,7 +49,7 @@ function baseParse () {
     // (including on lastTokenIndexStack as we nest structures)
     lastTokenIndex = i;
   }
-  if (braceDepth > 0 || templateStack.i !== 0 || lastTokenIndexStack)
+  if (braceDepth > 0 || templateStack.length !== 0 || lastTokenIndexStack.length)
     syntaxError();
 }
 
@@ -53,23 +59,22 @@ function parseNext () {
       braceDepth++;
     // fallthrough
     case 40/*(*/:
-      lastTokenIndexStack = { i: lastTokenIndex, n: lastTokenIndexStack };
+      lastTokenIndexStack.push(lastTokenIndex);
       return;
     
     case 125/*}*/:
-      if (braceDepth-- === templateStack.i) {
-        templateStack = templateStack.n;
+      if (braceDepth-- === templateDepth) {
+        templateDepth = templateStack.pop();
         templateString();
         return;
       }
-      if (braceDepth < templateStack.i)
+      if (braceDepth < templateDepth)
         syntaxError();
     // fallthrough
     case 41/*)*/:
       if (!lastTokenIndexStack)
         syntaxError();
-      lastOpenTokenIndex = lastTokenIndexStack.i;
-      lastTokenIndexStack = lastTokenIndexStack.n;
+      lastOpenTokenIndex = lastTokenIndexStack.pop();
       return;
 
     case 39/*'*/:
@@ -127,7 +132,7 @@ function parseNext () {
         // dynamic import
         case 40/*(*/:
           // dynamic import indicated by positive d
-          lastTokenIndexStack = { i: i + 5, n: lastTokenIndexStack };
+          lastTokenIndexStack.push(i + 5);
           oImports.push({ s: start, e: start + 6, d: index + 1 });
           return;
         // import.meta
@@ -139,14 +144,14 @@ function parseNext () {
           return;
       }
       // import statement (only permitted at base-level)
-      if (lastTokenIndexStack === null) {
+      if (lastTokenIndexStack.length === 0) {
         readSourceString();
         return;
       }
     }
     
     case 101/*e*/: {
-      if (lastTokenIndexStack !== null || readPrecedingKeyword(i + 5) !== 'export' || readToWsOrPunctuator(i + 6) !== '')
+      if (lastTokenIndexStack.length !== 0 || readPrecedingKeyword(i + 5) !== 'export' || readToWsOrPunctuator(i + 6) !== '')
         return;
       
       let name;
@@ -277,7 +282,8 @@ function templateString () {
     else if (charCode === 36/*$*/) {
       charCode = str.charCodeAt(++i);
       if (charCode === 123/*{*/) {
-        templateStack = { i: ++braceDepth, n: templateStack };
+        templateStack.push(templateDepth);
+        templateDepth = ++braceDepth;
         return;
       }
     }
