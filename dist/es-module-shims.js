@@ -1,4 +1,4 @@
-/* ES Module Shims 0.1.1 */
+/* ES Module Shims 0.1.2 */
 (function () {
   'use strict';
 
@@ -178,8 +178,309 @@
     };
   }
 
-  // seeks through comments and multiline comments
-  function isBr (charCode) {
+  function templateString () {
+    while (charCode = str.charCodeAt(++i)) {
+      if (charCode === 92/*\*/) {
+        charCode = str.charCodeAt(++i);
+        continue;
+      }
+      else if (charCode === 36/*$*/) {
+        charCode = str.charCodeAt(++i);
+        if (charCode === 123/*{*/) {
+          templateStack = { i: ++braceDepth, n: templateStack };
+          return;
+        }
+      }
+      else if (charCode === 96/*`*/) {
+        return;
+      }
+    }
+    syntaxError();
+  }
+
+  function parseNext () {
+    switch (charCode) {
+      case 123/*{*/:
+        braceDepth++;
+      // fallthrough
+      case 40/*(*/:
+        lastTokenIndexStack = { i: lastTokenIndex, n: lastTokenIndexStack };
+        return;
+      
+      case 125/*}*/:
+        if (braceDepth-- === templateStack.i) {
+          templateStack = templateStack.n;
+          templateString();
+          return;
+        }
+        if (braceDepth < templateStack.i)
+          syntaxError();
+      // fallthrough
+      case 41/*)*/:
+        if (!lastTokenIndexStack)
+          syntaxError();
+        lastOpenTokenIndex = lastTokenIndexStack.i;
+        lastTokenIndexStack = lastTokenIndexStack.n;
+        return;
+
+      case 39/*'*/:
+        singleQuoteString();
+        return;
+      case 34/*"*/:
+        doubleQuoteString();
+        return;
+
+      case 96/*`*/:
+        templateString();
+        return;
+
+      case 47/*/*/: {
+        /*
+         * Division / regex ambiguity handling
+         * based on checking backtrack analysis of:
+         * - what token came previously (lastTokenIndex)
+         * - what token came before the opening paren or brace (lastOpenTokenIndex)
+         *
+         * Only known unhandled ambiguities are cases of regexes immediately followed
+         * by division, another regex or brace:
+         * 
+         * /regex/ / x
+         * 
+         * /regex/
+         * {}
+         * /regex/
+         * 
+         * And those cases only show errors when containing "'/` in the regex
+         * 
+         * Could be fixed tracking stack of last regex, but doesn't seem worth it, and bad for perf
+         */
+        const lastTokenCode = str.charCodeAt(lastTokenIndex);
+        if (!lastTokenCode || isExpressionKeyword(lastTokenIndex) ||
+            isExpressionPunctuator(lastTokenCode) ||
+            lastTokenCode === 41/*)*/ && isParenKeyword(lastOpenTokenIndex) ||
+            lastTokenCode === 125/*}*/ && isExpressionTerminator(lastOpenTokenIndex)) {
+          regularExpression();
+          return;
+        }
+        else
+          return;
+      }
+
+      case 105/*i*/: {
+        if (readPrecedingKeyword(i + 5) !== 'import' || readToWsOrPunctuator(i + 6) !== '' && str.charCodeAt(i + 6) !== 46/*.*/)
+          return;
+        
+        const start = i;
+        charCode = str.charCodeAt(i += 6);
+        commentWhitespace();
+        const index = i;
+        switch (charCode) {
+          // dynamic import
+          case 40/*(*/:
+            // dynamic import indicated by positive d
+            lastTokenIndexStack = { i: i + 5, n: lastTokenIndexStack };
+            oImports.push({ s: start, e: start + 6, d: index + 1 });
+            return;
+          // import.meta
+          case 46/*.*/:
+            commentWhitespace();
+            // import.meta indicated by d === -2
+            if (readToWsOrPunctuator(i + 1) === 'meta')
+              oImports.push({ s: start, e: i + 5, d: -2 });
+            return;
+        }
+        // import statement (only permitted at base-level)
+        if (lastTokenIndexStack === null) {
+          readSourceString();
+          return;
+        }
+      }
+      
+      case 101/*e*/: {
+        if (lastTokenIndexStack !== null || readPrecedingKeyword(i + 5) !== 'export' || readToWsOrPunctuator(i + 6) !== '')
+          return;
+        
+        let name;
+        charCode = str.charCodeAt(i += 6);
+        commentWhitespace();
+        switch (charCode) {
+          // export default ...
+          case 100/*d*/:
+            oExports.push('default');
+            return;
+
+          // export async? function*? name () {
+          case 97/*a*/:
+            charCode = str.charCodeAt(i += 5);
+            commentWhitespace();
+          // fallthrough
+          case 102/*f*/:
+            charCode = str.charCodeAt(i += 8);
+            commentWhitespace();
+            if (charCode === 42/***/)
+              commentWhitespace();
+            oExports.push(readToWsOrPunctuator(i));
+            return;
+
+          case 99/*c*/:
+            if (readToWsOrPunctuator(i) === 'class') {
+              charCode = str.charCodeAt(i += 5);
+              commentWhitespace();
+              oExports.push(readToWsOrPunctuator(i));
+              return;
+            }
+            i += 2;
+          // fallthrough
+
+          // export var/let/const name = ...(, name = ...)+
+          case 118/*v*/:
+          case 108/*l*/:
+            /*
+             * destructured initializations not currently supported (skipped for { or [)
+             * also, lexing names after variable equals is skipped (export var p = function () { ... }, q = 5 skips "q")
+             */
+            do {
+              charCode = str.charCodeAt(i += 3);
+              commentWhitespace();
+              name = readToWsOrPunctuator(i);
+              // stops on [ { destructurings
+              if (!name.length)
+                return;
+              oExports.push(name);
+              charCode = str.charCodeAt(i += name.length);
+              commentWhitespace();
+            } while (charCode === 44/*,*/);
+            return;
+
+          // export {...}
+          case 123/*{*/:
+            charCode = str.charCodeAt(++i);
+            commentWhitespace();
+            do {
+              name = readToWsOrPunctuator(i);
+              charCode = str.charCodeAt(i += name.length);
+              commentWhitespace();
+              // as
+              if (charCode === 97/*a*/) {
+                charCode = str.charCodeAt(i += 2);
+                commentWhitespace();
+                name = readToWsOrPunctuator(i);
+                charCode = str.charCodeAt(i += name.length);
+                commentWhitespace();
+              }
+              // ,
+              if (charCode === 44) {
+                charCode = str.charCodeAt(++i);
+                commentWhitespace();
+              }
+              oExports.push(name);
+              if (!charCode)
+                syntaxError();
+            } while (charCode !== 125/*}*/);
+          // fallthrough
+
+          // export *
+          case 42/***/:
+            charCode = str.charCodeAt(++i);
+            commentWhitespace();
+            if (str.slice(i, i += 4) === 'from')
+              readSourceString();
+            return;
+        }
+      }
+    }
+  }
+
+  // TODO: update to regex approach which should be faster
+  function commentWhitespace () {
+    do {
+      if (charCode === 47/*/*/) {
+        charCode = str.charCodeAt(++i);
+        if (charCode === 47/*/*/)
+          lineComment();
+        else if (charCode === 42/***/)
+          blockComment();
+        else {
+          charCode = 47;
+          i--;
+          return;
+        }
+      }
+      else if (!isBrOrWs(charCode)) {
+        return;
+      }
+    } while (charCode = str.charCodeAt(++i));
+    return;
+  }
+
+  function readSourceString () {
+    let start;
+    do {
+      if (charCode === 39/*'*/) {
+        start = i + 1;
+        singleQuoteString();
+        oImports.push({ s: start, e: i, d: -1 });
+        return;
+      }
+      if (charCode === 34/*"*/) {
+        start = i + 1;
+        doubleQuoteString();
+        oImports.push({ s: start, e: i, d: -1 });
+        return;
+      }
+    } while (charCode = str.charCodeAt(++i))
+    syntaxError();
+  }
+
+  // State:
+  // We are sync, so we can do this (for perf!)
+  let i, charCode, str;
+  // lastTokenIndex
+  let lastTokenIndex;
+  // lastOpenTokenIndex
+  let lastOpenTokenIndex;
+  // lastTokenIndexStack
+  // linked list of the form { i (item): index, n (next): nextInList }
+  let lastTokenIndexStack = null;
+  // braceDepth
+  let braceDepth = 0;
+  // templateStack
+  let templateStack = { i: 0, n: null };
+  // imports
+  let oImports;
+  // exports
+  let oExports;
+
+  function baseParse () {
+    lastTokenIndex = lastOpenTokenIndex = -1;
+    oImports = [];
+    oExports = [];
+    i = -1;
+    while (charCode = str.charCodeAt(++i)) {
+      // reads into the first non-ws / comment token
+      commentWhitespace();
+      // reads one token at a time
+      parseNext();
+      // stores the last token for division operator backtracking checks
+      // (including on lastTokenIndexStack as we nest structures)
+      lastTokenIndex = i;
+    }
+    if (braceDepth > 0 || templateStack.i !== 0 || lastTokenIndexStack)
+      syntaxError();
+  }
+
+  function analyzeModuleSyntax (_str) {
+    str = _str;
+    let err = null;
+    try {
+      baseParse();
+    }
+    catch (e) {
+      err = e;
+    }
+    return [oImports, oExports, err];
+  }
+  function isBr () {
     // (8232 <LS> and 8233 <PS> omitted for now)
     return charCode === 10/*\n*/ || charCode === 13/*\r*/;
   }
@@ -188,122 +489,88 @@
     return charCode > 8 && charCode < 14 || charCode === 32 || charCode === 160 || charCode === 65279;
   }
 
-  // TODO: update to regex approach which should be faster
-  function commentWhitespace (str, index) {
-    let charCode;
-    while (charCode = str.charCodeAt(index)) {
-      if (charCode === 47/*/*/) {
-        const nextCharCode = str.charCodeAt(index + 1);
-        if (nextCharCode === 47/*/*/)
-          index = lineComment(str, index + 2);
-        else if (nextCharCode === 42/***/)
-          index = blockComment(str, index + 2);
-        else
-          return index;
-      }
-      else if (!isBrOrWs(charCode)) {
-        return index;
-      }
-      index++;
-    }
-    return index;
-  }
-
-  function blockComment (str, index) {
-    let charCode = str.charCodeAt(index);
+  function blockComment () {
+    charCode = str.charCodeAt(++i);
     while (charCode) {
       if (charCode === 42/***/) {
-        const nextCharCode = str.charCodeAt(++index);
-        if (nextCharCode === 47/*/*/)
-          return index;
-        charCode = nextCharCode;
+        charCode = str.charCodeAt(++i);
+        if (charCode === 47/*/*/)
+          return;
       }
-      else {
-        charCode = str.charCodeAt(++index);
-      }
+      charCode = str.charCodeAt(++i);
     }
-    return index;
+    return i;
   }
 
-  function lineComment (str, index) {
-    let charCode;
-    while (charCode = str.charCodeAt(index)) {
+  function lineComment () {
+    while (charCode = str.charCodeAt(++i)) {
       if (isBr(charCode))
-        return index;
-      index++;
+        return;
     }
-    return index;
+    return;
   }
 
-  function singleQuoteString (str, index) {
-    let charCode;
-    while (charCode = str.charCodeAt(index)) {
+  function singleQuoteString () {
+    while (charCode = str.charCodeAt(++i)) {
       if (charCode === 39/*'*/)
-        return index;
+        return;
       if (charCode === 92/*\*/)
-        index++;
+        i++;
       else if (isBr(charCode))
-        throw new Error('Unexpected newline');
-      index++;
+        syntaxError();
     }
-    throw new Error('Unterminated string');
+    syntaxError();
   }
 
-  function doubleQuoteString (str, index) {
-    let charCode;
-    while (charCode = str.charCodeAt(index)) {
+  function doubleQuoteString () {
+    while (charCode = str.charCodeAt(++i)) {
       if (charCode === 34/*"*/)
-        return index;
+        return;
       if (charCode === 92/*\*/)
-        index++;
+        i++;
       else if (isBr(charCode))
-        throw new Error('Unexpected newline');
-      index++;
+        syntaxError();
     }
-    throw new Error('Unterminated string');
+    syntaxError();
   }
 
-  function regexCharacterClass (str, index) {
-    let charCode;
-    while (charCode = str.charCodeAt(index)) {
+  function regexCharacterClass () {
+    while (charCode = str.charCodeAt(++i)) {
       if (charCode === 93/*]*/)
-        return index;
+        return;
       if (charCode === 92/*\*/)
-        index++;
+        i++;
       else if (isBr(charCode))
-        throw new Error('Unexpected newline');
-      index++;
+        syntaxError();
     }
-    throw new Error('Unterminated regex');
+    syntaxError();
   }
 
-  function regularExpression (str, index) {
-    let charCode;
-    while (charCode = str.charCodeAt(index)) {
+  function regularExpression () {
+    while (charCode = str.charCodeAt(++i)) {
       if (charCode === 47/*/*/)
-        return index;
+        return;
       if (charCode === 91/*[*/)
-        index = regexCharacterClass(str, index + 1);
+        regexCharacterClass();
       else if (charCode === 92/*\*/)
-        index++;
+        i++;
       else if (isBr(charCode))
-        throw new Error('Unexpected newline');
-      index++;
+        syntaxError();
     }
-    throw new Error('Unterminated regex');
+    syntaxError();
   }
 
-  function readPrecedingKeyword (str, endIndex) {
+  function readPrecedingKeyword (endIndex) {
     let startIndex = endIndex;
     let nextChar = str.charCodeAt(startIndex);
-    while (nextChar && nextChar >= 97/*a*/ && nextChar <= 122/*z*/)
+    while (nextChar && nextChar > 96/*a*/ && nextChar < 123/*z*/)
       nextChar = str.charCodeAt(--startIndex);
     // must be preceded by punctuator or whitespace
     if (!nextChar || isBrOrWs(nextChar) || isPunctuator(nextChar))
       return str.slice(startIndex + 1, endIndex + 1);
   }
 
-  function readToWsOrPunctuator (str, startIndex) {
+  function readToWsOrPunctuator (startIndex) {
     let endIndex = startIndex;
     let nextChar = str.charCodeAt(endIndex);
     while (nextChar && !isBrOrWs(nextChar) && !isPunctuator(nextChar))
@@ -327,12 +594,12 @@
     yield: 1,
     await: 1
   };
-  function isExpressionKeyword (str, lastTokenIndex) {
-    const precedingKeyword = readPrecedingKeyword(str, lastTokenIndex);
+  function isExpressionKeyword (lastTokenIndex) {
+    const precedingKeyword = readPrecedingKeyword(lastTokenIndex);
     return precedingKeyword && expressionKeywords[precedingKeyword];
   }
-  function isParenKeyword  (str, lastTokenIndex) {
-    const precedingKeyword = readPrecedingKeyword(str, lastTokenIndex);
+  function isParenKeyword  (lastTokenIndex) {
+    const precedingKeyword = readPrecedingKeyword(lastTokenIndex);
     return precedingKeyword && (
       precedingKeyword === 'while' ||
       precedingKeyword === 'for' ||
@@ -340,302 +607,38 @@
     );
   }
   function isPunctuator (charCode) {
-    // 23 possible punctuator endings: !%&()*+,-./:;<=>?[]^{|~
+    // 23 possible punctuator endings: !%&()*+,-./:;<=>?[]^{}|~
     return charCode === 33 || charCode === 37 || charCode === 38 ||
       charCode > 39 && charCode < 48 || charCode > 57 && charCode < 64 ||
       charCode === 91 || charCode === 93 || charCode === 94 ||
-      charCode === 123 || charCode === 124 || charCode === 126;
+      charCode > 122 && charCode < 127;
   }
   function isExpressionPunctuator (charCode) {
-    return charCode !== 93/*]*/ && charCode !== 41/*)*/ && isPunctuator(charCode);
+    return isPunctuator(charCode) && charCode !== 93/*]*/ && charCode !== 41/*)*/ && charCode !== 125/*}*/;
   }
-  function isExpressionTerminator (str, lastTokenIndex) {
+  function isExpressionTerminator (lastTokenIndex) {
     // detects:
-    // ; ) -1 finally while do =>
+    // ; ) -1 finally while
     // as all of these followed by a { will indicate a statement brace
+    // in future we will need: "catch" (optional catch parameters)
+    //                         "do" (do expressions)
     switch (str.charCodeAt(lastTokenIndex)) {
       case 59/*;*/:
       case 41/*)*/:
       case NaN:
         return true;
-      case 62/*>*/:
-        return str.charCodeAt(lastTokenIndex - 1) === 61/*=*/;
       case 121/*y*/:
         return str.slice(lastTokenIndex - 6, lastTokenIndex) === 'finall';
       case 101/*e*/:
         return str.slice(lastTokenIndex - 4, lastTokenIndex) === 'whil';
-      case 111/*o*/:
-        return str.charCodeAt(lastTokenIndex - 1) === 100/*d*/;
     }
     return false;
   }
 
-  function templateString (str, i, state) {
-    let charCode;
-    let nextCharCode = str.charCodeAt(i);
-    while (charCode = nextCharCode) {
-      if (charCode === 92/*\*/) {
-        i += 2;
-        nextCharCode = str.charCodeAt(i);
-        continue;
-      }
-      else if (charCode === 36/*$*/) {
-        nextCharCode = str.charCodeAt(++i);
-        if (nextCharCode === 123/*{*/) {
-          state.TS = { i: ++state.bD, n: state.TS };
-          state.iT = false;
-          state.tI = i;
-          return i + 1;
-        }
-      }
-      else if (charCode === 96/*`*/) {
-        state.iT = false;
-        state.tI = i;
-        return i + 1;
-      }
-      nextCharCode = str.charCodeAt(++i);
-    }
-    throw new Error('Unterminated string');
-  }
-
-  function base (str, index, state) {
-    let i = commentWhitespace(str, index, state);
-    switch (str.charCodeAt(i)) {
-      case 123/*{*/:
-        state.bD++;
-      // fallthrough
-      case 40/*(*/:
-        state.tS = { i: state.tI, n: state.tS };
-      break;
-      
-      case 125/*}*/:
-        if (state.bD === 0)
-          throw new Error('Brace mismatch');
-        if (state.bD-- === state.TS.i) {
-          state.TS = state.TS.n;
-          state.iT = true;
-          break;
-        }
-        else if (state.bD < state.TS.i) {
-          throw new Error('Brace mismatch');
-        }
-      // fallthrough
-      case 41/*)*/:
-        if (!state.tS)
-          throw new Error('Brace mismatch');
-        state.otI = state.tS.i;
-        state.tS = state.tS.n;
-      break;
-
-      case 39/*'*/:
-        i = singleQuoteString(str, i + 1);
-      break;
-      case 34/*"*/:
-        i = doubleQuoteString(str, i + 1);
-      break;
-
-      case 96/*`*/:
-        state.iT = true;
-      break;
-
-      case 47/*/*/: {
-        /*
-         * Division / regex ambiguity handling
-         * based on checking backtrack analysis of:
-         * - what token came previously (state.tI)
-         * - what token came before the opening paren or brace (state.otI)
-         * handles all known ambiguities
-         */
-        const lastTokenIndex = state.tI;
-        const lastTokenCode = str.charCodeAt(lastTokenIndex);
-        if (!lastTokenCode ||
-            isExpressionKeyword(str, lastTokenIndex) ||
-            isExpressionPunctuator(lastTokenCode) ||
-            lastTokenCode === 41/*)*/ && isParenKeyword(str, state.otI) ||
-            lastTokenCode === 125/*}*/ && isExpressionTerminator(str, state.otI))
-          i = regularExpression(str, i + 1);
-        
-      }
-      break;
-
-      case 105/*i*/: {
-        if (str.substr(i, 6) === 'import' && (readToWsOrPunctuator(str, i) === 'import' || str.charCodeAt(i + 6) === 46/*.*/)) {
-          const start = i;
-          const index = commentWhitespace(str, i + 6);
-          const charCode = str.charCodeAt(index);
-          // dynamic import
-          if (charCode === 40/*(*/) {
-            i = index;
-            // dynamic import indicated by positive d
-            state.iS.push({ s: start, e: start + 6, d: index + 1 });
-            state.tS = { i: state.tI, n: state.tS };
-          }
-          // import.meta
-          else if (charCode === 46/*.*/) {
-            i = commentWhitespace(str, index + 1);
-            // import.meta indicated by d === -2
-            if (readToWsOrPunctuator(str, i) === 'meta')
-              state.iS.push({ s: start, e: i + 4, d: -2 });
-          }
-          // import statement (only permitted at base-level)
-          else if (state.tS === null) {
-            i = readSourceString(str, i, state);
-          }
-          // important that we don't bump i for non-match
-        }
-      }
-      break;
-      case 101/*e*/: {
-        if (state.tS === null && readToWsOrPunctuator(str, i) === 'export') {
-          i = commentWhitespace(str, i + 6);
-          switch (str.charCodeAt(i)) {
-            // export default ...
-            case 100/*d*/:
-              state.eN.push('default');
-            break;
-
-            // export async? function*? name () {
-            case 97/*a*/:
-              i = commentWhitespace(str, i + 5);
-            // fallthrough
-            case 102/*f*/:
-              i = commentWhitespace(str, i + 8);
-              if (str.charCodeAt(i) === 42/***/)
-                i = commentWhitespace(str, i + 1);
-              state.eN.push(readToWsOrPunctuator(str, i));
-            break;
-
-            case 99/*c*/:
-              if (readToWsOrPunctuator(str, i) === 'class') {
-                i = commentWhitespace(str, i + 5);
-                state.eN.push(readToWsOrPunctuator(str, i));
-                break;
-              }
-              i += 2;
-            // fallthrough
-
-            // export var/let/const name = ...(, name = ...)+
-            case 118/*v*/:
-            case 108/*l*/:
-              /*
-               * destructured initializations not currently supported (skipped for { or [)
-               * also, lexing names after variable equals is skipped (export var p = function () { ... }, q = 5 skips "q")
-               */
-              i += 3;
-              do {
-                i = commentWhitespace(str, i);
-                const name = readToWsOrPunctuator(str, i);
-                // stops on [ { destructurings
-                if (!name.length)
-                  break;
-                state.eN.push(name);
-                i = commentWhitespace(str, i + name.length);
-              } while (str.charCodeAt(i) === 44/*,*/);
-            break;
-
-            // export {...}
-            case 123/*{*/: {
-              let name, charCode;
-              i = commentWhitespace(str, i + 1);
-              do {
-                name = readToWsOrPunctuator(str, i);
-                i = commentWhitespace(str, i + name.length);
-                charCode = str.charCodeAt(i);
-                // as
-                if (charCode === 97/*a*/) {
-                  i = commentWhitespace(str, i + 2);
-                  name = readToWsOrPunctuator(str, i);
-                  i = commentWhitespace(str, i + name.length);
-                  charCode = str.charCodeAt(i);
-                }
-                // ,
-                if (charCode === 44) {
-                  i = commentWhitespace(str, i + 1);
-                  charCode = str.charCodeAt(i);
-                }
-                state.eN.push(name);
-              } while (charCode && charCode !== 125/*}*/);
-              if (!charCode)
-                throw new Error('Brace mismatch');
-            } 
-            // fallthrough
-
-            // export *
-            case 42/***/:
-              i = commentWhitespace(str, i + 1);
-              if (str.slice(i, i + 4) === 'from')
-                i = readSourceString(str, i + 4, state);
-          }
-        }
-      }
-      break;
-    }
-    state.tI = i;
-    return i + 1;
-  }
-
-  function readSourceString (str, i, state) {
-    let charCode, start;
-    while (charCode = str.charCodeAt(i)) {
-      if (charCode === 39/*'*/) {
-        i = singleQuoteString(str, start = i + 1);
-        state.iS.push({ s: start, e: i, d: -1 });
-        break;
-      }
-      if (charCode === 34/*"*/) {
-        i = doubleQuoteString(str, start = i + 1);
-        state.iS.push({ s: start, e: i, d: -1 });
-        break;
-      }
-      i++;
-    }
-    return i;
-  }
-
-  function parse (str, state) {
-    const len = str.length;
-    let index = 0;
-    while (index < len)
-      // NB: see if it is an optimization to pass str.charCodeAt(index) as an arg
-      // TODO: regex optimization where possible
-      if (state.iT)
-        index = templateString(str, index, state);
-      else
-        index = base(str, index, state);
-    if (state.bD > 0 || state.TS.i !== -1 || state.iT || state.tS)
-      throw new Error('Brace mismatch');
-    return state;
-  }
-
-  function analyzeModuleSyntax (str) {
-    const state = {
-      // inTemplate
-      iT: false,
-      // lastTokenIndex
-      tI: -1,
-      // lastOpenTokenIndex
-      otI: -1,
-      // lastTokenIndexStack
-      // linked list of the form { i (item): index, n (next): nextInList }
-      tS: null,
-      // braceDepth
-      bD: 0,
-      // templateStack
-      TS: { i: -1, n: null },
-      // importSources
-      iS: [],
-      // exportNames
-      eN: []
-    };
-
-    let err = null;
-    try {
-      parse(str, state);
-    }
-    catch (e) {
-      err = e;
-    }
-    return [state.iS, state.eN, err];
+  function syntaxError () {
+    // we just need the stack
+    // this isn't shown to users, only for diagnostics
+    throw new Error();
   }
 
   let id = 0;
