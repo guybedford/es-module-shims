@@ -12,24 +12,15 @@ export function analyzeModuleSyntax (_str) {
 
 // State:
 // (for perf, works because this runs sync)
-let i, charCode, str;
-// lastTokenIndex
-let lastTokenIndex;
-// lastOpenTokenIndex
-let lastOpenTokenIndex;
-// lastTokenIndexStack
-// linked list of the form { i (item): index, n (next): nextInList }
-let lastTokenIndexStack;
-// braceDepth
-let braceDepth;
-// templateDepth
-let templateDepth;
-// templateStack
-let templateStack;
-// imports
-let oImports;
-// exports
-let oExports;
+let i, charCode, str,
+  lastTokenIndex,
+  lastOpenTokenIndex,
+  lastTokenIndexStack,
+  braceDepth,
+  templateDepth,
+  templateStack,
+  oImports,
+  oExports;
 
 function baseParse () {
   lastTokenIndex = lastOpenTokenIndex = -1;
@@ -94,6 +85,13 @@ function baseParse () {
             isExpressionPunctuator(lastTokenCode) ||
             lastTokenCode === 41/*)*/ && isParenKeyword(lastOpenTokenIndex) ||
             lastTokenCode === 125/*}*/ && isExpressionTerminator(lastOpenTokenIndex))
+          // TODO: perf improvement
+          // it may be possible to precompute isParenKeyword and isExpressionTerminator checks
+          // when they are added to the token stack, not here
+          // this way we only need to store a stack of "regexTokenDepthStack" and "regexTokenDepth"
+          // where depth is the combined brace and paren depth count
+          // when leaving a brace or paren, this stack would be cleared automatically (if a match)
+          // this check then becomes curDepth === regexTokenDepth for the lastTokenCode )|} case
           regularExpression();
         lastTokenIndex = i;
       }
@@ -113,6 +111,7 @@ function parseNext () {
       braceDepth++;
     // fallthrough
     case 40/*(*/:
+      
       lastTokenIndexStack.push(lastTokenIndex);
       return;
     
@@ -471,7 +470,7 @@ export function isExpressionPunctuator (charCode) {
 }
 export function isExpressionTerminator (lastTokenIndex) {
   // detects:
-  // ; ) -1 finally while
+  // ; ) -1 finally
   // as all of these followed by a { will indicate a statement brace
   // in future we will need: "catch" (optional catch parameters)
   //                         "do" (do expressions)
@@ -481,9 +480,7 @@ export function isExpressionTerminator (lastTokenIndex) {
     case NaN:
       return true;
     case 121/*y*/:
-      return str.slice(lastTokenIndex - 6, lastTokenIndex) === 'finall';
-    case 101/*e*/:
-      return str.slice(lastTokenIndex - 4, lastTokenIndex) === 'whil';
+      return readPrecedingKeyword(lastTokenIndex) === 'finally';
   }
   return false;
 }
