@@ -140,6 +140,9 @@ suite('Lexer', () => {
       ('a')/i'/g;
       /asdf/ / /as'df/; // '
       \`\${/test/ + 5}\`
+      function () {
+        return /*asdf8*// 5/;
+      }
       export { a };
     `;
     const [imports, exports] = parse(source);
