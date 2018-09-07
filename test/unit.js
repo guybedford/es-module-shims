@@ -67,28 +67,6 @@ suite('Lexer', () => {
     assert.equal(exports[0], 'f');
   });
 
-  test('Bracket matching', () => {
-    parse(`
-      acorn.plugins.dynamicImport = function () {
-        instance.extend('parseExprAtom', function (nextMethod) {
-          return function () {
-            function parseExprAtom(refDestructuringErrors) {
-              if (this.type === tt._import) {
-                return parseDynamicImport.call(this);
-              }
-              return nextMethod.call(this, refDestructuringErrors);
-            }
-      
-            return parseExprAtom;
-          }();
-        });
-      
-        return dynamicImportPlugin;
-      }();
-      export { a }
-    `);
-  });
-
   test('Comments', () => {
     const source = `
       /**/
@@ -97,7 +75,7 @@ suite('Lexer', () => {
       /*
 
          * export { b }
-      \\*/ export { a }
+      \\*/export { a }
     `
     const [imports, exports] = parse(source);
     assert.equal(imports.length, 0);
@@ -110,7 +88,7 @@ suite('Lexer', () => {
       "";
       \`
         \${
-          import(\`test/\${ import(b)  }\`); /*
+          import(\`test/\${ import(b)}\`); /*
               \`  }
           */
         }
@@ -125,6 +103,22 @@ suite('Lexer', () => {
     assert.equal(source.slice(imports[1].s, imports[1].e), 'import');
     assert.equal(exports.length, 1);
     assert.equal(exports[0], 'a');
+  });
+
+  test('Bracket matching', () => {
+    parse(`
+      instance.extend('parseExprAtom', function (nextMethod) {
+        return function () {
+          function parseExprAtom(refDestructuringErrors) {
+            if (this.type === tt._import) {
+              return parseDynamicImport.call(this);
+            }
+            return c(refDestructuringErrors);
+          }
+        }();
+      });
+      export { a }
+    `);
   });
 
   test('Division / Regex ambiguity', () => {

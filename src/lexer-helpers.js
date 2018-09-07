@@ -12,30 +12,7 @@ export function isBrOrWs (charCode) {
   return charCode > 8 && charCode < 14 || charCode === 32 || charCode === 160 || charCode === 65279;
 }
 
-// TODO: update to regex approach which should be faster
-export function commentWhitespace (str, i) {
-  let charCode;
-  while (charCode = str.charCodeAt(i)) {
-    if (charCode === 47/*/*/) {
-      const nextCharCode = str.charCodeAt(i + 1);
-      if (nextCharCode === 47/*/*/)
-        i = lineComment(str, i + 2);
-      else if (nextCharCode === 42/***/)
-        i = blockComment(str, i + 2);
-      else
-        return i;
-    }
-    else if (!isBrOrWs(charCode)) {
-      return i;
-    }
-    else {
-      i++;
-    }
-  }
-  return i;
-}
-
-function blockComment (str, i) {
+export function blockComment (str, i) {
   let charCode = str.charCodeAt(i++);
   while (charCode) {
     if (charCode === 42/***/) {
@@ -51,7 +28,7 @@ function blockComment (str, i) {
   return i;
 }
 
-function lineComment (str, i) {
+export function lineComment (str, i) {
   let charCode;
   while (charCode = str.charCodeAt(i++)) {
     if (isBr(charCode))
