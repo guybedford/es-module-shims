@@ -11,14 +11,10 @@ try {
 }
 catch (e) {
   if (typeof document !== 'undefined') {
-    let err;
-    self.addEventListener('error', e => {
-      err = e.error;
-      setTimeout(() => err = undefined);
-    });
+    self.addEventListener('error', e => importShim.e = e.error);
     dynamicImport = (blobUrl) => {
       const topLevelBlobUrl = createBlob(
-        `import*as m from'${blobUrl}';self.importShim.lastModule=m;`
+        `import*as m from'${blobUrl}';self.importShim.l=m;self.importShim.e=null`
       );
   
       const s = document.createElement('script');
@@ -27,22 +23,33 @@ catch (e) {
       document.head.appendChild(s);
       return new Promise((resolve, reject) => {
         s.addEventListener('load', () => {
-          if (err)
-            return reject(err);
           document.head.removeChild(s);
-          resolve(importShim.lastModule);
+          if (importShim.e)
+            return reject(importShim.e);
+          resolve(importShim.l);
         });
       });
     };
   }  
 }
 
+async function loadAll (load, loaded) {
+  if (load.b || loaded[load.u])
+    return;
+  loaded[load.u] = true;
+  await load.L;
+  await Promise.all(load.d.map(dep => loadAll(dep, loaded)));
+}
+
 async function topLevelLoad (url, source) {
-  const load = await resolveDeps(getOrCreateLoad(url, source), {});
-  // create a dummy head importer for top-level cycle import
+  const load = getOrCreateLoad(url, source);
+  await loadAll(load, {});
+  resolveDeps(load, {});
+  const module = await dynamicImport(load.b);
+  // if the top-level load is a shell, run its update function
   if (load.s)
-    load.b = createBlob(renderShellExec(0, load.b, load.s));
-  return dynamicImport(load.b);
+    (await dynamicImport(load.s)).u$_(module);
+  return module;
 }
 
 async function importShim (id) {
@@ -50,26 +57,29 @@ async function importShim (id) {
   return topLevelLoad(await resolve(id, parentUrl));
 }
 
-Object.defineProperty(self, 'importShim', { value: importShim });
+self.importShim = importShim;
 
 const meta = Object.create(null);
-Object.defineProperty(importShim, 'm', { value: meta });
-
 const wasmModules = {};
-Object.defineProperty(importShim, 'w', { value: wasmModules });
+
+Object.defineProperties(importShim, {
+  m: { value: meta },
+  w: { value: wasmModules },
+  l: { value: undefined },
+  e: { value: undefined }
+});
 
 async function resolveDeps (load, seen) {
   if (load.b)
-    return load;
+    return;
   seen[load.u] = true;
 
-  const depLoads = await load.dP;
-
-  let source = await load.f;
+  let source = load.S;
   let resolvedSource;
 
-  if (depLoads.length)
-    await Promise.all(depLoads.map(depLoad => seen[depLoad.u] || resolveDeps(depLoad, seen)));
+  for (const depLoad of load.d)
+    if (!seen[depLoad.u])
+      resolveDeps(depLoad, seen);
   
   if (!load.a[0].length) {
     resolvedSource = source;
@@ -84,7 +94,7 @@ async function resolveDeps (load, seen) {
       const { s: start, e: end, d: dynamicImportIndex } = load.a[0][i];
       // dependency source replacements
       if (dynamicImportIndex === -1) {
-        const depLoad = depLoads[depIndex++];
+        const depLoad = load.d[depIndex++];
         let blobUrl = depLoad.b;
         if (!blobUrl) {
           // circular shell creation
@@ -103,7 +113,7 @@ async function resolveDeps (load, seen) {
         }
         // circular shell execution
         else if (depLoad.s) {
-          resolvedSource += source.slice(lastIndex, start) + blobUrl + source[end] + ';\n' + renderShellExec(depIndex, depLoad.b, depLoad.s);
+          resolvedSource += source.slice(lastIndex, start) + blobUrl + source[end] + `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
           lastIndex = end + 1;
           depLoad.s = undefined;
           continue;
@@ -127,17 +137,10 @@ async function resolveDeps (load, seen) {
   }
 
   load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.u);
-  return load;
+  load.S = undefined;
 }
-function createBlob (source) {
-  // TODO: test if it is faster to use combined string, or array of uncombined strings here
-  return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
-}
-function renderShellExec (index, blobUrl, shellUrl) {
-  return `import * as m$_${index} from '${blobUrl}';
-import { u$_ as u$_${index} } from '${shellUrl}';
-u$_${index}(m$_${index})`;
-}
+const createBlob = source => URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+
 function getOrCreateLoad (url, source) {
   let load = registry[url];
   if (load)
@@ -147,9 +150,11 @@ function getOrCreateLoad (url, source) {
     // url
     u: url,
     // fetchPromise
-    fP: undefined,
-    // depsPromise
-    dP: undefined,
+    f: undefined,
+    // source
+    S: undefined,
+    // linkPromise
+    L: undefined,
     // analysis
     a: undefined,
     // deps
@@ -166,19 +171,16 @@ function getOrCreateLoad (url, source) {
       const module = await WebAssembly.compileStreaming(res);
 
       wasmModules[url] = module;
-      
-      if (WebAssembly.Module.imports)
-        load.d = WebAssembly.Module.imports(module).map(impt => impt.module);
-      else
-        load.d = [];
+
+      let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
 
       const aDeps = [];
       load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
 
-      const depStrs = load.d.map(dep => JSON.stringify(dep));
+      const depStrs = deps.map(dep => JSON.stringify(dep));
 
       let curIndex = 0;
-      return depStrs.map((depStr, idx) => {
+      load.S = depStrs.map((depStr, idx) => {
           const index = idx.toString();
           const strStart = curIndex + 17 + index.length;
           const strEnd = strStart + depStr.length - 2;
@@ -190,11 +192,12 @@ function getOrCreateLoad (url, source) {
           curIndex += strEnd + 3;
           return `import*as m${index} from${depStr};`
         }).join('') +
-        `const module=importShim.w[${JSON.stringify(url)}];` +
-        `const exports=new WebAssembly.Instance(module,{` +
+        `const module=importShim.w[${JSON.stringify(url)}],exports=new WebAssembly.Instance(module,{` +
         depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
         `}).exports;` +
-        load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';')
+        load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
+
+      return deps;
     })();
   }
   else {
@@ -207,20 +210,19 @@ function getOrCreateLoad (url, source) {
       }
       load.a = analyzeModuleSyntax(source);
       if (load.a[2])
-        importShim.e = [source, load.a[2]];
-      load.d = load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
-      
-      return source;
+        importShim.err = [source, load.a[2]];
+      load.S = source;
+      return load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
     })();
   }
 
-  load.dP = load.f.then(() => Promise.all(
-    load.d.map(async depId => {
+  load.L = load.f.then(async deps => {
+    load.d = await Promise.all(deps.map(async depId => {
       const load = getOrCreateLoad(await resolve(depId, url));
       await load.f;
       return load;
-    })
-  ));
+    }));
+  });
 
   return load;
 }
@@ -256,12 +258,12 @@ if (typeof document !== 'undefined') {
 
   for (let i = 0; i < scripts.length; i++) {
     const script = scripts[i];
-    if (script.type === 'module-shim') {
-      if (script.src)
-        topLevelLoad(script.src);
-      else
-        topLevelLoad(`${pageBaseUrl}anon-${id++}`, script.innerHTML);
-    }
+    if (script.type !== 'module-shim')
+      continue;
+    if (script.src)
+      topLevelLoad(script.src);
+    else
+      topLevelLoad(`${pageBaseUrl}anon-${id++}`, script.innerHTML);
   }
 }
 
