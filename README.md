@@ -54,6 +54,17 @@ Using this polyfill we can write:
 
 All modules are still loaded with the native browser module loader, just as Blob URLs, meaning there is minimal overhead to using a polyfill approach like this.
 
+### Dynamic Import
+
+Dynamic `import(...)` within any modules loaded will be rewritten as `importShim(...)` automatically
+providing full support for all es-module-shims features through dynamic import.
+
+To load code dynamically (say from the browser console), `importShim` can be called similarly:
+
+```js
+importShim('/path/to/module.js').then(x => console.log(x));
+```
+
 ### Web Assembly
 
 To load Web Assembly, just import it:

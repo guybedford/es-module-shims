@@ -6,18 +6,19 @@ const registry = {};
 
 // support browsers without dynamic import support (eg Firefox 6x)
 let dynamicImport;
-const testBlob = createBlob('');
 try {
-  import(testBlob);
-  dynamicImport = id => import(id);
+  dynamicImport = (0, eval)('u=>import(u)');
 }
 catch (e) {
   if (typeof document !== 'undefined') {
-    let errUrl, err;
-    self.addEventListener('error', e => errUrl = e.filename, err = e.error);
+    let err;
+    self.addEventListener('error', e => {
+      err = e.error;
+      setTimeout(() => err = undefined);
+    });
     dynamicImport = (blobUrl) => {
       const topLevelBlobUrl = createBlob(
-        `import*as m from'${load.b}';self.importShim.lastModule=m;`
+        `import*as m from'${blobUrl}';self.importShim.lastModule=m;`
       );
   
       const s = document.createElement('script');
@@ -25,30 +26,23 @@ catch (e) {
       s.src = topLevelBlobUrl;
       document.head.appendChild(s);
       return new Promise((resolve, reject) => {
-        document.addEventListener(s, 'load', () => {
-          if (errUrl === blobUrl)
+        s.addEventListener('load', () => {
+          if (err)
             return reject(err);
-          document.removeChild(s);
+          document.head.removeChild(s);
           resolve(importShim.lastModule);
-        });
-        document.addEventListener(s, 'error', e => {
-          document.removeChild(s);
-          reject(e);
         });
       });
     };
   }  
 }
-// URL.revokeObjectURL(testBlob);
 
 async function topLevelLoad (url, source) {
   const load = await resolveDeps(getOrCreateLoad(url, source), {});
-  return dynamicImport(
-    !load.s
-    ? load.b
-    // create a dummy head importer for top-level cycle import
-    : createBlob(renderShellExec(0, load.b, load.s))
-  );
+  // create a dummy head importer for top-level cycle import
+  if (load.s)
+    load.b = createBlob(renderShellExec(0, load.b, load.s));
+  return dynamicImport(load.b);
 }
 
 async function importShim (id) {
@@ -65,6 +59,8 @@ const wasmModules = {};
 Object.defineProperty(importShim, 'w', { value: wasmModules });
 
 async function resolveDeps (load, seen) {
+  if (load.b)
+    return load;
   seen[load.u] = true;
 
   const depLoads = await load.dP;
@@ -130,7 +126,7 @@ async function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  load.b = createBlob(resolvedSource);
+  load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.u);
   return load;
 }
 function createBlob (source) {
@@ -205,6 +201,8 @@ function getOrCreateLoad (url, source) {
     load.f = (async () => {
       if (!source) {
         const res = await fetch(url);
+        if (!res.ok)
+          throw new Error(`${res.status} ${res.statusText} ${res.url}`);
         source = await res.text();
       }
       load.a = analyzeModuleSyntax(source);

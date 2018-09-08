@@ -1,5 +1,5 @@
 export function f () {
-  console.log('f of test circular 1');
+  return 'f';
 }
 
 export { g } from './test-circular2.js';
