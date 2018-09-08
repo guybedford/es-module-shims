@@ -12,7 +12,7 @@ try {
 catch (e) {
   if (typeof document !== 'undefined') {
     self.addEventListener('error', e => importShim.e = e.error);
-    dynamicImport = (blobUrl) => {
+    dynamicImport = blobUrl => {
       const topLevelBlobUrl = createBlob(
         `import*as m from'${blobUrl}';self.importShim.l=m;self.importShim.e=null`
       );
@@ -59,14 +59,14 @@ async function importShim (id) {
 
 self.importShim = importShim;
 
-const meta = Object.create(null);
+const meta = {};
 const wasmModules = {};
 
 Object.defineProperties(importShim, {
   m: { value: meta },
   w: { value: wasmModules },
-  l: { value: undefined },
-  e: { value: undefined }
+  l: { value: undefined, writable: true },
+  e: { value: undefined, writable: true }
 });
 
 async function resolveDeps (load, seen) {
@@ -165,56 +165,51 @@ function getOrCreateLoad (url, source) {
     s: undefined,
   };
 
-  if (url.endsWith('.wasm')) {
-    load.f = (async () => {
+  load.f = (async () => {
+    if (!source) {
       const res = await fetch(url);
-      const module = await WebAssembly.compileStreaming(res);
+      if (!res.ok)
+        throw new Error(`${res.status} ${res.statusText} ${res.url}`);
 
-      wasmModules[url] = module;
-
-      let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
-
-      const aDeps = [];
-      load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
-
-      const depStrs = deps.map(dep => JSON.stringify(dep));
-
-      let curIndex = 0;
-      load.S = depStrs.map((depStr, idx) => {
-          const index = idx.toString();
-          const strStart = curIndex + 17 + index.length;
-          const strEnd = strStart + depStr.length - 2;
-          aDeps.push({
-            s: strStart,
-            e: strEnd,
-            d: -1
-          });
-          curIndex += strEnd + 3;
-          return `import*as m${index} from${depStr};`
-        }).join('') +
-        `const module=importShim.w[${JSON.stringify(url)}],exports=new WebAssembly.Instance(module,{` +
-        depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
-        `}).exports;` +
-        load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
-
-      return deps;
-    })();
-  }
-  else {
-    load.f = (async () => {
-      if (!source) {
-        const res = await fetch(url);
-        if (!res.ok)
-          throw new Error(`${res.status} ${res.statusText} ${res.url}`);
-        source = await res.text();
+      if (res.url.endsWith('.wasm')) {
+        const module = wasmModules[url] = await WebAssembly.compileStreaming(res);
+    
+        let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
+    
+        const aDeps = [];
+        load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
+    
+        const depStrs = deps.map(dep => JSON.stringify(dep));
+    
+        let curIndex = 0;
+        load.S = depStrs.map((depStr, idx) => {
+            const index = idx.toString();
+            const strStart = curIndex + 17 + index.length;
+            const strEnd = strStart + depStr.length - 2;
+            aDeps.push({
+              s: strStart,
+              e: strEnd,
+              d: -1
+            });
+            curIndex += strEnd + 3;
+            return `import*as m${index} from${depStr};`
+          }).join('') +
+          `const module=importShim.w[${JSON.stringify(url)}],exports=new WebAssembly.Instance(module,{` +
+          depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
+          `}).exports;` +
+          load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
+    
+        return deps;    
       }
-      load.a = analyzeModuleSyntax(source);
-      if (load.a[2])
-        importShim.err = [source, load.a[2]];
-      load.S = source;
-      return load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
-    })();
-  }
+
+      source = await res.text();
+    }
+    load.a = analyzeModuleSyntax(source);
+    if (load.a[2])
+      importShim.err = [source, load.a[2]];
+    load.S = source;
+    return load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
+  })();
 
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
@@ -232,38 +227,25 @@ if (typeof document !== 'undefined') {
   const scripts = document.getElementsByTagName('script');
   for (let i = 0; i < scripts.length; i++) {
     const script = scripts[i];
-    if (script.type !== 'packagemap-shim')
-      continue;
-    if (packageMapResolve)
-      break;
-    if (!script.src) {
-      packageMapResolve = createPackageMap(JSON.parse(script.innerHTML), pageBaseUrl);
-      packageMapPromise = Promise.resolve();
+    if (script.type === 'packagemap-shim' && !packageMapPromise) {
+      if (script.src) {
+        packageMapPromise = (async function () {
+          packageMapResolve = createPackageMap(await (await fetch(script.src)).json(), script.src);
+          packageMapPromise = undefined;
+        })();
+      }
+      else {
+        packageMapPromise = Promise.resolve();
+        packageMapResolve = createPackageMap(JSON.parse(script.innerHTML), pageBaseUrl);
+      }
     }
-    else
-      packageMapPromise = (async function () {
-        const res = await fetch(script.src);
-        try {
-          const json = await res.json();
-          packageMapResolve = createPackageMap(json, script.src);
-          packageMapPromise = undefined;
-        }
-        catch (e) {
-          packageMapResolve = throwBare;
-          packageMapPromise = undefined;
-          setTimeout(() => { throw e });
-        }
-      })();
-  }
-
-  for (let i = 0; i < scripts.length; i++) {
-    const script = scripts[i];
-    if (script.type !== 'module-shim')
-      continue;
-    if (script.src)
-      topLevelLoad(script.src);
-    else
-      topLevelLoad(`${pageBaseUrl}anon-${id++}`, script.innerHTML);
+    // this works here because there is a .then before resolve
+    else if (script.type === 'module-shim') {
+      if (script.src)
+        topLevelLoad(script.src);
+      else
+        topLevelLoad(`${pageBaseUrl}?${id++}`, script.innerHTML);
+    }
   }
 }
 
