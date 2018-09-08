@@ -178,24 +178,111 @@
     };
   }
 
-  function templateString () {
+  function analyzeModuleSyntax (_str) {
+    str = _str;
+    let err = null;
+    try {
+      baseParse();
+    }
+    catch (e) {
+      err = e;
+    }
+    return [oImports, oExports, err];
+  }
+
+  // State:
+  // (for perf, works because this runs sync)
+  let i, charCode, str,
+    lastTokenIndex,
+    lastOpenTokenIndex,
+    lastTokenIndexStack,
+    braceDepth,
+    templateDepth,
+    templateStack,
+    oImports,
+    oExports;
+
+  function baseParse () {
+    lastTokenIndex = lastOpenTokenIndex = -1;
+    oImports = [];
+    oExports = [];
+    braceDepth = 0;
+    templateDepth = 0;
+    templateStack = [];
+    lastTokenIndexStack = [];
+    i = -1;
+
+    /*
+     * This is just the simple loop:
+     * 
+     * while (charCode = str.charCodeAt(++i)) {
+     *   // reads into the first non-ws / comment token
+     *   commentWhitespace();
+     *   // reads one token at a time
+     *   parseNext();
+     *   // stores the last (non ws/comment) token for division operator backtracking checks
+     *   // (including on lastTokenIndexStack as we nest structures)
+     *   lastTokenIndex = i;
+     * }
+     * 
+     * Optimized by:
+     * - Inlining comment whitespace to avoid repeated "/" checks (minor perf saving)
+     * - Inlining the division operator check from "parseNext" into this loop
+     * - Having "regularExpression()" start on the initial index (different to other parse functions)
+     */
     while (charCode = str.charCodeAt(++i)) {
-      if (charCode === 92/*\*/) {
-        charCode = str.charCodeAt(++i);
+      // reads into the first non-ws / comment token
+      if (isBrOrWs(charCode))
         continue;
-      }
-      else if (charCode === 36/*$*/) {
+      if (charCode === 47/*/*/) {
         charCode = str.charCodeAt(++i);
-        if (charCode === 123/*{*/) {
-          templateStack = { i: ++braceDepth, n: templateStack };
-          return;
+        if (charCode === 47/*/*/)
+          lineComment();
+        else if (charCode === 42/***/)
+          blockComment();
+        else {
+          /*
+           * Division / regex ambiguity handling
+           * based on checking backtrack analysis of:
+           * - what token came previously (lastTokenIndex)
+           * - what token came before the opening paren or brace (lastOpenTokenIndex)
+           *
+           * Only known unhandled ambiguities are cases of regexes immediately followed
+           * by division, another regex or brace:
+           * 
+           * /regex/ / x
+           * 
+           * /regex/
+           * {}
+           * /regex/
+           * 
+           * And those cases only show errors when containing "'/` in the regex
+           * 
+           * Could be fixed tracking stack of last regex, but doesn't seem worth it, and bad for perf
+           */
+          const lastTokenCode = str.charCodeAt(lastTokenIndex);
+          if (!lastTokenCode || isExpressionKeyword(lastTokenIndex) ||
+              isExpressionPunctuator(lastTokenCode) ||
+              lastTokenCode === 41/*)*/ && isParenKeyword(lastOpenTokenIndex) ||
+              lastTokenCode === 125/*}*/ && isExpressionTerminator(lastOpenTokenIndex))
+            // TODO: perf improvement
+            // it may be possible to precompute isParenKeyword and isExpressionTerminator checks
+            // when they are added to the token stack, not here
+            // this way we only need to store a stack of "regexTokenDepthStack" and "regexTokenDepth"
+            // where depth is the combined brace and paren depth count
+            // when leaving a brace or paren, this stack would be cleared automatically (if a match)
+            // this check then becomes curDepth === regexTokenDepth for the lastTokenCode )|} case
+            regularExpression();
+          lastTokenIndex = i;
         }
       }
-      else if (charCode === 96/*`*/) {
-        return;
+      else {
+        parseNext();
+        lastTokenIndex = i;
       }
     }
-    syntaxError();
+    if (braceDepth || templateDepth || lastTokenIndexStack.length)
+      syntaxError();
   }
 
   function parseNext () {
@@ -204,23 +291,23 @@
         braceDepth++;
       // fallthrough
       case 40/*(*/:
-        lastTokenIndexStack = { i: lastTokenIndex, n: lastTokenIndexStack };
+        
+        lastTokenIndexStack.push(lastTokenIndex);
         return;
       
       case 125/*}*/:
-        if (braceDepth-- === templateStack.i) {
-          templateStack = templateStack.n;
+        if (braceDepth-- === templateDepth) {
+          templateDepth = templateStack.pop();
           templateString();
           return;
         }
-        if (braceDepth < templateStack.i)
+        if (braceDepth < templateDepth)
           syntaxError();
       // fallthrough
       case 41/*)*/:
         if (!lastTokenIndexStack)
           syntaxError();
-        lastOpenTokenIndex = lastTokenIndexStack.i;
-        lastTokenIndexStack = lastTokenIndexStack.n;
+        lastOpenTokenIndex = lastTokenIndexStack.pop();
         return;
 
       case 39/*'*/:
@@ -234,38 +321,6 @@
         templateString();
         return;
 
-      case 47/*/*/: {
-        /*
-         * Division / regex ambiguity handling
-         * based on checking backtrack analysis of:
-         * - what token came previously (lastTokenIndex)
-         * - what token came before the opening paren or brace (lastOpenTokenIndex)
-         *
-         * Only known unhandled ambiguities are cases of regexes immediately followed
-         * by division, another regex or brace:
-         * 
-         * /regex/ / x
-         * 
-         * /regex/
-         * {}
-         * /regex/
-         * 
-         * And those cases only show errors when containing "'/` in the regex
-         * 
-         * Could be fixed tracking stack of last regex, but doesn't seem worth it, and bad for perf
-         */
-        const lastTokenCode = str.charCodeAt(lastTokenIndex);
-        if (!lastTokenCode || isExpressionKeyword(lastTokenIndex) ||
-            isExpressionPunctuator(lastTokenCode) ||
-            lastTokenCode === 41/*)*/ && isParenKeyword(lastOpenTokenIndex) ||
-            lastTokenCode === 125/*}*/ && isExpressionTerminator(lastOpenTokenIndex)) {
-          regularExpression();
-          return;
-        }
-        else
-          return;
-      }
-
       case 105/*i*/: {
         if (readPrecedingKeyword(i + 5) !== 'import' || readToWsOrPunctuator(i + 6) !== '' && str.charCodeAt(i + 6) !== 46/*.*/)
           return;
@@ -278,7 +333,7 @@
           // dynamic import
           case 40/*(*/:
             // dynamic import indicated by positive d
-            lastTokenIndexStack = { i: i + 5, n: lastTokenIndexStack };
+            lastTokenIndexStack.push(i + 5);
             oImports.push({ s: start, e: start + 6, d: index + 1 });
             return;
           // import.meta
@@ -290,14 +345,14 @@
             return;
         }
         // import statement (only permitted at base-level)
-        if (lastTokenIndexStack === null) {
+        if (lastTokenIndexStack.length === 0) {
           readSourceString();
           return;
         }
       }
       
       case 101/*e*/: {
-        if (lastTokenIndexStack !== null || readPrecedingKeyword(i + 5) !== 'export' || readToWsOrPunctuator(i + 6) !== '')
+        if (lastTokenIndexStack.length !== 0 || readPrecedingKeyword(i + 5) !== 'export' || readToWsOrPunctuator(i + 6) !== '')
           return;
         
         let name;
@@ -385,24 +440,32 @@
             commentWhitespace();
             if (str.slice(i, i += 4) === 'from')
               readSourceString();
-            return;
         }
       }
     }
   }
 
-  // TODO: update to regex approach which should be faster
+
+  /*
+   * Helper functions
+   */
+
+  // seeks through whitespace, comments and multiline comments
   function commentWhitespace () {
     do {
       if (charCode === 47/*/*/) {
-        charCode = str.charCodeAt(++i);
-        if (charCode === 47/*/*/)
+        const nextCharCode = str.charCodeAt(i + 1);
+        if (nextCharCode === 47/*/*/) {
+          charCode = nextCharCode;
+          i++;
           lineComment();
-        else if (charCode === 42/***/)
+        }
+        else if (nextCharCode === 42/***/) {
+          charCode = nextCharCode;
+          i++;
           blockComment();
+        }
         else {
-          charCode = 47;
-          i--;
           return;
         }
       }
@@ -410,7 +473,26 @@
         return;
       }
     } while (charCode = str.charCodeAt(++i));
-    return;
+  }
+
+  function templateString () {
+    while (charCode = str.charCodeAt(++i)) {
+      if (charCode === 36/*$*/) {
+        charCode = str.charCodeAt(++i);
+        if (charCode === 123/*{*/) {
+          templateStack.push(templateDepth);
+          templateDepth = ++braceDepth;
+          return;
+        }
+      }
+      else if (charCode === 96/*`*/) {
+        return;
+      }
+      else if (charCode === 92/*\*/) {
+        charCode = str.charCodeAt(++i);
+      }
+    }
+    syntaxError();
   }
 
   function readSourceString () {
@@ -431,55 +513,6 @@
     } while (charCode = str.charCodeAt(++i))
     syntaxError();
   }
-
-  // State:
-  // We are sync, so we can do this (for perf!)
-  let i, charCode, str;
-  // lastTokenIndex
-  let lastTokenIndex;
-  // lastOpenTokenIndex
-  let lastOpenTokenIndex;
-  // lastTokenIndexStack
-  // linked list of the form { i (item): index, n (next): nextInList }
-  let lastTokenIndexStack = null;
-  // braceDepth
-  let braceDepth = 0;
-  // templateStack
-  let templateStack = { i: 0, n: null };
-  // imports
-  let oImports;
-  // exports
-  let oExports;
-
-  function baseParse () {
-    lastTokenIndex = lastOpenTokenIndex = -1;
-    oImports = [];
-    oExports = [];
-    i = -1;
-    while (charCode = str.charCodeAt(++i)) {
-      // reads into the first non-ws / comment token
-      commentWhitespace();
-      // reads one token at a time
-      parseNext();
-      // stores the last token for division operator backtracking checks
-      // (including on lastTokenIndexStack as we nest structures)
-      lastTokenIndex = i;
-    }
-    if (braceDepth > 0 || templateStack.i !== 0 || lastTokenIndexStack)
-      syntaxError();
-  }
-
-  function analyzeModuleSyntax (_str) {
-    str = _str;
-    let err = null;
-    try {
-      baseParse();
-    }
-    catch (e) {
-      err = e;
-    }
-    return [oImports, oExports, err];
-  }
   function isBr () {
     // (8232 <LS> and 8233 <PS> omitted for now)
     return charCode === 10/*\n*/ || charCode === 13/*\r*/;
@@ -499,7 +532,6 @@
       }
       charCode = str.charCodeAt(++i);
     }
-    return i;
   }
 
   function lineComment () {
@@ -507,7 +539,6 @@
       if (isBr(charCode))
         return;
     }
-    return;
   }
 
   function singleQuoteString () {
@@ -547,7 +578,7 @@
   }
 
   function regularExpression () {
-    while (charCode = str.charCodeAt(++i)) {
+    do {
       if (charCode === 47/*/*/)
         return;
       if (charCode === 91/*[*/)
@@ -556,7 +587,7 @@
         i++;
       else if (isBr(charCode))
         syntaxError();
-    }
+    } while (charCode = str.charCodeAt(++i));
     syntaxError();
   }
 
@@ -566,8 +597,9 @@
     while (nextChar && nextChar > 96/*a*/ && nextChar < 123/*z*/)
       nextChar = str.charCodeAt(--startIndex);
     // must be preceded by punctuator or whitespace
-    if (!nextChar || isBrOrWs(nextChar) || isPunctuator(nextChar))
-      return str.slice(startIndex + 1, endIndex + 1);
+    if (nextChar && !isBrOrWs(nextChar) && !isPunctuator(nextChar))
+      return '';
+    return str.slice(startIndex + 1, endIndex + 1);
   }
 
   function readToWsOrPunctuator (startIndex) {
@@ -595,16 +627,11 @@
     await: 1
   };
   function isExpressionKeyword (lastTokenIndex) {
-    const precedingKeyword = readPrecedingKeyword(lastTokenIndex);
-    return precedingKeyword && expressionKeywords[precedingKeyword];
+    return expressionKeywords[readPrecedingKeyword(lastTokenIndex)];
   }
   function isParenKeyword  (lastTokenIndex) {
     const precedingKeyword = readPrecedingKeyword(lastTokenIndex);
-    return precedingKeyword && (
-      precedingKeyword === 'while' ||
-      precedingKeyword === 'for' ||
-      precedingKeyword === 'if'
-    );
+    return precedingKeyword === 'while' || precedingKeyword === 'for' || precedingKeyword === 'if';
   }
   function isPunctuator (charCode) {
     // 23 possible punctuator endings: !%&()*+,-./:;<=>?[]^{}|~
@@ -618,7 +645,7 @@
   }
   function isExpressionTerminator (lastTokenIndex) {
     // detects:
-    // ; ) -1 finally while
+    // ; ) -1 finally
     // as all of these followed by a { will indicate a statement brace
     // in future we will need: "catch" (optional catch parameters)
     //                         "do" (do expressions)
@@ -628,9 +655,7 @@
       case NaN:
         return true;
       case 121/*y*/:
-        return str.slice(lastTokenIndex - 6, lastTokenIndex) === 'finall';
-      case 101/*e*/:
-        return str.slice(lastTokenIndex - 4, lastTokenIndex) === 'whil';
+        return readPrecedingKeyword(lastTokenIndex) === 'finally';
     }
     return false;
   }
@@ -646,18 +671,15 @@
 
   // support browsers without dynamic import support (eg Firefox 6x)
   let dynamicImport;
-  const testBlob = createBlob('');
   try {
-    import(testBlob);
-    dynamicImport = id => import(id);
+    dynamicImport = (0, eval)('u=>import(u)');
   }
   catch (e) {
     if (typeof document !== 'undefined') {
-      let errUrl, err;
-      self.addEventListener('error', e => errUrl = e.filename, err = e.error);
+      self.addEventListener('error', e => importShim.e = e.error);
       dynamicImport = (blobUrl) => {
         const topLevelBlobUrl = createBlob(
-          `import*as m from'${load.b}';self.importShim.lastModule=m;`
+          `import*as m from'${blobUrl}';self.importShim.l=m;self.importShim.e=null`
         );
     
         const s = document.createElement('script');
@@ -665,30 +687,34 @@
         s.src = topLevelBlobUrl;
         document.head.appendChild(s);
         return new Promise((resolve, reject) => {
-          document.addEventListener(s, 'load', () => {
-            if (errUrl === blobUrl)
-              return reject(err);
-            document.removeChild(s);
-            resolve(importShim.lastModule);
-          });
-          document.addEventListener(s, 'error', e => {
-            document.removeChild(s);
-            reject(e);
+          s.addEventListener('load', () => {
+            document.head.removeChild(s);
+            if (importShim.e)
+              return reject(importShim.e);
+            resolve(importShim.l);
           });
         });
       };
     }  
   }
-  // URL.revokeObjectURL(testBlob);
+
+  async function loadAll (load, loaded) {
+    if (load.b || loaded[load.u])
+      return;
+    loaded[load.u] = true;
+    await load.L;
+    await Promise.all(load.d.map(dep => loadAll(dep, loaded)));
+  }
 
   async function topLevelLoad (url, source) {
-    const load = await resolveDeps(getOrCreateLoad(url, source), {});
-    return dynamicImport(
-      !load.s
-      ? load.b
-      // create a dummy head importer for top-level cycle import
-      : createBlob(renderShellExec(0, load.b, load.s))
-    );
+    const load = getOrCreateLoad(url, source);
+    await loadAll(load, {});
+    resolveDeps(load, {});
+    const module = await dynamicImport(load.b);
+    // if the top-level load is a shell, run its update function
+    if (load.s)
+      (await dynamicImport(load.s)).u$_(module);
+    return module;
   }
 
   async function importShim (id) {
@@ -696,24 +722,29 @@
     return topLevelLoad(await resolve(id, parentUrl));
   }
 
-  Object.defineProperty(self, 'importShim', { value: importShim });
+  self.importShim = importShim;
 
   const meta = Object.create(null);
-  Object.defineProperty(importShim, 'm', { value: meta });
-
   const wasmModules = {};
-  Object.defineProperty(importShim, 'w', { value: wasmModules });
+
+  Object.defineProperties(importShim, {
+    m: { value: meta },
+    w: { value: wasmModules },
+    l: { value: undefined },
+    e: { value: undefined }
+  });
 
   async function resolveDeps (load, seen) {
+    if (load.b)
+      return;
     seen[load.u] = true;
 
-    const depLoads = await load.dP;
-
-    let source = await load.f;
+    let source = load.S;
     let resolvedSource;
 
-    if (depLoads.length)
-      await Promise.all(depLoads.map(depLoad => seen[depLoad.u] || resolveDeps(depLoad, seen)));
+    for (const depLoad of load.d)
+      if (!seen[depLoad.u])
+        resolveDeps(depLoad, seen);
     
     if (!load.a[0].length) {
       resolvedSource = source;
@@ -728,7 +759,7 @@
         const { s: start, e: end, d: dynamicImportIndex } = load.a[0][i];
         // dependency source replacements
         if (dynamicImportIndex === -1) {
-          const depLoad = depLoads[depIndex++];
+          const depLoad = load.d[depIndex++];
           let blobUrl = depLoad.b;
           if (!blobUrl) {
             // circular shell creation
@@ -746,7 +777,7 @@
           }
           // circular shell execution
           else if (depLoad.s) {
-            resolvedSource += source.slice(lastIndex, start) + blobUrl + source[end] + ';\n' + renderShellExec(depIndex, depLoad.b, depLoad.s);
+            resolvedSource += source.slice(lastIndex, start) + blobUrl + source[end] + `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
             lastIndex = end + 1;
             depLoad.s = undefined;
             continue;
@@ -769,18 +800,11 @@
       resolvedSource += source.slice(lastIndex);
     }
 
-    load.b = createBlob(resolvedSource);
-    return load;
+    load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.u);
+    load.S = undefined;
   }
-  function createBlob (source) {
-    // TODO: test if it is faster to use combined string, or array of uncombined strings here
-    return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
-  }
-  function renderShellExec (index, blobUrl, shellUrl) {
-    return `import * as m$_${index} from '${blobUrl}';
-import { u$_ as u$_${index} } from '${shellUrl}';
-u$_${index}(m$_${index})`;
-  }
+  const createBlob = source => URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+
   function getOrCreateLoad (url, source) {
     let load = registry[url];
     if (load)
@@ -790,9 +814,11 @@ u$_${index}(m$_${index})`;
       // url
       u: url,
       // fetchPromise
-      fP: undefined,
-      // depsPromise
-      dP: undefined,
+      f: undefined,
+      // source
+      S: undefined,
+      // linkPromise
+      L: undefined,
       // analysis
       a: undefined,
       // deps
@@ -809,19 +835,16 @@ u$_${index}(m$_${index})`;
         const module = await WebAssembly.compileStreaming(res);
 
         wasmModules[url] = module;
-        
-        if (WebAssembly.Module.imports)
-          load.d = WebAssembly.Module.imports(module).map(impt => impt.module);
-        else
-          load.d = [];
+
+        let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
 
         const aDeps = [];
         load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
 
-        const depStrs = load.d.map(dep => JSON.stringify(dep));
+        const depStrs = deps.map(dep => JSON.stringify(dep));
 
         let curIndex = 0;
-        return depStrs.map((depStr, idx) => {
+        load.S = depStrs.map((depStr, idx) => {
             const index = idx.toString();
             const strStart = curIndex + 17 + index.length;
             const strEnd = strStart + depStr.length - 2;
@@ -833,35 +856,37 @@ u$_${index}(m$_${index})`;
             curIndex += strEnd + 3;
             return `import*as m${index} from${depStr};`
           }).join('') +
-          `const module=importShim.w[${JSON.stringify(url)}];` +
-          `const exports=new WebAssembly.Instance(module,{` +
+          `const module=importShim.w[${JSON.stringify(url)}],exports=new WebAssembly.Instance(module,{` +
           depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
           `}).exports;` +
-          load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';')
+          load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
+
+        return deps;
       })();
     }
     else {
       load.f = (async () => {
         if (!source) {
           const res = await fetch(url);
+          if (!res.ok)
+            throw new Error(`${res.status} ${res.statusText} ${res.url}`);
           source = await res.text();
         }
         load.a = analyzeModuleSyntax(source);
         if (load.a[2])
-          importShim.e = [source, load.a[2]];
-        load.d = load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
-        
-        return source;
+          importShim.err = [source, load.a[2]];
+        load.S = source;
+        return load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
       })();
     }
 
-    load.dP = load.f.then(() => Promise.all(
-      load.d.map(async depId => {
+    load.L = load.f.then(async deps => {
+      load.d = await Promise.all(deps.map(async depId => {
         const load = getOrCreateLoad(await resolve(depId, url));
         await load.f;
         return load;
-      })
-    ));
+      }));
+    });
 
     return load;
   }
@@ -897,12 +922,12 @@ u$_${index}(m$_${index})`;
 
     for (let i = 0; i < scripts.length; i++) {
       const script = scripts[i];
-      if (script.type === 'module-shim') {
-        if (script.src)
-          topLevelLoad(script.src);
-        else
-          topLevelLoad(`${baseUrl}anon-${id++}`, script.innerHTML);
-      }
+      if (script.type !== 'module-shim')
+        continue;
+      if (script.src)
+        topLevelLoad(script.src);
+      else
+        topLevelLoad(`${baseUrl}anon-${id++}`, script.innerHTML);
     }
   }
 
