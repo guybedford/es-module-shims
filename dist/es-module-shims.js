@@ -1,4 +1,4 @@
-/* ES Module Shims 0.1.4 */
+/* ES Module Shims 0.1.5 */
 (function () {
   'use strict';
 
@@ -536,7 +536,7 @@
 
   function lineComment () {
     while (charCode = str.charCodeAt(++i)) {
-      if (isBr(charCode))
+      if (isBr())
         return;
     }
   }
@@ -547,7 +547,7 @@
         return;
       if (charCode === 92/*\*/)
         i++;
-      else if (isBr(charCode))
+      else if (isBr())
         syntaxError();
     }
     syntaxError();
@@ -559,7 +559,7 @@
         return;
       if (charCode === 92/*\*/)
         i++;
-      else if (isBr(charCode))
+      else if (isBr())
         syntaxError();
     }
     syntaxError();
@@ -571,7 +571,7 @@
         return;
       if (charCode === 92/*\*/)
         i++;
-      else if (isBr(charCode))
+      else if (isBr())
         syntaxError();
     }
     syntaxError();
@@ -585,7 +585,7 @@
         regexCharacterClass();
       else if (charCode === 92/*\*/)
         i++;
-      else if (isBr(charCode))
+      else if (isBr())
         syntaxError();
     } while (charCode = str.charCodeAt(++i));
     syntaxError();
