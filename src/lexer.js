@@ -361,7 +361,7 @@ export function blockComment () {
 
 export function lineComment () {
   while (charCode = str.charCodeAt(++i)) {
-    if (isBr(charCode))
+    if (isBr())
       return;
   }
 }
@@ -372,7 +372,7 @@ export function singleQuoteString () {
       return;
     if (charCode === 92/*\*/)
       i++;
-    else if (isBr(charCode))
+    else if (isBr())
       syntaxError();
   }
   syntaxError();
@@ -384,7 +384,7 @@ export function doubleQuoteString () {
       return;
     if (charCode === 92/*\*/)
       i++;
-    else if (isBr(charCode))
+    else if (isBr())
       syntaxError();
   }
   syntaxError();
@@ -396,7 +396,7 @@ export function regexCharacterClass () {
       return;
     if (charCode === 92/*\*/)
       i++;
-    else if (isBr(charCode))
+    else if (isBr())
       syntaxError();
   }
   syntaxError();
@@ -410,7 +410,7 @@ export function regularExpression () {
       regexCharacterClass();
     else if (charCode === 92/*\*/)
       i++;
-    else if (isBr(charCode))
+    else if (isBr())
       syntaxError();
   } while (charCode = str.charCodeAt(++i));
   syntaxError();
