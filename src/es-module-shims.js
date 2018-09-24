@@ -102,7 +102,7 @@ async function resolveDeps (load, seen) {
             let hasDefault = false;
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
                 depLoad.a[1].map(
-                  n => name === 'default' ? `$_default=m.default` : `${n}=m.${n}`
+                  name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
                 ).join(',')
               }}${
                 depLoad.a[1].map(name => 
