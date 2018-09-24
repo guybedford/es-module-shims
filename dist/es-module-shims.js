@@ -1,4 +1,4 @@
-/* ES Module Shims 0.1.6 */
+/* ES Module Shims 0.1.7 */
 (function () {
   'use strict';
 
@@ -766,7 +766,7 @@
             if (!(blobUrl = depLoad.s)) {
               blobUrl = depLoad.s = createBlob(`export function u$_(m){${
                 depLoad.a[1].map(
-                  n => name === 'default' ? `$_default=m.default` : `${n}=m.${n}`
+                  name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
                 ).join(',')
               }}${
                 depLoad.a[1].map(name => 
