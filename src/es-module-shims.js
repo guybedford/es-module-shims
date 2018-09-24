@@ -230,7 +230,7 @@ if (typeof document !== 'undefined') {
     if (script.type === 'packagemap-shim' && !packageMapPromise) {
       if (script.src) {
         packageMapPromise = (async function () {
-          packageMapResolve = createPackageMap(await (await fetch(script.src)).json(), script.src);
+          packageMapResolve = createPackageMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
           packageMapPromise = undefined;
         })();
       }
