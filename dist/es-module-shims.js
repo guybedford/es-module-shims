@@ -1,4 +1,4 @@
-/* ES Module Shims 0.1.7 */
+/* ES Module Shims 0.1.9 */
 (function () {
   'use strict';
 
@@ -111,7 +111,7 @@
 
   function createPackageMap (json, baseUrl) {
     if (json.path_prefix) {
-      baseUrl = resolveUrl(json.path_prefix, pageBaseUrl);
+      baseUrl = resolveUrl(json.path_prefix, baseUrl);
       if (baseUrl[baseUrl.length - 1] !== '/')
         baseUrl += '/';
     }
@@ -174,8 +174,12 @@
         if (packageResolution)
           return packageResolution;
       }
-      return applyPackages(id, basePackages, baseUrl);
+      return applyPackages(id, basePackages, baseUrl) || throwBare(id, parentUrl);
     };
+  }
+
+  function throwBare (id, parentUrl) {
+    throw new Error('Unable to resolve bare specifier "' + id + (parentUrl ? '" from ' + parentUrl : '"'));
   }
 
   function analyzeModuleSyntax (_str) {
@@ -529,6 +533,7 @@
         charCode = str.charCodeAt(++i);
         if (charCode === 47/*/*/)
           return;
+        continue;
       }
       charCode = str.charCodeAt(++i);
     }
@@ -914,9 +919,9 @@
   }
 
   if (!packageMapPromise)
-    packageMapResolve = throwBare;
+    packageMapResolve = throwBare$1;
 
-  function throwBare (id, parentUrl) {
+  function throwBare$1 (id, parentUrl) {
     throw new Error('Unable to resolve bare specifier "' + id + (parentUrl ? '" from ' + parentUrl : '"'));
   }
 
@@ -934,7 +939,7 @@
     if (packageMapPromise)
       await packageMapPromise;
     
-    return packageMapResolve(id, parentUrl) || throwBare(id, parentUrl);
+    return packageMapResolve(id, parentUrl);
   }
 
 }());
