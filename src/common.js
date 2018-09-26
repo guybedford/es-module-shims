@@ -112,7 +112,7 @@ function resolveUrl (relUrl, parentUrl) {
 
 export function createPackageMap (json, baseUrl) {
   if (json.path_prefix) {
-    baseUrl = resolveUrl(json.path_prefix, pageBaseUrl);
+    baseUrl = resolveUrl(json.path_prefix, baseUrl);
     if (baseUrl[baseUrl.length - 1] !== '/')
       baseUrl += '/';
   }
@@ -175,6 +175,10 @@ export function createPackageMap (json, baseUrl) {
       if (packageResolution)
         return packageResolution;
     }
-    return applyPackages(id, basePackages, baseUrl);
+    return applyPackages(id, basePackages, baseUrl) || throwBare(id, parentUrl);
   };
+}
+
+export function throwBare (id, parentUrl) {
+  throw new Error('Unable to resolve bare specifier "' + id + (parentUrl ? '" from ' + parentUrl : '"'));
 }

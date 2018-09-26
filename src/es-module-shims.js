@@ -270,5 +270,5 @@ async function resolve (id, parentUrl) {
   if (packageMapPromise)
     await packageMapPromise;
   
-  return packageMapResolve(id, parentUrl) || throwBare(id, parentUrl);
+  return packageMapResolve(id, parentUrl);
 }
