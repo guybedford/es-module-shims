@@ -76,6 +76,11 @@ suite('Lexer', () => {
 
          * export { b }
       \\*/export { a }
+
+
+      function () {
+        /***/
+      }
     `
     const [imports, exports] = parse(source);
     assert.equal(imports.length, 0);

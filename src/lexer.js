@@ -354,6 +354,7 @@ export function blockComment () {
       charCode = str.charCodeAt(++i);
       if (charCode === 47/*/*/)
         return;
+      continue;
     }
     charCode = str.charCodeAt(++i);
   }
