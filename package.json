@@ -11,7 +11,9 @@
     "test:samples": "mocha -r esm -u tdd test/samples.js",
     "bench": "node -r esm bench"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "author": "Guy Bedford",
   "license": "MIT",
   "devDependencies": {
@@ -21,5 +23,17 @@
     "pretty-ms": "^3.2.0",
     "rollup": "^0.65.1",
     "terser": "^3.8.2"
-  }
+  },
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guybedford/es-module-shims.git"
+  },
+  "bugs": {
+    "url": "https://github.com/guybedford/es-module-shims/issues"
+  },
+  "homepage": "https://github.com/guybedford/es-module-shims#readme"
 }
