@@ -77,7 +77,7 @@ Web Assembly imports are in turn supported.
 
 Package map support is provided both for mapping into Web Assembly URLs, as well as mapping import specifiers to JS or WebAssembly from within WASM.
 
-## Technical Limitations
+## Implementation Details
 
 ### Tokenizer Rewriting
 
