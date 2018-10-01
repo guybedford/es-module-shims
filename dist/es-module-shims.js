@@ -1,4 +1,4 @@
-/* ES Module Shims 0.1.9 */
+/* ES Module Shims 0.1.10 */
 (function () {
   'use strict';
 
