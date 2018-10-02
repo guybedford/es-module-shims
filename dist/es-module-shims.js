@@ -1,4 +1,4 @@
-/* ES Module Shims 0.1.10 */
+/* ES Module Shims 0.1.11 */
 (function () {
   'use strict';
 
@@ -332,13 +332,12 @@
         const start = i;
         charCode = str.charCodeAt(i += 6);
         commentWhitespace();
-        const index = i;
         switch (charCode) {
           // dynamic import
           case 40/*(*/:
             // dynamic import indicated by positive d
             lastTokenIndexStack.push(i + 5);
-            oImports.push({ s: start, e: start + 6, d: index + 1 });
+            oImports.push({ s: start, e: start + 6, d: i + 1 });
             return;
           // import.meta
           case 46/*.*/:
@@ -723,7 +722,7 @@
   }
 
   async function importShim (id) {
-    const parentUrl = arguments.length === 1 ? baseUrl : (id = arguments[1], id);
+    const parentUrl = arguments.length === 1 ? baseUrl : (id = arguments[1], arguments[0]);
     return topLevelLoad(await resolve(id, parentUrl));
   }
 
