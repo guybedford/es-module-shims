@@ -119,7 +119,6 @@ async function resolveDeps (load, seen) {
           continue;
         }
         resolvedSource += source.slice(lastIndex, start - 1) + '/*' + source.slice(start - 1, end + 1) + '*/' + source.slice(start - 1, start) + blobUrl;
-        console.log(resolvedSource);
         lastIndex = end;
       }
       // import.meta
