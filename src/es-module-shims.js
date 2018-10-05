@@ -113,12 +113,13 @@ async function resolveDeps (load, seen) {
         }
         // circular shell execution
         else if (depLoad.s) {
-          resolvedSource += source.slice(lastIndex, start) + blobUrl + source[end] + `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
+          resolvedSource += source.slice(lastIndex, start - 1) + '/*' + source.slice(start - 1, end + 1) + '*/' + source.slice(start - 1, start) + blobUrl + source[end] + `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
           lastIndex = end + 1;
           depLoad.s = undefined;
           continue;
         }
-        resolvedSource += source.slice(lastIndex, start) + blobUrl;
+        resolvedSource += source.slice(lastIndex, start - 1) + '/*' + source.slice(start - 1, end + 1) + '*/' + source.slice(start - 1, start) + blobUrl;
+        console.log(resolvedSource);
         lastIndex = end;
       }
       // import.meta
