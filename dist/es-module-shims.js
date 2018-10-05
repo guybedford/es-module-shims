@@ -1,4 +1,4 @@
-/* ES Module Shims 0.1.12 */
+/* ES Module Shims 0.1.13 */
 (function () {
   'use strict';
 
@@ -787,7 +787,6 @@
             continue;
           }
           resolvedSource += source.slice(lastIndex, start - 1) + '/*' + source.slice(start - 1, end + 1) + '*/' + source.slice(start - 1, start) + blobUrl;
-          console.log(resolvedSource);
           lastIndex = end;
         }
         // import.meta
