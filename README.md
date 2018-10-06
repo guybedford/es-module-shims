@@ -11,7 +11,7 @@ This includes support for:
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
 * [Package Name Maps](https://github.com/domenic/package-name-maps) support.
-* Importing Web Assembly
+* Importing Web Assembly (note, there is an [open issue on how to handle the 4KB imposed limit](https://github.com/guybedford/es-module-shims/issues/1))
 
 Because we are still using the native module loader the edge cases work out comprehensively, including:
 
@@ -93,6 +93,7 @@ Package map support is provided both for mapping into Web Assembly URLs, as well
 * Only flat scopes are supported.
 
 ### Web Assembly
+* In order to Web Assembly to execute at the right time we need to use `new WebAssembly.Instance` but this has a 4KB size limit in Chrome and Firefox which will throw for larger binaries. There is no known workaround currently. Tracking in https://github.com/guybedford/es-module-shims/issues/1.
 * Exports are snapshotted on execution. Unexecuted circular dependencies will be snapshotted as empty imports. This matches the [current integration plans for Web Assembly](https://github.com/WebAssembly/esm-integration/).
 
 ## Inspiration
