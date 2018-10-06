@@ -172,7 +172,7 @@ function getOrCreateLoad (url, source) {
         throw new Error(`${res.status} ${res.statusText} ${res.url}`);
 
       if (res.url.endsWith('.wasm')) {
-        const module = wasmModules[url] = await WebAssembly.compileStreaming(res);
+        const module = wasmModules[url] = await (WebAssembly.compileStreaming ? WebAssembly.compileStreaming(res) : WebAssembly.compile(await res.arrayBuffer()));
     
         let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
     
@@ -199,7 +199,7 @@ function getOrCreateLoad (url, source) {
           `}).exports;` +
           load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
     
-        return deps;    
+        return deps;
       }
 
       source = await res.text();
