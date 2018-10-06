@@ -93,7 +93,7 @@ Package map support is provided both for mapping into Web Assembly URLs, as well
 * Only flat scopes are supported.
 
 ### Web Assembly
-* In order to Web Assembly to execute at the right time we need to use `new WebAssembly.Instance` but this has a 4KB size limit in Chrome and Firefox which will throw for larger binaries. There is no known workaround currently. Tracking in https://github.com/guybedford/es-module-shims/issues/1.
+* In order for Web Assembly to execute in the module graph as a blob: URL we need to use `new WebAssembly.Instance` for synchronous execution, but this has a 4KB size limit in Chrome and Firefox which will throw for larger binaries. There is no known workaround currently. Tracking in https://github.com/guybedford/es-module-shims/issues/1.
 * Exports are snapshotted on execution. Unexecuted circular dependencies will be snapshotted as empty imports. This matches the [current integration plans for Web Assembly](https://github.com/WebAssembly/esm-integration/).
 
 ## Inspiration
