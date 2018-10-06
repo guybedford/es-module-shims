@@ -108,7 +108,7 @@ async function resolveDeps (load, seen) {
                 depLoad.a[1].map(name => 
                   name === 'default' ? (hasDefault = true, `let $_default;export{$_default as default}`) : `export let ${name}`
                 ).join(';')
-              }`);
+              }\n//# sourceURL=${depLoad.u}?cycle`);
           }
         }
         // circular shell execution
