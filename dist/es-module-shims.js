@@ -1,4 +1,4 @@
-/* ES Module Shims 0.1.14 */
+/* ES Module Shims 0.1.15 */
 (function () {
   'use strict';
 
@@ -776,7 +776,7 @@
                 depLoad.a[1].map(name => 
                   name === 'default' ? (`let $_default;export{$_default as default}`) : `export let ${name}`
                 ).join(';')
-              }\n//# sourceURL=${depLoad.u}?cycle`);
+              }\n//# sourceURL=${depLoad.r}?cycle`);
             }
           }
           // circular shell execution
@@ -791,20 +791,20 @@
         }
         // import.meta
         else if (dynamicImportIndex === -2) {
-          meta[load.u] = { url: load.u };
-          resolvedSource += source.slice(lastIndex, start) + 'importShim.m[' + JSON.stringify(load.u) + ']';
+          meta[load.r] = { url: load.r };
+          resolvedSource += source.slice(lastIndex, start) + 'importShim.m[' + JSON.stringify(load.r) + ']';
           lastIndex = end;
         }
         // dynamic import
         else {
-          resolvedSource += source.slice(lastIndex, start) + 'importShim' + source.slice(end, dynamicImportIndex) + JSON.stringify(load.u) + ', ';
+          resolvedSource += source.slice(lastIndex, start) + 'importShim' + source.slice(end, dynamicImportIndex) + JSON.stringify(load.r) + ', ';
           lastIndex = dynamicImportIndex;
         }
       }
       resolvedSource += source.slice(lastIndex);
     }
 
-    load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.u);
+    load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.r);
     load.S = undefined;
   }
   const createBlob = source => URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
@@ -817,6 +817,8 @@
     load = registry[url] = {
       // url
       u: url,
+      // response url
+      r: undefined,
       // fetchPromise
       f: undefined,
       // source
@@ -838,6 +840,8 @@
         const res = await fetch(url);
         if (!res.ok)
           throw new Error(`${res.status} ${res.statusText} ${res.url}`);
+
+        load.r = res.url;
 
         if (res.url.endsWith('.wasm')) {
           const module = wasmModules[url] = await (WebAssembly.compileStreaming ? WebAssembly.compileStreaming(res) : WebAssembly.compile(await res.arrayBuffer()));
@@ -881,9 +885,9 @@
 
     load.L = load.f.then(async deps => {
       load.d = await Promise.all(deps.map(async depId => {
-        const load = getOrCreateLoad(await resolve(depId, url));
-        await load.f;
-        return load;
+        const depLoad = getOrCreateLoad(await resolve(depId, load.r));
+        await depLoad.f;
+        return depLoad;
       }));
     });
 
