@@ -1,20 +1,16 @@
 <!doctype html>
 <link rel="stylesheet" type="text/css" href="../node_modules/mocha/mocha.css"/>
 <script src="../node_modules/mocha/mocha.js"></script>
-<script type="packagemap-shim">
+<script type="importmap-shim">
 {
-  "packages": {
-    "test": {
-      "path": "/test/fixtures",
-      "main": "test.js"
-    },
+  "imports": {
+    "test": "/test/fixtures/es-modules/es6-file.js",
+    "test/": "/test/fixtures/",
     "example": "/test/fixtures/wasm/example.js"
   },
   "scopes": {
     "/": {
-      "packages": {
-        "test-dep": "/test/fixtures/test-dep.js"
-      }
+      "test-dep": "/test/fixtures/test-dep.js"
     }
   }
 }

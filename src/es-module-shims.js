@@ -1,4 +1,4 @@
-import { resolveIfNotPlainOrUrl, baseUrl as pageBaseUrl, createPackageMap } from './common.js';
+import { resolveIfNotPlainOrUrl, baseUrl as pageBaseUrl, parseImportMap, resolveImportMap } from './common.js';
 import { analyzeModuleSyntax } from './lexer.js';
 
 let id = 0;
@@ -226,21 +226,19 @@ function getOrCreateLoad (url, source) {
   return load;
 }
 
-let packageMapPromise, packageMapResolve;
+let importMap, importMapPromise;
 if (typeof document !== 'undefined') {
   const scripts = document.getElementsByTagName('script');
   for (let i = 0; i < scripts.length; i++) {
     const script = scripts[i];
-    if (script.type === 'packagemap-shim' && !packageMapPromise) {
+    if (script.type === 'importmap-shim' && !importMapPromise) {
       if (script.src) {
-        packageMapPromise = (async function () {
-          packageMapResolve = createPackageMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
-          packageMapPromise = undefined;
+        importMapPromise = (async function () {
+          importMap = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
         })();
       }
       else {
-        packageMapPromise = Promise.resolve();
-        packageMapResolve = createPackageMap(JSON.parse(script.innerHTML), pageBaseUrl);
+        importMap = parseImportMap(JSON.parse(script.innerHTML), pageBaseUrl);
       }
     }
     // this works here because there is a .then before resolve
@@ -253,26 +251,16 @@ if (typeof document !== 'undefined') {
   }
 }
 
-if (!packageMapPromise)
-  packageMapResolve = throwBare;
-
-function throwBare (id, parentUrl) {
-  throw new Error('Unable to resolve bare specifier "' + id + (parentUrl ? '" from ' + parentUrl : '"'));
-}
+importMap = importMap || { imports: {}, scopes: {} };
 
 async function resolve (id, parentUrl) {
   parentUrl = parentUrl || pageBaseUrl;
 
-  const resolvedIfNotPlainOrUrl = resolveIfNotPlainOrUrl(id, parentUrl);
-  if (resolvedIfNotPlainOrUrl)
-    return resolvedIfNotPlainOrUrl;
-  if (id.indexOf(':') !== -1)
-    return id;
+  if (importMapPromise)
+    return importMapPromise
+    .then(function () {
+      return resolveImportMap(id, parentUrl, importMap);
+    });
 
-  // now just left with plain
-  // (if not package map, packageMapResolve just throws)
-  if (packageMapPromise)
-    await packageMapPromise;
-  
-  return packageMapResolve(id, parentUrl);
+  return resolveImportMap(id, parentUrl, importMap);
 }

@@ -10,7 +10,7 @@ This includes support for:
 
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
-* [Package Name Maps](https://github.com/domenic/package-name-maps) support.
+* [Import Maps](https://github.com/domenic/import-maps) support.
 * Importing Web Assembly (note, there is an [open issue on how to handle the 4KB imposed limit](https://github.com/guybedford/es-module-shims/issues/1))
 
 Because we are still using the native module loader the edge cases work out comprehensively, including:
@@ -21,10 +21,9 @@ Because we are still using the native module loader the edge cases work out comp
 
 Due to the use of a dedicated JS tokenizer for ES module syntax only, with very simple rewriting rules, transformation is instant.
 
-### Package Name Maps
+### Import Maps
 
-In order to import bare package specifiers like `import "lodash"` we need [package name maps](https://github.com/domenic/package-name-maps), which are still an experimental specification without
-any implementations.
+In order to import bare package specifiers like `import "lodash"` we need [import maps](https://github.com/domenic/import-maps), which are still an experimental specification.
 
 Using this polyfill we can write:
 
@@ -32,16 +31,14 @@ Using this polyfill we can write:
 <!doctype html>
 <!-- either user "defer" or load this polyfill after the scripts below-->
 <script defer src="es-module-shims.js"></script>
-<script type="packagemap-shim">
+<script type="importmap-shim">
 {
-  "packages": {
+  "imports": {
     "test": "/test.js"
   },
   "scopes": {
     "/": {
-      "packages": {
-        "test-dep": "/test-dep.js"
-      }
+      "test-dep": "/test-dep.js"
     }
   }
 }
@@ -75,7 +72,7 @@ import { fn } from './test.wasm';
 
 Web Assembly imports are in turn supported.
 
-Package map support is provided both for mapping into Web Assembly URLs, as well as mapping import specifiers to JS or WebAssembly from within WASM.
+Import map support is provided both for mapping into Web Assembly URLs, as well as mapping import specifiers to JS or WebAssembly from within WASM.
 
 ## Implementation Details
 
@@ -87,10 +84,8 @@ Package map support is provided both for mapping into Web Assembly URLs, as well
 * The approach will only work in browsers supporting ES modules.
 * CSP is not supported as we're using fetch and modular evaluation.
 
-### Package Name Maps
-* The package maps specification is under active development and will change, what is implemented is a faithful subset of the existing behaviour.
-* path_prefix in scopes is not supported.
-* Only flat scopes are supported.
+### Import Maps
+* The import maps specification is under active development and will change, all of the current specification features are implemented, but the edge cases are not currently fully handled. These will be refined as the specification and reference implementation continue to develop.
 
 ### Web Assembly
 * In order for Web Assembly to execute in the module graph as a blob: URL we need to use `new WebAssembly.Instance` for synchronous execution, but this has a 4KB size limit in Chrome and Firefox which will throw for larger binaries. There is no known workaround currently. Tracking in https://github.com/guybedford/es-module-shims/issues/1.
