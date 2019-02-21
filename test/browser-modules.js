@@ -66,6 +66,20 @@ suite('Basic loading tests', () => {
     assert(m);
     assert(m.html);
   });
+
+  test('Should import a module via data url', async function () {
+    var m = await importShim('data:text/plain;charset=utf-8;base64,ZXhwb3J0IHZhciBhc2RmID0gJ2FzZGYnOw0KZXhwb3J0IHZhciBvYmogPSB7fTs=');
+    assert(m);
+    assert.equal(m.asdf, 'asdf');
+  });
+
+  test('Should import a module via blob', async function () {
+    const code = await (await fetch('./fixtures/es-modules/no-imports.js')).text();
+    const blob = new Blob([code], { type: 'application/javascript' });
+    var m = await importShim(URL.createObjectURL(blob));
+    assert(m);
+    assert.equal(m.asdf, 'asdf');
+  });
 });
 
 suite('Circular dependencies', function() {

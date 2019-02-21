@@ -12,6 +12,7 @@ if (typeof location !== 'undefined') {
 }
 
 const backslashRegEx = /\\/g;
+const protocolre = /^[a-z][a-z0-9.+-]*\:/i
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
   if (relUrl.indexOf('\\') !== -1)
     relUrl = relUrl.replace(backslashRegEx, '/');
@@ -20,7 +21,7 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
     return parentUrl.slice(0, parentUrl.indexOf(':') + 1) + relUrl;
   }
   // non-relative URL with protocol
-  else if (relUrl.indexOf('://') > 1) {
+  else if (protocolre.test(relUrl)) {
     return relUrl;
   }
   // relative-url
