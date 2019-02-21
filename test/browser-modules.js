@@ -55,16 +55,22 @@ suite('Basic loading tests', () => {
     assert.equal(m.name, new URL('./fixtures/es-modules/moduleName.js', baseURL).href);
   });
 
-  test('Should import a module via a full url, without scheme', async function () {
-    var m = await importShim('//unpkg.com/lit-html@1.0.0/lit-html.js');
+  test('Should import a module via a full url, with scheme', async function () {
+    const url = window.location.href.replace('/test.html', '/fixtures/es-modules/no-imports.js');
+    assert.equal(url.slice(0, 4), 'http');
+    var m = await importShim(url);
     assert(m);
-    assert(m.html);
+    assert.equal(m.asdf, 'asdf');
   });
 
-  test('Should import a module via a full url, with scheme', async function () {
-    var m = await importShim('https://unpkg.com/lit-html@1.0.0/lit-html.js');
+  test('Should import a module via a full url, without scheme', async function () {
+    const url = window.location.href
+      .replace('/test.html', '/fixtures/es-modules/no-imports.js')
+      .replace(/^http(s)?:/, '');
+    assert.equal(url.slice(0, 2), '//');
+    var m = await importShim(url);
     assert(m);
-    assert(m.html);
+    assert.equal(m.asdf, 'asdf');
   });
 
   test('Should import a module via data url', async function () {
