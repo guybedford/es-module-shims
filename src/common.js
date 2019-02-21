@@ -19,6 +19,10 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
   if (relUrl[0] === '/' && relUrl[1] === '/') {
     return parentUrl.slice(0, parentUrl.indexOf(':') + 1) + relUrl;
   }
+  // non-relative URL with protocol
+  else if (relUrl.indexOf('://') > 1) {
+    return relUrl;
+  }
   // relative-url
   else if (relUrl[0] === '.' && (relUrl[1] === '/' || relUrl[1] === '.' && (relUrl[2] === '/' || relUrl.length === 2 && (relUrl += '/')) ||
       relUrl.length === 1  && (relUrl += '/')) ||

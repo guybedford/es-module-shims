@@ -54,7 +54,19 @@ suite('Basic loading tests', () => {
     var m = await importShim('./fixtures/es-modules/moduleName.js');
     assert.equal(m.name, new URL('./fixtures/es-modules/moduleName.js', baseURL).href);
   });
+
+  test('Should import a module via a full url, without scheme', async function () {
+    var m = await importShim('//unpkg.com/lit-html@1.0.0/lit-html.js');
+    assert(m);
+    assert(m.html);
   });
+
+  test('Should import a module via a full url, with scheme', async function () {
+    var m = await importShim('https://unpkg.com/lit-html@1.0.0/lit-html.js');
+    assert(m);
+    assert(m.html);
+  });
+});
 
 suite('Circular dependencies', function() {
   test('should resolve circular dependencies', async function () {
