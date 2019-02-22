@@ -12,17 +12,12 @@ if (typeof location !== 'undefined') {
 }
 
 const backslashRegEx = /\\/g;
-const protocolre = /^[a-z][a-z0-9.+-]*\:/i
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
   if (relUrl.indexOf('\\') !== -1)
     relUrl = relUrl.replace(backslashRegEx, '/');
   // protocol-relative
   if (relUrl[0] === '/' && relUrl[1] === '/') {
     return parentUrl.slice(0, parentUrl.indexOf(':') + 1) + relUrl;
-  }
-  // non-relative URL with protocol
-  else if (protocolre.test(relUrl)) {
-    return relUrl;
   }
   // relative-url
   else if (relUrl[0] === '.' && (relUrl[1] === '/' || relUrl[1] === '.' && (relUrl[2] === '/' || relUrl.length === 2 && (relUrl += '/')) ||
@@ -162,10 +157,14 @@ function applyPackages (id, packages, baseUrl) {
   }
 }
 
+const protocolre = /^[a-z][a-z0-9.+-]*\:/i;
 export function resolveImportMap (id, parentUrl, importMap) {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
-  if (urlResolved)
+  if (urlResolved){
     id = urlResolved;
+  } else if (protocolre.test(id)) { // non-relative URL with protocol
+    return id;
+  }
   const scopeName = getMatch(parentUrl, importMap.scopes);
   if (scopeName) {
     const scopePackages = importMap.scopes[scopeName];
