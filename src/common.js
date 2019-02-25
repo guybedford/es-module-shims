@@ -157,10 +157,14 @@ function applyPackages (id, packages, baseUrl) {
   }
 }
 
+const protocolre = /^[a-z][a-z0-9.+-]*\:/i;
 export function resolveImportMap (id, parentUrl, importMap) {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
-  if (urlResolved)
+  if (urlResolved){
     id = urlResolved;
+  } else if (protocolre.test(id)) { // non-relative URL with protocol
+    return id;
+  }
   const scopeName = getMatch(parentUrl, importMap.scopes);
   if (scopeName) {
     const scopePackages = importMap.scopes[scopeName];

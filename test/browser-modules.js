@@ -54,7 +54,39 @@ suite('Basic loading tests', () => {
     var m = await importShim('./fixtures/es-modules/moduleName.js');
     assert.equal(m.name, new URL('./fixtures/es-modules/moduleName.js', baseURL).href);
   });
+
+  test('Should import a module via a full url, with scheme', async function () {
+    const url = window.location.href.replace('/test.html', '/fixtures/es-modules/no-imports.js');
+    assert.equal(url.slice(0, 4), 'http');
+    var m = await importShim(url);
+    assert(m);
+    assert.equal(m.asdf, 'asdf');
   });
+
+  test('Should import a module via a full url, without scheme', async function () {
+    const url = window.location.href
+      .replace('/test.html', '/fixtures/es-modules/no-imports.js')
+      .replace(/^http(s)?:/, '');
+    assert.equal(url.slice(0, 2), '//');
+    var m = await importShim(url);
+    assert(m);
+    assert.equal(m.asdf, 'asdf');
+  });
+
+  test('Should import a module via data url', async function () {
+    var m = await importShim('data:text/plain;charset=utf-8;base64,ZXhwb3J0IHZhciBhc2RmID0gJ2FzZGYnOw0KZXhwb3J0IHZhciBvYmogPSB7fTs=');
+    assert(m);
+    assert.equal(m.asdf, 'asdf');
+  });
+
+  test('Should import a module via blob', async function () {
+    const code = await (await fetch('./fixtures/es-modules/no-imports.js')).text();
+    const blob = new Blob([code], { type: 'application/javascript' });
+    var m = await importShim(URL.createObjectURL(blob));
+    assert(m);
+    assert.equal(m.asdf, 'asdf');
+  });
+});
 
 suite('Circular dependencies', function() {
   test('should resolve circular dependencies', async function () {
