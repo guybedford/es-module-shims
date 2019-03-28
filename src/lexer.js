@@ -257,8 +257,10 @@ function parseNext () {
         case 42/***/:
           charCode = str.charCodeAt(++i);
           commentWhitespace();
-          if (str.slice(i, i += 4) === 'from')
+          if (str.slice(i, i += 4) === 'from') {
+            charCode = str.charCodeAt(i);
             readSourceString();
+          }
       }
     }
   }

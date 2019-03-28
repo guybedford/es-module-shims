@@ -23,6 +23,18 @@ suite('Lexer', () => {
     assert.equal(exports.length, 0);
   });
 
+  test('Minified import syntax', () => {
+    const source = `import{TemplateResult as t}from"lit-html";import{a as e}from"./chunk-4be41b30.js";export{j as SVGTemplateResult,i as TemplateResult,g as html,h as svg}from"./chunk-4be41b30.js";window.JSCompiler_renameProperty='asdf';`;
+    const [imports, exports] = parse(source);
+    assert.equal(imports.length, 3);
+    assert.equal(imports[0].s, 32);
+    assert.equal(imports[0].e, 40);
+    assert.equal(imports[1].s, 61);
+    assert.equal(imports[1].e, 80);
+    assert.equal(imports[2].s, 156);
+    assert.equal(imports[2].e, 175);
+  });
+
   test('Simple reexport', () => {
     const source = `
       export { hello as default } from "test-dep";
