@@ -197,7 +197,7 @@ function parseNext () {
           return;
 
         case 99/*c*/:
-          if (readToWsOrPunctuator(i) === 'class') {
+          if (readToWsOrPunctuator(i + 1) === 'lass') {
             charCode = str.charCodeAt(i += 5);
             commentWhitespace();
             oExports.push(readToWsOrPunctuator(i));
@@ -257,8 +257,8 @@ function parseNext () {
         case 42/***/:
           charCode = str.charCodeAt(++i);
           commentWhitespace();
-          if (str.slice(i, i += 4) === 'from') {
-            charCode = str.charCodeAt(i);
+          if (charCode === 102 && str.slice(i + 1, i + 4) === 'rom') {
+            charCode = str.charCodeAt(i += 4);
             readSourceString();
           }
       }
