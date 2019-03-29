@@ -1,3 +1,7 @@
+ES Module Shims 0.2.3 (2019/03/29)
+* Fixup minification build
+* Further lexer adjustments (2ca2589b1)
+
 ES Module Shims 0.2.2 (2019/03/28)
 * Fixup export syntax parser bug (51396799)
 
