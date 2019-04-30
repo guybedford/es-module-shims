@@ -1,3 +1,9 @@
+ES Module Shims 0.2.5 (2019/04/30)
+* Fix various lexing edge cases around dynamic import
+
+ES Module Shims 0.2.4
+* Add "type": "module" to package.json
+
 ES Module Shims 0.2.3 (2019/03/29)
 * Fixup minification build
 * Further lexer adjustments (2ca2589b1)
