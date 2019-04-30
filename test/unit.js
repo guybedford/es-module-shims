@@ -61,6 +61,48 @@ suite('Lexer', () => {
     assert.equal(source.slice(s, e), 'import.meta');
   });
 
+  test('import meta edge cases', () => {
+    const source = `
+      // Import meta
+      import.
+       meta
+      // Not import meta
+      a.
+      import.
+        meta
+    `;
+    const [imports, exports] = parse(source);
+    assert.equal(imports.length, 1);
+    const { s, e, d } = imports[0];
+    assert.equal(d, -2);
+    assert.equal(source.slice(s, e), 'import.\n       meta');
+  });
+
+  test('dynamic import edge cases', () => {
+    const source = `
+      ({
+        // not a dynamic import!
+        import(not1) {}
+      });
+      { 
+        // is a dynamic import!
+        import(is1);
+      }
+      a.
+      // not a dynamic import!
+      import(not2);
+      a.
+      b()
+      // is a dynamic import!
+      import(is2);
+    `;
+    const [imports, exports] = parse(source);
+    assert.equal(imports.length, 2);
+    const { s, e, d } = imports[0];
+    assert.equal(source.substr(s, 6), 'import');
+    assert.equal(source.slice(e, d), 'is1');
+  });
+
   test('import after code', () => {
     const source = `
       export function f () {
@@ -115,9 +157,9 @@ suite('Lexer', () => {
     const [imports, exports] = parse(source);
     assert.equal(imports.length, 2);
     assert.notEqual(imports[0].d, -1);
-    assert.equal(source.slice(imports[0].s, imports[0].e), 'import');
+    assert.equal(source.slice(imports[0].s, imports[0].e), 'import(');
     assert.notEqual(imports[1].d, -1);
-    assert.equal(source.slice(imports[1].s, imports[1].e), 'import');
+    assert.equal(source.slice(imports[1].s, imports[1].e), 'import(');
     assert.equal(exports.length, 1);
     assert.equal(exports[0], 'a');
   });
