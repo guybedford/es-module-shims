@@ -63,7 +63,7 @@ function test(file) {
 
 let files = process.argv.slice(2);
 if (files.length === 0) {
-	files = fs.readdirSync('test/fixtures').map(f => `test/fixtures/${f}`);
+	files = fs.readdirSync('test/fixtures').map(f => `test/fixtures/${f}`).filter(x => x.endsWith('.js'));
 }
 
 files.forEach(test);
