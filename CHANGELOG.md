@@ -1,3 +1,6 @@
+ES Module Shims 0.2.6 (2019/04/30)
+* Fixup dynamic import regression
+
 ES Module Shims 0.2.5 (2019/04/30)
 * Fix various lexing edge cases around dynamic import
 

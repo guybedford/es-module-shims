@@ -1,4 +1,4 @@
-/* ES Module Shims 0.2.5 */
+/* ES Module Shims 0.2.6 */
 (function () {
   'use strict';
 
@@ -813,8 +813,8 @@
         }
         // dynamic import
         else {
-          resolvedSource += source.slice(lastIndex, start) + 'importShim' + source.slice(start, start + 6) + JSON.stringify(load.r) + ', ';
-          lastIndex = dynamicImportIndex;
+          resolvedSource += source.slice(lastIndex, start) + 'importShim' + source.slice(start + 6, end) + JSON.stringify(load.r) + ', ';
+          lastIndex = end;
         }
       }
       resolvedSource += source.slice(lastIndex);
