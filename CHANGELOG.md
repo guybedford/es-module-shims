@@ -1,3 +1,6 @@
+ES Module Shims 0.2.7 (2019/05/04)
+* Fix imports minification case (https://github.com/guybedford/es-module-shims/issues/11)
+
 ES Module Shims 0.2.6 (2019/04/30)
 * Fixup dynamic import regression
 

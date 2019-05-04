@@ -1,4 +1,4 @@
-/* ES Module Shims 0.2.6 */
+/* ES Module Shims 0.2.7 */
 (function () {
   'use strict';
 
@@ -293,8 +293,9 @@
       case 123/*{*/:
         // dynamic import followed by { is not a dynamic import (so remove)
         // this is a sneaky way to get around { import () {} } v { import () } block / object ambiguity without a parser (assuming source is valid)
-        if (oImports.length && oImports[oImports.length - 1].d === lastTokenIndex)
+        if (oImports.length && oImports[oImports.length - 1].d === lastTokenIndex) {
           oImports.pop();
+        }
         braceDepth++;
       // fallthrough
       case 40/*(*/:
@@ -315,10 +316,12 @@
           syntaxError();
         lastOpenTokenIndex = lastTokenIndexStack.pop();
         if (dynamicImportStack.length && lastOpenTokenIndex == dynamicImportStack[dynamicImportStack.length - 1]) {
-          let imptIndex = oImports.length;
-          while (oImports[--imptIndex] && oImports[imptIndex].e > lastOpenTokenIndex);
-          imptIndex++;
-          oImports[imptIndex].d = lastTokenIndex + 1;
+          for (let j = 0; j < oImports.length; j++)
+            if (oImports[j].s === lastOpenTokenIndex) {
+              oImports[j].d = i;
+              break;
+            }
+          dynamicImportStack.pop();
         }
         return;
 
@@ -334,11 +337,11 @@
         return;
 
       case 105/*i*/: {
-        if (readPrecedingKeyword(i + 5) !== 'import' || readToWsOrPunctuator(i + 6) !== '' && str.charCodeAt(i + 6) !== 46/*.*/)
-          return;
-        
+        if (readPrecedingKeyword(i + 5) !== 'import') return;
         const start = i;
         charCode = str.charCodeAt(i += 6);
+        if (readToWsOrPunctuator(i) !== '' && charCode !== 46/*.*/ && charCode !== 34/*"*/ && charCode !== 39/*'*/)
+          return;
         commentWhitespace();
         switch (charCode) {
           // dynamic import
