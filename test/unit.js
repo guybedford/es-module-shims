@@ -35,6 +35,14 @@ suite('Lexer', () => {
     assert.equal(imports[2].e, 175);
   });
 
+  test('More minified imports', () => {
+    const source = `import"some/import.js";`
+    const [imports, exports] = parse(source);
+    assert.equal(imports.length, 1);
+    assert.equal(imports[0].s, 7);
+    assert.equal(imports[0].e, 21);
+  });
+
   test('Simple reexport', () => {
     const source = `
       export { hello as default } from "test-dep";

@@ -157,11 +157,11 @@ function parseNext () {
       return;
 
     case 105/*i*/: {
-      if (readPrecedingKeyword(i + 5) !== 'import' || readToWsOrPunctuator(i + 6) !== '' && str.charCodeAt(i + 6) !== 46/*.*/)
-        return;
-      
+      if (readPrecedingKeyword(i + 5) !== 'import') return;
       const start = i;
-      charCode = str.charCodeAt(i += 6);
+      charCode = str.charCodeAt(i += 6)
+      if (readToWsOrPunctuator(i) !== '' && charCode !== 46/*.*/ && charCode !== 34/*"*/ && charCode !== 39/*'*/)
+        return;
       commentWhitespace();
       switch (charCode) {
         // dynamic import
