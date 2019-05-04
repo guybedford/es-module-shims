@@ -95,12 +95,22 @@ suite('Lexer', () => {
       b()
       // is a dynamic import!
       import(is2);
+
+      const myObject = {
+        import: ()=> import(some_url)
+      }
     `;
     const [imports, exports] = parse(source);
-    assert.equal(imports.length, 2);
-    const { s, e, d } = imports[0];
+    assert.equal(imports.length, 3);
+    var { s, e, d } = imports[0];
     assert.equal(source.substr(s, 6), 'import');
     assert.equal(source.slice(e, d), 'is1');
+
+    var { s, e, d } = imports[1];
+    assert.equal(source.slice(e, d), 'is2');
+
+    var { s, e, d } = imports[2];
+    assert.equal(source.slice(e, d), 'some_url');
   });
 
   test('import after code', () => {

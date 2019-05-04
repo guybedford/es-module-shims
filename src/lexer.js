@@ -113,8 +113,9 @@ function parseNext () {
     case 123/*{*/:
       // dynamic import followed by { is not a dynamic import (so remove)
       // this is a sneaky way to get around { import () {} } v { import () } block / object ambiguity without a parser (assuming source is valid)
-      if (oImports.length && oImports[oImports.length - 1].d === lastTokenIndex)
+      if (oImports.length && oImports[oImports.length - 1].d === lastTokenIndex) {
         oImports.pop();
+      }
       braceDepth++;
     // fallthrough
     case 40/*(*/:
@@ -135,10 +136,12 @@ function parseNext () {
         syntaxError();
       lastOpenTokenIndex = lastTokenIndexStack.pop();
       if (dynamicImportStack.length && lastOpenTokenIndex == dynamicImportStack[dynamicImportStack.length - 1]) {
-        let imptIndex = oImports.length;
-        while (oImports[--imptIndex] && oImports[imptIndex].e > lastOpenTokenIndex);
-        imptIndex++;
-        oImports[imptIndex].d = lastTokenIndex + 1;
+        for (let j = 0; j < oImports.length; j++)
+          if (oImports[j].s === lastOpenTokenIndex) {
+            oImports[j].d = i;
+            break;
+          }
+        dynamicImportStack.pop();
       }
       return;
 
