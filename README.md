@@ -23,6 +23,8 @@ Due to the use of a dedicated JS tokenizer for ES module syntax only, with very 
 
 ### Import Maps
 
+> It is now to ship import maps directly (without using this project!) using the [Origin Trial in Chrome](https://developers.chrome.com/origintrials/#/view_trial/3175037737296199681). The hope is for this project to eventually become a true polyfill for import maps in older browsers, but this will only happen once the spec is implemented in more than one browser and demonstrated to be fully stable.
+
 In order to import bare package specifiers like `import "lodash"` we need [import maps](https://github.com/domenic/import-maps), which are still an experimental specification.
 
 Using this polyfill we can write:
