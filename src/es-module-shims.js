@@ -1,5 +1,6 @@
-import { resolveIfNotPlainOrUrl, baseUrl as pageBaseUrl, parseImportMap, resolveImportMap } from './common.js';
+import { resolveIfNotPlainOrUrl, baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob } from './common.js';
 import { analyzeModuleSyntax } from './lexer.js';
+import { WorkerShim } from './worker-shims.js';
 
 let id = 0;
 const registry = {};
@@ -139,7 +140,6 @@ async function resolveDeps (load, seen) {
   load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.r);
   load.S = undefined;
 }
-const createBlob = source => URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
 
 function getOrCreateLoad (url, source) {
   let load = registry[url];
@@ -263,27 +263,6 @@ async function resolve (id, parentUrl) {
     });
 
   return resolveImportMap(id, parentUrl, self.importMap);
-}
-
-class WorkerShim {
-  constructor(aURL, options = { type: 'classic' }) {
-    if (options.type !== 'module') {
-      return new Worker(aURL, options);
-    }
-
-    let es_module_shims_src = `${pageBaseUrl}es-module-shims.js`;
-    const scripts = document.scripts;
-
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      if (scripts[i].src.includes('es-module-shims.js')) {
-        es_module_shims_src = scripts[i].src;
-
-        break;
-      }
-    }
-
-    return new Worker(createBlob(`importScripts('${es_module_shims_src}'); self.importMap = ${JSON.stringify(options.importMap || {})}; importShim('${baseUrl}${aURL}')`));
-  }
 }
 
 self.WorkerShim = WorkerShim;

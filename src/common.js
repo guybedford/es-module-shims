@@ -178,3 +178,7 @@ export function resolveImportMap (id, parentUrl, importMap) {
 export function throwBare (id, parentUrl) {
   throw new Error('Unable to resolve bare specifier "' + id + (parentUrl ? '" from ' + parentUrl : '"'));
 }
+
+export function createBlob (source) {
+  return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+}
