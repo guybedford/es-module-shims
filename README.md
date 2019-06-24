@@ -81,7 +81,11 @@ Import map support is provided both for mapping into Web Assembly URLs, as well 
 To load workers with full import shims support, the `WorkerShim` constructor can be used:
 
 ```js
-new WorkerShim('./module.js', { type: 'module' })
+const worker = new WorkerShim('./module.js', {
+  type: 'module',
+  // optional import map for worker:
+  importMap: {...}
+});
 ```
 
 This matches the specification for ES module workers, supporting all features of import shims within the workers.
