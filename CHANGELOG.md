@@ -1,3 +1,6 @@
+ES Module Shims 0.2.9 (2019/06/24)
+* Fixup WorkerShim worker output
+
 ES Module Shims 0.2.8 (2019/06/24)
 * Support WorkerShim module workers (https://github.com/guybedford/es-module-shims/pull/17 by @costingeana)
 

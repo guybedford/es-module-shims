@@ -1,10 +1,10 @@
 {
   "name": "es-module-shims",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Shims for the latest ES module features",
   "main": "dist/es-module-shims.js",
   "scripts": {
-    "build": "rollup ./src/es-module-shims.js -f iife -o dist/es-module-shims.js --banner \"/* ES Module Shims 0.2.8 */\"",
+    "build": "rollup ./src/es-module-shims.js -f iife -o dist/es-module-shims.js --banner \"/* ES Module Shims 0.2.9 */\"",
     "min": "cd dist && terser es-module-shims.js -c passes=2 -m --source-map --comments \"/ES Module Shims/\" -o es-module-shims.min.js",
     "footprint": "npm run build && npm run min && cat dist/es-module-shims.min.js | gzip -9f | wc -c",
     "test": "mocha -r esm -u tdd test/unit.js",
