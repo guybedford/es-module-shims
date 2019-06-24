@@ -76,6 +76,16 @@ Web Assembly imports are in turn supported.
 
 Import map support is provided both for mapping into Web Assembly URLs, as well as mapping import specifiers to JS or WebAssembly from within WASM.
 
+### Module Workers
+
+To load workers with full import shims support, the `WorkerShim` constructor can be used:
+
+```js
+new WorkerShim('./module.js', { type: 'module' })
+```
+
+This matches the specification for ES module workers, supporting all features of import shims within the workers.
+
 ## Implementation Details
 
 ### Tokenizer Rewriting
