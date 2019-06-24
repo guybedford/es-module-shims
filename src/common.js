@@ -11,6 +11,11 @@ if (typeof location !== 'undefined') {
     baseUrl = baseUrl.slice(0, lastSepIndex + 1);
 }
 
+export let esModuleShimsSrc;
+if (typeof document !== 'undefined') {
+  esModuleShimsSrc = document.currentScript && document.currentScript.src;
+}
+
 const backslashRegEx = /\\/g;
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
   if (relUrl.indexOf('\\') !== -1)
