@@ -10,6 +10,11 @@
       baseUrl = baseUrl.slice(0, lastSepIndex + 1);
   }
 
+  let esModuleShimsSrc;
+  if (typeof document !== 'undefined') {
+    esModuleShimsSrc = document.currentScript && document.currentScript.src;
+  }
+
   const backslashRegEx = /\\/g;
   function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
     if (relUrl.indexOf('\\') !== -1)
@@ -176,6 +181,10 @@
 
   function throwBare (id, parentUrl) {
     throw new Error('Unable to resolve bare specifier "' + id + (parentUrl ? '" from ' + parentUrl : '"'));
+  }
+
+  function createBlob (source) {
+    return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
   }
 
   function analyzeModuleSyntax (_str) {
@@ -689,6 +698,25 @@
     throw new Error();
   }
 
+  class WorkerShim {
+    constructor(aURL, options = {type: 'classic'}) {
+      if (options.type !== 'module') {
+        return new Worker(aURL, options);
+      }
+
+      if (!esModuleShimsSrc)
+        throw new Error('es-module-shims.js must be loaded with a script tag for WorkerShim support.');
+
+      const workerScriptUrl = createBlob(
+        `importScripts('${esModuleShimsSrc}'); self.importMap = ${JSON.stringify(options.importMap || {})}; importShim('${new URL(aURL, baseUrl).href}')`);
+
+      const workerOptions = {...options};
+      workerOptions.type = 'classic';
+
+      return new Worker(workerScriptUrl, workerOptions);
+    }
+  }
+
   let id = 0;
   const registry = {};
 
@@ -826,7 +854,6 @@
     load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.r);
     load.S = undefined;
   }
-  const createBlob = source => URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
 
   function getOrCreateLoad (url, source) {
     let load = registry[url];
@@ -913,7 +940,7 @@
     return load;
   }
 
-  let importMap, importMapPromise;
+  let importMapPromise;
   if (typeof document !== 'undefined') {
     const scripts = document.getElementsByTagName('script');
     for (let i = 0; i < scripts.length; i++) {
@@ -921,11 +948,11 @@
       if (script.type === 'importmap-shim' && !importMapPromise) {
         if (script.src) {
           importMapPromise = (async function () {
-            importMap = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
+            self.importMap = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
           })();
         }
         else {
-          importMap = parseImportMap(JSON.parse(script.innerHTML), baseUrl);
+          self.importMap = parseImportMap(JSON.parse(script.innerHTML), baseUrl);
         }
       }
       // this works here because there is a .then before resolve
@@ -938,7 +965,7 @@
     }
   }
 
-  importMap = importMap || { imports: {}, scopes: {} };
+  self.importMap = self.importMap || { imports: {}, scopes: {} };
 
   async function resolve (id, parentUrl) {
     parentUrl = parentUrl || baseUrl;
@@ -946,10 +973,12 @@
     if (importMapPromise)
       return importMapPromise
       .then(function () {
-        return resolveImportMap(id, parentUrl, importMap);
+        return resolveImportMap(id, parentUrl, self.importMap);
       });
 
-    return resolveImportMap(id, parentUrl, importMap);
+    return resolveImportMap(id, parentUrl, self.importMap);
   }
+
+  self.WorkerShim = WorkerShim;
 
 }());

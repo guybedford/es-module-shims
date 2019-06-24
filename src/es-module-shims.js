@@ -1,5 +1,6 @@
-import { resolveIfNotPlainOrUrl, baseUrl as pageBaseUrl, parseImportMap, resolveImportMap } from './common.js';
+import { resolveIfNotPlainOrUrl, baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob } from './common.js';
 import { analyzeModuleSyntax } from './lexer.js';
+import { WorkerShim } from './worker-shims.js';
 
 let id = 0;
 const registry = {};
@@ -139,7 +140,6 @@ async function resolveDeps (load, seen) {
   load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.r);
   load.S = undefined;
 }
-const createBlob = source => URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
 
 function getOrCreateLoad (url, source) {
   let load = registry[url];
@@ -226,7 +226,7 @@ function getOrCreateLoad (url, source) {
   return load;
 }
 
-let importMap, importMapPromise;
+let importMapPromise;
 if (typeof document !== 'undefined') {
   const scripts = document.getElementsByTagName('script');
   for (let i = 0; i < scripts.length; i++) {
@@ -234,11 +234,11 @@ if (typeof document !== 'undefined') {
     if (script.type === 'importmap-shim' && !importMapPromise) {
       if (script.src) {
         importMapPromise = (async function () {
-          importMap = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
+          self.importMap = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
         })();
       }
       else {
-        importMap = parseImportMap(JSON.parse(script.innerHTML), pageBaseUrl);
+        self.importMap = parseImportMap(JSON.parse(script.innerHTML), pageBaseUrl);
       }
     }
     // this works here because there is a .then before resolve
@@ -251,7 +251,7 @@ if (typeof document !== 'undefined') {
   }
 }
 
-importMap = importMap || { imports: {}, scopes: {} };
+self.importMap = self.importMap || { imports: {}, scopes: {} };
 
 async function resolve (id, parentUrl) {
   parentUrl = parentUrl || pageBaseUrl;
@@ -259,8 +259,10 @@ async function resolve (id, parentUrl) {
   if (importMapPromise)
     return importMapPromise
     .then(function () {
-      return resolveImportMap(id, parentUrl, importMap);
+      return resolveImportMap(id, parentUrl, self.importMap);
     });
 
-  return resolveImportMap(id, parentUrl, importMap);
+  return resolveImportMap(id, parentUrl, self.importMap);
 }
+
+self.WorkerShim = WorkerShim;

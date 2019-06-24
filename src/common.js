@@ -11,6 +11,11 @@ if (typeof location !== 'undefined') {
     baseUrl = baseUrl.slice(0, lastSepIndex + 1);
 }
 
+export let esModuleShimsSrc;
+if (typeof document !== 'undefined') {
+  esModuleShimsSrc = document.currentScript && document.currentScript.src;
+}
+
 const backslashRegEx = /\\/g;
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
   if (relUrl.indexOf('\\') !== -1)
@@ -177,4 +182,8 @@ export function resolveImportMap (id, parentUrl, importMap) {
 
 export function throwBare (id, parentUrl) {
   throw new Error('Unable to resolve bare specifier "' + id + (parentUrl ? '" from ' + parentUrl : '"'));
+}
+
+export function createBlob (source) {
+  return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
 }
