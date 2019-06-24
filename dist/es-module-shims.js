@@ -178,6 +178,10 @@
     throw new Error('Unable to resolve bare specifier "' + id + (parentUrl ? '" from ' + parentUrl : '"'));
   }
 
+  function createBlob (source) {
+    return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+  }
+
   function analyzeModuleSyntax (_str) {
     str = _str;
     let err = null;
@@ -689,6 +693,32 @@
     throw new Error();
   }
 
+  class WorkerShim {
+    constructor(aURL, options = {type: 'classic'}) {
+      if (options.type !== 'module') {
+        return new Worker(aURL, options);
+      }
+
+      let es_module_shims_src = new URL('es-module-shims.js', baseUrl).href;
+      const scripts = document.scripts;
+      for (let i = 0, len = scripts.length; i < len; i++) {
+        if (scripts[i].src.includes('es-module-shims.js')) {
+            es_module_shims_src = scripts[i].src;
+
+            break;
+        }
+      }
+
+      const workerScriptUrl = createBlob(`importScripts('${es_module_shims_src}'); 
+    self.importMap = ${JSON.stringify(options.importMap || {})}; importShim('${new URL(aURL, baseUrl).href}')`);
+
+      const workerOptions = {...options};
+      workerOptions.type = 'classic';
+
+      return new Worker(workerScriptUrl, workerOptions);
+    }
+  }
+
   let id = 0;
   const registry = {};
 
@@ -826,7 +856,6 @@
     load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.r);
     load.S = undefined;
   }
-  const createBlob = source => URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
 
   function getOrCreateLoad (url, source) {
     let load = registry[url];
@@ -913,7 +942,7 @@
     return load;
   }
 
-  let importMap, importMapPromise;
+  let importMapPromise;
   if (typeof document !== 'undefined') {
     const scripts = document.getElementsByTagName('script');
     for (let i = 0; i < scripts.length; i++) {
@@ -921,11 +950,11 @@
       if (script.type === 'importmap-shim' && !importMapPromise) {
         if (script.src) {
           importMapPromise = (async function () {
-            importMap = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
+            self.importMap = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
           })();
         }
         else {
-          importMap = parseImportMap(JSON.parse(script.innerHTML), baseUrl);
+          self.importMap = parseImportMap(JSON.parse(script.innerHTML), baseUrl);
         }
       }
       // this works here because there is a .then before resolve
@@ -938,7 +967,7 @@
     }
   }
 
-  importMap = importMap || { imports: {}, scopes: {} };
+  self.importMap = self.importMap || { imports: {}, scopes: {} };
 
   async function resolve (id, parentUrl) {
     parentUrl = parentUrl || baseUrl;
@@ -946,10 +975,12 @@
     if (importMapPromise)
       return importMapPromise
       .then(function () {
-        return resolveImportMap(id, parentUrl, importMap);
+        return resolveImportMap(id, parentUrl, self.importMap);
       });
 
-    return resolveImportMap(id, parentUrl, importMap);
+    return resolveImportMap(id, parentUrl, self.importMap);
   }
+
+  self.WorkerShim = WorkerShim;
 
 }());
