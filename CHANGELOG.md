@@ -1,3 +1,6 @@
+ES Module Shims 0.2.8 (2019/06/24)
+* Support WorkerShim module workers (https://github.com/guybedford/es-module-shims/pull/17 by @costingeana)
+
 ES Module Shims 0.2.7 (2019/05/04)
 * Fix imports minification case (https://github.com/guybedford/es-module-shims/issues/11)
 

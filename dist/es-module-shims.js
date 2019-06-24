@@ -1,4 +1,4 @@
-/* ES Module Shims 0.2.7 */
+/* ES Module Shims 0.2.8 */
 (function () {
   'use strict';
 
@@ -169,14 +169,14 @@
     } else if (protocolre.test(id)) { // non-relative URL with protocol
       return id;
     }
-    const scopeName = getMatch(parentUrl, importMap.scopes);
+    const scopeName = importMap.scopes && getMatch(parentUrl, importMap.scopes);
     if (scopeName) {
       const scopePackages = importMap.scopes[scopeName];
       const packageResolution = applyPackages(id, scopePackages, scopeName);
       if (packageResolution)
         return packageResolution;
     }
-    return applyPackages(id, importMap.imports, importMap.baseUrl) || urlResolved || throwBare(id, parentUrl);
+    return importMap.imports && applyPackages(id, importMap.imports, importMap.baseUrl) || urlResolved || throwBare(id, parentUrl);
   }
 
   function throwBare (id, parentUrl) {
@@ -699,21 +699,19 @@
   }
 
   class WorkerShim {
-    constructor(aURL, options = {type: 'classic'}) {
-      if (options.type !== 'module') {
+    constructor(aURL, options = {}) {
+      console.log(options);
+      if (options.type !== 'module')
         return new Worker(aURL, options);
-      }
 
       if (!esModuleShimsSrc)
         throw new Error('es-module-shims.js must be loaded with a script tag for WorkerShim support.');
 
       const workerScriptUrl = createBlob(
-        `importScripts('${esModuleShimsSrc}'); self.importMap = ${JSON.stringify(options.importMap || {})}; importShim('${new URL(aURL, baseUrl).href}')`);
+        `importScripts('${esModuleShimsSrc}');self.importMapShim=${JSON.stringify(options.importMap || {})};console.log(self.importMapShim);importShim('${new URL(aURL, baseUrl).href}').catch(e=>setTimeout(()=>{throw e}))`
+      );
 
-      const workerOptions = {...options};
-      workerOptions.type = 'classic';
-
-      return new Worker(workerScriptUrl, workerOptions);
+      return new Worker(workerScriptUrl, { type: undefined, ...options });
     }
   }
 
@@ -746,7 +744,7 @@
           });
         });
       };
-    }  
+    }
   }
 
   async function loadAll (load, loaded) {
@@ -948,11 +946,11 @@
       if (script.type === 'importmap-shim' && !importMapPromise) {
         if (script.src) {
           importMapPromise = (async function () {
-            self.importMap = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
+            self.importMapShim = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
           })();
         }
         else {
-          self.importMap = parseImportMap(JSON.parse(script.innerHTML), baseUrl);
+          self.importMapShim = parseImportMap(JSON.parse(script.innerHTML), baseUrl);
         }
       }
       // this works here because there is a .then before resolve
@@ -965,7 +963,7 @@
     }
   }
 
-  self.importMap = self.importMap || { imports: {}, scopes: {} };
+  self.importMapShim = self.importMapShim || {};
 
   async function resolve (id, parentUrl) {
     parentUrl = parentUrl || baseUrl;
@@ -973,10 +971,10 @@
     if (importMapPromise)
       return importMapPromise
       .then(function () {
-        return resolveImportMap(id, parentUrl, self.importMap);
+        return resolveImportMap(id, parentUrl, self.importMapShim);
       });
 
-    return resolveImportMap(id, parentUrl, self.importMap);
+    return resolveImportMap(id, parentUrl, self.importMapShim);
   }
 
   self.WorkerShim = WorkerShim;
