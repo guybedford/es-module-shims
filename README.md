@@ -90,6 +90,8 @@ const worker = new WorkerShim('./module.js', {
 
 This matches the specification for ES module workers, supporting all features of import shims within the workers.
 
+> Module workers are only supported in browsers that provide dynamic import in worker environments, which is only Chrome currently.
+
 ## Implementation Details
 
 ### Tokenizer Rewriting
