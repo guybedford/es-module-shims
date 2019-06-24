@@ -1,4 +1,4 @@
-import { resolveIfNotPlainOrUrl, baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob } from './common.js';
+import { baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob } from './common.js';
 import { analyzeModuleSyntax } from './lexer.js';
 import { WorkerShim } from './worker-shims.js';
 
@@ -31,7 +31,7 @@ catch (e) {
         });
       });
     };
-  }  
+  }
 }
 
 async function loadAll (load, loaded) {
@@ -234,11 +234,11 @@ if (typeof document !== 'undefined') {
     if (script.type === 'importmap-shim' && !importMapPromise) {
       if (script.src) {
         importMapPromise = (async function () {
-          self.importMap = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
+          self.importMapShim = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
         })();
       }
       else {
-        self.importMap = parseImportMap(JSON.parse(script.innerHTML), pageBaseUrl);
+        self.importMapShim = parseImportMap(JSON.parse(script.innerHTML), pageBaseUrl);
       }
     }
     // this works here because there is a .then before resolve
@@ -251,7 +251,7 @@ if (typeof document !== 'undefined') {
   }
 }
 
-self.importMap = self.importMap || { imports: {}, scopes: {} };
+self.importMapShim = self.importMapShim || {};
 
 async function resolve (id, parentUrl) {
   parentUrl = parentUrl || pageBaseUrl;
@@ -259,10 +259,10 @@ async function resolve (id, parentUrl) {
   if (importMapPromise)
     return importMapPromise
     .then(function () {
-      return resolveImportMap(id, parentUrl, self.importMap);
+      return resolveImportMap(id, parentUrl, self.importMapShim);
     });
 
-  return resolveImportMap(id, parentUrl, self.importMap);
+  return resolveImportMap(id, parentUrl, self.importMapShim);
 }
 
 self.WorkerShim = WorkerShim;

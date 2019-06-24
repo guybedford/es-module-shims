@@ -28,8 +28,8 @@ suite('Worker', () => {
   test('should create worker type=module and then receive a message containing the result of a bare import', async () => {
     const worker = new WorkerShim("./fixtures/worker/module-worker.js", {
       type: 'module',
-        name: 'test_import_map',
-        importMap: self.importMap
+      name: 'test_import_map',
+      importMap: self.importMapShim
     });
 
     const result = await new Promise((resolve, reject) => {

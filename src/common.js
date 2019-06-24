@@ -170,14 +170,14 @@ export function resolveImportMap (id, parentUrl, importMap) {
   } else if (protocolre.test(id)) { // non-relative URL with protocol
     return id;
   }
-  const scopeName = getMatch(parentUrl, importMap.scopes);
+  const scopeName = importMap.scopes && getMatch(parentUrl, importMap.scopes);
   if (scopeName) {
     const scopePackages = importMap.scopes[scopeName];
     const packageResolution = applyPackages(id, scopePackages, scopeName);
     if (packageResolution)
       return packageResolution;
   }
-  return applyPackages(id, importMap.imports, importMap.baseUrl) || urlResolved || throwBare(id, parentUrl);
+  return importMap.imports && applyPackages(id, importMap.imports, importMap.baseUrl) || urlResolved || throwBare(id, parentUrl);
 }
 
 export function throwBare (id, parentUrl) {
