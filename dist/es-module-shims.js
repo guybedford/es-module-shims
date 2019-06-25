@@ -699,20 +699,19 @@
   }
 
   class WorkerShim {
-    constructor(aURL, options = {}) {
-      console.log(options);
-      if (options.type !== 'module')
-        return new Worker(aURL, options);
+      constructor(aURL, options = {}) {
+          if (options.type !== 'module')
+              return new Worker(aURL, options);
 
-      if (!esModuleShimsSrc)
-        throw new Error('es-module-shims.js must be loaded with a script tag for WorkerShim support.');
+          if (!esModuleShimsSrc)
+              throw new Error('es-module-shims.js must be loaded with a script tag for WorkerShim support.');
 
-      const workerScriptUrl = createBlob(
-        `importScripts('${esModuleShimsSrc}');self.importMapShim=${JSON.stringify(options.importMap || {})};importShim('${new URL(aURL, baseUrl).href}').catch(e=>setTimeout(()=>{throw e}))`
-      );
+          const workerScriptUrl = createBlob(
+              `importScripts('${esModuleShimsSrc}');self.importMapShim=${JSON.stringify(options.importMap || {})};importShim('${new URL(aURL, baseUrl).href}').catch(e=>setTimeout(()=>{throw e}))`
+          );
 
-      return new Worker(workerScriptUrl, { type: undefined, ...options });
-    }
+          return new Worker(workerScriptUrl, { ...options, type: undefined });
+      }
   }
 
   let id = 0;
