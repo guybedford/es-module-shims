@@ -1,3 +1,6 @@
+ES Module Shims 0.2.10 (2019/06/25)
+* Fix Worker constructor options bug (https://github.com/guybedford/es-module-shims/pull/23)
+
 ES Module Shims 0.2.9 (2019/06/24)
 * Fixup WorkerShim worker output
 
