@@ -2,7 +2,6 @@ import { baseUrl as pageBaseUrl, esModuleShimsSrc, createBlob } from './common.j
 
 export class WorkerShim {
   constructor(aURL, options = {}) {
-    console.log(options);
     if (options.type !== 'module')
       return new Worker(aURL, options);
 
@@ -10,9 +9,9 @@ export class WorkerShim {
       throw new Error('es-module-shims.js must be loaded with a script tag for WorkerShim support.');
 
     const workerScriptUrl = createBlob(
-      `importScripts('${esModuleShimsSrc}');self.importMapShim=${JSON.stringify(options.importMap || {})};importShim('${new URL(aURL, pageBaseUrl).href}').catch(e=>setTimeout(()=>{throw e}))`
+        `importScripts('${esModuleShimsSrc}');self.importMapShim=${JSON.stringify(options.importMap || {})};importShim('${new URL(aURL, pageBaseUrl).href}').catch(e=>setTimeout(()=>{throw e}))`
     );
 
-    return new Worker(workerScriptUrl, { type: undefined, ...options });
+    return new Worker(workerScriptUrl, { ...options, type: undefined });
   }
 }
