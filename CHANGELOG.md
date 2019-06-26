@@ -1,3 +1,6 @@
+ES Module Shims 0.2.11 (2019/06/26)
+* Fix use of object spread in Edge (https://github.com/guybedford/es-module-shims/pull/25, @LarsDenBakker)
+
 ES Module Shims 0.2.10 (2019/06/25)
 * Fix Worker constructor options bug (https://github.com/guybedford/es-module-shims/pull/23)
 
