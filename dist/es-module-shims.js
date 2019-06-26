@@ -710,7 +710,7 @@
           `importScripts('${esModuleShimsSrc}');self.importMapShim=${JSON.stringify(options.importMap || {})};importShim('${new URL(aURL, baseUrl).href}').catch(e=>setTimeout(()=>{throw e}))`
       );
 
-      return new Worker(workerScriptUrl, { ...options, type: undefined });
+      return new Worker(workerScriptUrl, Object.assign({}, options, { type: undefined }));
     }
   }
 
