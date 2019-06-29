@@ -207,6 +207,8 @@ function getOrCreateLoad (url, source) {
       }
 
       source = await res.text();
+      if (res.url.endsWith('.json'))
+        source = `export default JSON.parse(${JSON.stringify(source)})`;
     }
     load.a = analyzeModuleSyntax(source);
     if (load.a[2])

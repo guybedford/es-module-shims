@@ -40,6 +40,26 @@ suite('Basic loading tests', () => {
       throw new Error('Supposed to throw');
   });
 
+  test('should import json', async function () {
+    var m = await importShim('./fixtures/json.json');
+    assert.equal(m.default.json, 'module');
+  });
+
+  test('should throw json parse errors', async function () {
+    try {
+      await importShim('./fixtures/json-error.json');
+    }
+    catch (e) {
+      assert(e instanceof SyntaxError);
+    }
+    try {
+      await importShim('./fixtures/json-error.json');
+    }
+    catch (e) {
+      assert(e instanceof SyntaxError);
+    }
+  });
+
   test('should resolve various import syntax', async function () {
     var m = await importShim('./fixtures/es-modules/import.js');
     assert.equal(typeof m.a, 'function');

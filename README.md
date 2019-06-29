@@ -64,9 +64,17 @@ To load code dynamically (say from the browser console), `importShim` can be cal
 importShim('/path/to/module.js').then(x => console.log(x));
 ```
 
+### JSON Modules
+
+To load [JSON Modules](https://github.com/whatwg/html/pull/4407), import any file with a `.json` file extension:
+
+```js
+import json from './test.json';
+```
+
 ### Web Assembly
 
-To load Web Assembly, just import it:
+To load [Web Assembly Modules](https://github.com/webassembly/esm-integration), import a module with a `.wasm` file extension:
 
 ```js
 import { fn } from './test.wasm';
