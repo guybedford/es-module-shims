@@ -1,3 +1,6 @@
+ES Module Shims 0.2.12 (2019/06/29)
+* Support `<base>` tag for baseURL (https://github.com/guybedford/es-module-shims/pull/26, @LarsDenBakker)
+
 ES Module Shims 0.2.11 (2019/06/26)
 * Fix use of object spread in Edge (https://github.com/guybedford/es-module-shims/pull/25, @LarsDenBakker)
 
