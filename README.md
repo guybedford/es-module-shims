@@ -4,13 +4,14 @@
 
 But a lot of the useful features of modules come from new specifications which either aren't implemented yet, or are only available in some browsers.
 
-_It turns out that we can actually polyfill most of the newer modules specifications on top of these baseline implementations in a performant 3.5KB shim._
+_It turns out that we can actually polyfill most of the newer modules specifications on top of these baseline implementations in a performant 4KB shim._
 
 This includes support for:
 
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
 * [Import Maps](https://github.com/domenic/import-maps) support.
+* Importing JSON
 * Importing Web Assembly (note, there is an [open issue on how to handle the 4KB imposed limit](https://github.com/guybedford/es-module-shims/issues/1))
 
 Because we are still using the native module loader the edge cases work out comprehensively, including:

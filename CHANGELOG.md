@@ -1,3 +1,6 @@
+ES Module Shims 0.2.13 (2019/06/29)
+* Support JSON module imports (https://github.com/guybedford/es-module-shims/pull/27)
+
 ES Module Shims 0.2.12 (2019/06/29)
 * Support `<base>` tag for baseURL (https://github.com/guybedford/es-module-shims/pull/26, @LarsDenBakker)
 
