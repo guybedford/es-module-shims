@@ -29,7 +29,7 @@ suite('Worker', () => {
     const worker = new WorkerShim("./fixtures/worker/module-worker.js", {
       type: 'module',
       name: 'test_import_map',
-      importMap: self.importMapShim
+      importMap: importShim.map
     });
 
     const result = await new Promise((resolve, reject) => {

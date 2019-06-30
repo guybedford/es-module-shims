@@ -64,6 +64,7 @@ const meta = {};
 const wasmModules = {};
 
 Object.defineProperties(importShim, {
+  map: { value: {}, writable: true },
   m: { value: meta },
   w: { value: wasmModules },
   l: { value: undefined, writable: true },
@@ -100,14 +101,13 @@ async function resolveDeps (load, seen) {
         if (!blobUrl) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
-            let hasDefault = false;
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
                 depLoad.a[1].map(
                   name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
                 ).join(',')
               }}${
                 depLoad.a[1].map(name => 
-                  name === 'default' ? (hasDefault = true, `let $_default;export{$_default as default}`) : `export let ${name}`
+                  name === 'default' ? `let $_default;export{$_default as default}` : `export let ${name}`
                 ).join(';')
               }\n//# sourceURL=${depLoad.r}?cycle`);
           }
@@ -236,11 +236,11 @@ if (typeof document !== 'undefined') {
     if (script.type === 'importmap-shim' && !importMapPromise) {
       if (script.src) {
         importMapPromise = (async function () {
-          self.importMapShim = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
+          importShim.map = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
         })();
       }
       else {
-        self.importMapShim = parseImportMap(JSON.parse(script.innerHTML), pageBaseUrl);
+        importShim.map = parseImportMap(JSON.parse(script.innerHTML), pageBaseUrl);
       }
     }
     // this works here because there is a .then before resolve
@@ -253,18 +253,16 @@ if (typeof document !== 'undefined') {
   }
 }
 
-self.importMapShim = self.importMapShim || {};
-
 async function resolve (id, parentUrl) {
   parentUrl = parentUrl || pageBaseUrl;
 
   if (importMapPromise)
     return importMapPromise
     .then(function () {
-      return resolveImportMap(id, parentUrl, self.importMapShim);
+      return resolveImportMap(id, parentUrl, importShim.map);
     });
 
-  return resolveImportMap(id, parentUrl, self.importMapShim);
+  return resolveImportMap(id, parentUrl, importShim.map);
 }
 
 self.WorkerShim = WorkerShim;
