@@ -123,9 +123,11 @@ function resolvePackages(pkgs) {
   for (var p in pkgs) {
     var value = pkgs[p];
     // TODO package fallback support
-    if (typeof value !== 'string')
-      continue;
-    outPkgs[resolveIfNotPlainOrUrl(p) || p] = value;
+    if (typeof value !== 'string') {
+      outPkgs[resolveIfNotPlainOrUrl(p) || p] = value.filter(v => !v.startsWith('std:'))[0];
+    } else {
+      outPkgs[resolveIfNotPlainOrUrl(p) || p] = value;
+    }
   }
   return outPkgs;
 }
