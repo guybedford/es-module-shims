@@ -123,11 +123,10 @@ function resolvePackages(pkgs) {
   for (var p in pkgs) {
     var value = pkgs[p];
     // TODO package fallback support
-    if (typeof value !== 'string') {
-      outPkgs[resolveIfNotPlainOrUrl(p) || p] = value.filter(v => !v.startsWith('std:'))[0];
-    } else {
+    if (Array.isArray(value))
+      value = value.find(v => !v.startsWith('std:'));
+    if (typeof value === 'string')
       outPkgs[resolveIfNotPlainOrUrl(p) || p] = value;
-    }
   }
   return outPkgs;
 }

@@ -5,6 +5,12 @@ suite('Basic loading tests', () => {
     assert.equal(m.asdf, 'asdf');
   });
 
+  test('Should import the fallback for a built-in module', async function () {
+    var m = await importShim('std:built-in');
+    assert(m);
+    assert.equal(m.fallback, 'fallback');
+  });
+
   test('Should import a module cached', async function () {
     var m1 = await importShim('./fixtures/es-modules/no-imports.js');
     var m2 = await importShim('./fixtures/es-modules/no-imports.js');

@@ -17,7 +17,6 @@ catch (e) {
       const topLevelBlobUrl = createBlob(
         `import*as m from'${blobUrl}';self.importShim.l=m;self.importShim.e=null`
       );
-  
       const s = document.createElement('script');
       s.type = 'module';
       s.src = topLevelBlobUrl;
@@ -82,7 +81,6 @@ async function resolveDeps (load, seen) {
   for (const depLoad of load.d)
     if (!seen[depLoad.u])
       resolveDeps(depLoad, seen);
-  
   if (!load.a[0].length) {
     resolvedSource = source;
   }
@@ -106,7 +104,7 @@ async function resolveDeps (load, seen) {
                   name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
                 ).join(',')
               }}${
-                depLoad.a[1].map(name => 
+                depLoad.a[1].map(name =>
                   name === 'default' ? `let $_default;export{$_default as default}` : `export let ${name}`
                 ).join(';')
               }\n//# sourceURL=${depLoad.r}?cycle`);
@@ -167,6 +165,11 @@ function getOrCreateLoad (url, source) {
     s: undefined,
   };
 
+  if(url.startsWith('std:')) {
+    load.u = importShim.map.imports[url]
+    url = importShim.map.imports[url]
+  }
+
   load.f = (async () => {
     if (!source) {
       const res = await fetch(url);
@@ -177,14 +180,14 @@ function getOrCreateLoad (url, source) {
 
       if (res.url.endsWith('.wasm')) {
         const module = wasmModules[url] = await (WebAssembly.compileStreaming ? WebAssembly.compileStreaming(res) : WebAssembly.compile(await res.arrayBuffer()));
-    
+
         let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
-    
+
         const aDeps = [];
         load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
-    
+
         const depStrs = deps.map(dep => JSON.stringify(dep));
-    
+
         let curIndex = 0;
         load.S = depStrs.map((depStr, idx) => {
             const index = idx.toString();
@@ -202,7 +205,7 @@ function getOrCreateLoad (url, source) {
           depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
           `}).exports;` +
           load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
-    
+
         return deps;
       }
 
