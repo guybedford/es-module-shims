@@ -165,11 +165,6 @@ function getOrCreateLoad (url, source) {
     s: undefined,
   };
 
-  if(url.startsWith('std:')) {
-    load.u = importShim.map.imports[url]
-    url = importShim.map.imports[url]
-  }
-
   load.f = (async () => {
     if (!source) {
       const res = await fetch(url);
