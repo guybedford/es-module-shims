@@ -123,9 +123,10 @@ function resolvePackages(pkgs) {
   for (var p in pkgs) {
     var value = pkgs[p];
     // TODO package fallback support
-    if (typeof value !== 'string')
-      continue;
-    outPkgs[resolveIfNotPlainOrUrl(p) || p] = value;
+    if (Array.isArray(value))
+      value = value.find(v => !v.startsWith('std:'));
+    if (typeof value === 'string')
+      outPkgs[resolveIfNotPlainOrUrl(p) || p] = value;
   }
   return outPkgs;
 }
@@ -171,7 +172,7 @@ function applyPackages (id, packages, baseUrl) {
 
 const protocolre = /^[a-z][a-z0-9.+-]*\:/i;
 export function resolveImportMap (id, parentUrl, importMap) {
-  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
+  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || id.indexOf(':') !== -1 && id;
   if (urlResolved){
     id = urlResolved;
   } else if (protocolre.test(id)) { // non-relative URL with protocol
