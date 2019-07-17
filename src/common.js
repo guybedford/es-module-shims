@@ -25,6 +25,8 @@ if (typeof document !== 'undefined') {
 
 const backslashRegEx = /\\/g;
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
+  // strip off any trailing query params or hashes
+  parentUrl = parentUrl && parentUrl.split('#')[0].split('?')[0];
   if (relUrl.indexOf('\\') !== -1)
     relUrl = relUrl.replace(backslashRegEx, '/');
   // protocol-relative

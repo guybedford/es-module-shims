@@ -112,6 +112,12 @@ suite('Basic loading tests', () => {
     assert(m);
     assert.equal(m.asdf, 'asdf');
   });
+
+  test('Should import a module with query parameters with path segments', async function () {
+    var m = await importShim('./fixtures/es-modules/query-param-a.js?foo=/foo/bar/');
+    assert(m);
+    assert.equal(m.a, 'ab');
+  });
 });
 
 suite('Circular dependencies', function() {
