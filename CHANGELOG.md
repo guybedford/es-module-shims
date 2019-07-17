@@ -1,3 +1,7 @@
+ES Module Shims 0.2.14 (2019/07/17)
+* Support import map fallbacks by ignoring std modules (https://github.com/guybedford/es-module-shims/pull/28, @thepassle)
+* Support path separators in module URLs containing hashes and query strings (https://github.com/guybedford/es-module-shims/pull/30, @LarsDenBakker)
+
 ES Module Shims 0.2.13 (2019/06/29)
 * Support JSON module imports (https://github.com/guybedford/es-module-shims/pull/27)
 

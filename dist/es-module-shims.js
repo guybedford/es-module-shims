@@ -1,4 +1,4 @@
-/* ES Module Shims 0.2.13 */
+/* ES Module Shims 0.2.14 */
 (function () {
   'use strict';
 
@@ -24,6 +24,8 @@
 
   const backslashRegEx = /\\/g;
   function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
+    // strip off any trailing query params or hashes
+    parentUrl = parentUrl && parentUrl.split('#')[0].split('?')[0];
     if (relUrl.indexOf('\\') !== -1)
       relUrl = relUrl.replace(backslashRegEx, '/');
     // protocol-relative
@@ -122,9 +124,10 @@
     for (var p in pkgs) {
       var value = pkgs[p];
       // TODO package fallback support
-      if (typeof value !== 'string')
-        continue;
-      outPkgs[resolveIfNotPlainOrUrl(p) || p] = value;
+      if (Array.isArray(value))
+        value = value.find(v => !v.startsWith('std:'));
+      if (typeof value === 'string')
+        outPkgs[resolveIfNotPlainOrUrl(p) || p] = value;
     }
     return outPkgs;
   }
@@ -170,7 +173,7 @@
 
   const protocolre = /^[a-z][a-z0-9.+-]*\:/i;
   function resolveImportMap (id, parentUrl, importMap) {
-    const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
+    const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || id.indexOf(':') !== -1 && id;
     if (urlResolved){
       id = urlResolved;
     } else if (protocolre.test(id)) { // non-relative URL with protocol
@@ -736,7 +739,6 @@
         const topLevelBlobUrl = createBlob(
           `import*as m from'${blobUrl}';self.importShim.l=m;self.importShim.e=null`
         );
-    
         const s = document.createElement('script');
         s.type = 'module';
         s.src = topLevelBlobUrl;
@@ -801,7 +803,6 @@
     for (const depLoad of load.d)
       if (!seen[depLoad.u])
         resolveDeps(depLoad, seen);
-    
     if (!load.a[0].length) {
       resolvedSource = source;
     }
@@ -825,7 +826,7 @@
                   name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
                 ).join(',')
               }}${
-                depLoad.a[1].map(name => 
+                depLoad.a[1].map(name =>
                   name === 'default' ? `let $_default;export{$_default as default}` : `export let ${name}`
                 ).join(';')
               }\n//# sourceURL=${depLoad.r}?cycle`);
@@ -896,14 +897,14 @@
 
         if (res.url.endsWith('.wasm')) {
           const module = wasmModules[url] = await (WebAssembly.compileStreaming ? WebAssembly.compileStreaming(res) : WebAssembly.compile(await res.arrayBuffer()));
-      
+
           let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
-      
+
           const aDeps = [];
           load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
-      
+
           const depStrs = deps.map(dep => JSON.stringify(dep));
-      
+
           let curIndex = 0;
           load.S = depStrs.map((depStr, idx) => {
               const index = idx.toString();
@@ -921,7 +922,7 @@
             depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
             `}).exports;` +
             load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
-      
+
           return deps;
         }
 
