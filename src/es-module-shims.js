@@ -1,5 +1,5 @@
 import { baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob } from './common.js';
-import { analyzeModuleSyntax } from './lexer.js';
+import analyzeModuleSyntax from '../node_modules/es-module-lexer/lexer.js';
 import { WorkerShim } from './worker-shims.js';
 
 let id = 0;
