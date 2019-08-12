@@ -128,7 +128,7 @@ async function resolveDeps (load, seen) {
       }
       // dynamic import
       else {
-        resolvedSource += source.slice(lastIndex, start) + 'importShim' + source.slice(start + 6, end) + JSON.stringify(load.r) + ', ';
+        resolvedSource += source.slice(lastIndex, dynamicImportIndex) + 'importShim(' + JSON.stringify(load.r) + ', ' + source.slice(start, end);
         lastIndex = end;
       }
     }

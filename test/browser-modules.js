@@ -81,6 +81,15 @@ suite('Basic loading tests', () => {
     assert.equal(m.name, new URL('./fixtures/es-modules/moduleName.js', baseURL).href);
   });
 
+  test('should support dynamic import', async function () {
+    var m = await importShim('./fixtures/es-modules/dynamic-import.js');
+    var dynamicModule = await m.doImport();
+
+    assert.equal(m.before, 'before');
+    assert.equal(m.after, 'after');
+    assert.equal(dynamicModule.default, 'bareDynamicImport');
+  });
+
   test('Should import a module via a full url, with scheme', async function () {
     const url = window.location.href.replace('/test.html', '/fixtures/es-modules/no-imports.js');
     assert.equal(url.slice(0, 4), 'http');
