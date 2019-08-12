@@ -7,7 +7,6 @@
     "build": "rollup ./src/es-module-shims.js -f iife -o dist/es-module-shims.js --banner \"/* ES Module Shims 0.2.13 */\"",
     "min": "cd dist && terser es-module-shims.js -c passes=2 -m --source-map --comments \"/ES Module Shims/\" -o es-module-shims.min.js",
     "footprint": "npm run build && npm run min && cat dist/es-module-shims.min.js | gzip -9f | wc -c",
-    "bench": "node -r esm bench",
     "prepublishOnly": "npm run build && npm run min"
   },
   "type": "module",
