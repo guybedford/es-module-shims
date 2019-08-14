@@ -24,9 +24,7 @@ catch (e) {
       return new Promise((resolve, reject) => {
         s.addEventListener('load', () => {
           document.head.removeChild(s);
-          if (importShim.e)
-            return reject(importShim.e);
-          resolve(importShim.l);
+          importShim.e ? reject(importShim.e) : resolve(importShim.l);
         });
       });
     };
@@ -52,9 +50,8 @@ async function topLevelLoad (url, source) {
   return module;
 }
 
-async function importShim (id) {
-  const parentUrl = arguments.length === 1 ? pageBaseUrl : (id = arguments[0], arguments[1]);
-  return topLevelLoad(await resolve(id, parentUrl));
+async function importShim (id, parentUrl) {
+  return topLevelLoad(await resolve(id, parentUrl || pageBaseUrl));
 }
 
 self.importShim = importShim;
@@ -209,8 +206,6 @@ function getOrCreateLoad (url, source) {
         source = `export default JSON.parse(${JSON.stringify(source)})`;
     }
     load.a = analyzeModuleSyntax(source);
-    if (load.a[2])
-      importShim.err = [source, load.a[2]];
     load.S = source;
     return load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
   })();
@@ -252,8 +247,6 @@ if (typeof document !== 'undefined') {
 }
 
 async function resolve (id, parentUrl) {
-  parentUrl = parentUrl || pageBaseUrl;
-
   if (importMapPromise)
     return importMapPromise
     .then(function () {
