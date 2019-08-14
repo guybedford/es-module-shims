@@ -1,5 +1,5 @@
 import { baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob } from './common.js';
-import { analyzeModuleSyntax } from './lexer.js';
+import analyzeModuleSyntax from '../node_modules/es-module-lexer/lexer.js';
 import { WorkerShim } from './worker-shims.js';
 
 let id = 0;
@@ -24,9 +24,7 @@ catch (e) {
       return new Promise((resolve, reject) => {
         s.addEventListener('load', () => {
           document.head.removeChild(s);
-          if (importShim.e)
-            return reject(importShim.e);
-          resolve(importShim.l);
+          importShim.e ? reject(importShim.e) : resolve(importShim.l);
         });
       });
     };
@@ -52,9 +50,8 @@ async function topLevelLoad (url, source) {
   return module;
 }
 
-async function importShim (id) {
-  const parentUrl = arguments.length === 1 ? pageBaseUrl : (id = arguments[1], arguments[0]);
-  return topLevelLoad(await resolve(id, parentUrl));
+async function importShim (id, parentUrl) {
+  return topLevelLoad(await resolve(id, parentUrl || pageBaseUrl));
 }
 
 self.importShim = importShim;
@@ -128,7 +125,7 @@ async function resolveDeps (load, seen) {
       }
       // dynamic import
       else {
-        resolvedSource += source.slice(lastIndex, start) + 'importShim' + source.slice(start + 6, end) + JSON.stringify(load.r) + ', ';
+        resolvedSource += source.slice(lastIndex, dynamicImportIndex + 6) + 'Shim(' + source.slice(start, end) + ', ' + JSON.stringify(load.r);
         lastIndex = end;
       }
     }
@@ -209,8 +206,6 @@ function getOrCreateLoad (url, source) {
         source = `export default JSON.parse(${JSON.stringify(source)})`;
     }
     load.a = analyzeModuleSyntax(source);
-    if (load.a[2])
-      importShim.err = [source, load.a[2]];
     load.S = source;
     return load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
   })();
@@ -252,8 +247,6 @@ if (typeof document !== 'undefined') {
 }
 
 async function resolve (id, parentUrl) {
-  parentUrl = parentUrl || pageBaseUrl;
-
   if (importMapPromise)
     return importMapPromise
     .then(function () {
