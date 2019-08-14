@@ -53,7 +53,7 @@ async function topLevelLoad (url, source) {
 }
 
 async function importShim (id) {
-  const parentUrl = arguments.length === 1 ? pageBaseUrl : (id = arguments[1], arguments[0]);
+  const parentUrl = arguments.length === 1 ? pageBaseUrl : (id = arguments[0], arguments[1]);
   return topLevelLoad(await resolve(id, parentUrl));
 }
 
