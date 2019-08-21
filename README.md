@@ -4,7 +4,7 @@
 
 But a lot of the useful features of modules come from new specifications which either aren't implemented yet, or are only available in some browsers.
 
-_It turns out that we can actually polyfill most of the newer modules specifications on top of these baseline implementations in a performant 4KB shim._
+_It turns out that we can actually polyfill most of the newer modules specifications on top of these baseline implementations in a performant 7KB shim._
 
 This includes support for:
 
@@ -20,7 +20,7 @@ Because we are still using the native module loader the edge cases work out comp
 * Dynamic import expressions (`import('src/' + varname')`)
 * Circular references, with the execption that live bindings are disabled for the first unexecuted circular parent.
 
-Due to the use of a dedicated JS tokenizer for ES module syntax only, with very simple rewriting rules, transformation is instant.
+Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is instant.
 
 ### Import Maps
 
