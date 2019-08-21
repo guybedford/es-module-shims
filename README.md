@@ -1,6 +1,6 @@
 ## ES Module Shims
 
-[85% of desktop users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
+[85% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
 
 But a lot of the useful features of modules come from new specifications which either aren't implemented yet, or are only available in some browsers.
 
@@ -21,6 +21,12 @@ Because we are still using the native module loader the edge cases work out comp
 * Circular references, with the execption that live bindings are disabled for the first unexecuted circular parent.
 
 Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is instant.
+
+### Browser Support
+
+Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
+
+For support in Microsoft Edge, a [TextEncoder polyfill](https://github.com/anonyco/FastestSmallestTextEncoderDecoder) needs to be included in the environment.
 
 ### Import Maps
 
