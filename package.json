@@ -16,7 +16,7 @@
   "author": "Guy Bedford",
   "license": "MIT",
   "devDependencies": {
-    "es-module-lexer": "^0.3.3",
+    "es-module-lexer": "^0.3.4",
     "esm": "^3.2.25",
     "kleur": "^2.0.2",
     "mocha": "^5.2.0",
