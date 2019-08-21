@@ -132,6 +132,7 @@ async function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
+  resolvedSource = resolvedSource.replace(/\/\/# sourceMappingURL=(.*)\s*$/, (match, url) => match.replace(url, new URL(url, load.r)));
   load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.r);
   load.S = undefined;
 }
