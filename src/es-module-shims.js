@@ -134,7 +134,7 @@ async function resolveDeps (load, seen) {
 
   const lastNonEmptyLine = resolvedSource.slice(resolvedSource.trimEnd().lastIndexOf('\n') + 1);
   let sourceMappingURL;
-  if (lastNonEmptyLine.startsWith('\/\/# sourceMappingURL='))
+  if (lastNonEmptyLine.startsWith('//# sourceMappingURL='))
     sourceMappingURL = new URL(lastNonEmptyLine.slice(21), load.r).href;
   load.b = createBlob(resolvedSource + (sourceMappingURL ? '\n//# sourceMappingURL=' + sourceMappingURL : '') + '\n//# sourceURL=' + load.r);
   load.S = undefined;
