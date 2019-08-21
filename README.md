@@ -26,8 +26,6 @@ Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](h
 
 Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
 
-For support in Microsoft Edge, a [TextEncoder polyfill](https://github.com/anonyco/FastestSmallestTextEncoderDecoder) needs to be included in the environment.
-
 ### Import Maps
 
 > It is also possible to ship import maps directly in Chrome (without using this project!) through the [Chrome Origin Trial](https://developers.chrome.com/origintrials/#/view_trial/3175037737296199681). The hope is for this project to eventually become a true polyfill for import maps in older browsers, but this will only happen once the spec is implemented in more than one browser and demonstrated to be stable.
