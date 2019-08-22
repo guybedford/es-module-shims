@@ -1,4 +1,4 @@
-import { baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob } from './common.js';
+import { baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob, resolveUrl } from './common.js';
 import analyzeModuleSyntax from '../node_modules/es-module-lexer/lexer.js';
 import { WorkerShim } from './worker-shims.js';
 
@@ -132,8 +132,11 @@ async function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  resolvedSource = resolvedSource.replace(/\/\/# sourceMappingURL=(.*)\s*$/, (match, url) => match.replace(url, new URL(url, load.r)));
-  load.b = createBlob(resolvedSource + '\n//# sourceURL=' + load.r);
+  const lastNonEmptyLine = resolvedSource.slice(resolvedSource.trimEnd().lastIndexOf('\n') + 1);
+  let sourceMappingURL;
+  if (lastNonEmptyLine.startsWith('//# sourceMappingURL='))
+    sourceMappingURL = resolveUrl(lastNonEmptyLine.slice(21), load.r);
+  load.b = createBlob(resolvedSource + (sourceMappingURL ? '\n//# sourceMappingURL=' + sourceMappingURL : '') + '\n//# sourceURL=' + load.r);
   load.S = undefined;
 }
 
