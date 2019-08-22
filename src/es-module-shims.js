@@ -133,10 +133,7 @@ async function resolveDeps (load, seen) {
   }
 
   const lastNonEmptyLine = resolvedSource.slice(resolvedSource.trimEnd().lastIndexOf('\n') + 1);
-  let sourceMappingURL;
-  if (lastNonEmptyLine.startsWith('//# sourceMappingURL='))
-    sourceMappingURL = resolveUrl(lastNonEmptyLine.slice(21), load.r);
-  load.b = createBlob(resolvedSource + (sourceMappingURL ? '\n//# sourceMappingURL=' + sourceMappingURL : '') + '\n//# sourceURL=' + load.r);
+  load.b = createBlob(resolvedSource + (lastNonEmptyLine.startsWith('//# sourceMappingURL=') ? '\n//# sourceMappingURL=' + resolveUrl(lastNonEmptyLine.slice(21), load.r) : '') + '\n//# sourceURL=' + load.r);
   load.S = undefined;
 }
 
