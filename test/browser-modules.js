@@ -49,7 +49,7 @@ suite('Basic loading tests', () => {
   test('should import json', async function () {
     var m = await importShim('./fixtures/json.json');
     assert.equal(m.default.json, 'module');
-  });
+  }); 
 
   test('should throw json parse errors', async function () {
     try {
@@ -65,6 +65,12 @@ suite('Basic loading tests', () => {
       assert(e instanceof SyntaxError);
     }
   });
+
+  test('should import css', async function () {
+    var m = await importShim('./fixtures/style.css');
+    assert(m.default);
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, m.default];
+  })
 
   test('should resolve various import syntax', async function () {
     var m = await importShim('./fixtures/es-modules/import.js');
