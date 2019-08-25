@@ -77,6 +77,19 @@ To load [JSON Modules](https://github.com/whatwg/html/pull/4407), import any fil
 import json from './test.json';
 ```
 
+### CSS Modules
+
+To load [CSS Modules](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/css-modules-v1-explainer.md), import any file with a `.css` file extension:
+
+```js
+import css from './style.css';
+document.adoptedStyleSheets = [...document.adoptedStyleSheets, css];
+```
+
+Support relies on the `new CSSStyleSheet` constructor, which is currently only available in Chromium.
+
+For other browsers a [polyfill](https://github.com/calebdwilliams/construct-style-sheets) can be used.
+
 ### Web Assembly
 
 To load [Web Assembly Modules](https://github.com/webassembly/esm-integration), import a module with a `.wasm` file extension:

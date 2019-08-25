@@ -24,7 +24,7 @@ catch (e) {
       return new Promise((resolve, reject) => {
         s.addEventListener('load', () => {
           document.head.removeChild(s);
-          importShim.e ? reject(importShim.e) : resolve(importShim.l);
+          importShim.e ? reject(importShim.e) : resolve(importShim.l, pageBaseUrl);
         });
       });
     };
@@ -206,6 +206,8 @@ function getOrCreateLoad (url, source) {
       source = await res.text();
       if (res.url.endsWith('.json'))
         source = `export default JSON.parse(${JSON.stringify(source)})`;
+      if (res.url.endsWith('.css'))
+        source = `const s=new CSSStyleSheet();s.replaceSync(${JSON.stringify(source)});export default s`;
     }
     load.a = parse(source);
     load.S = source;
@@ -214,7 +216,7 @@ function getOrCreateLoad (url, source) {
 
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
-      const depLoad = getOrCreateLoad(await resolve(depId, load.r));
+      const depLoad = getOrCreateLoad(await resolve(depId, load.r || load.u));
       await depLoad.f;
       return depLoad;
     }));
