@@ -107,13 +107,12 @@ This matches the specification for ES module workers, supporting all features of
 
 ## Implementation Details
 
-### Tokenizer Rewriting
+### Import Rewriting
 
-* Tokenizing handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
-* Rewriting is based on fetching the sources, turning them into BlobURLs and executing up the graph.
-* When executing a circular reference A -> B -> A, a shell module technique is used to "shim" the circular reference into an acyclic graph. As a result, live bindings for the circular parent A are not supported, and instead the bindings are captured immediately after the execution of A.
-* The approach will only work in browsers supporting ES modules.
+* Sources are fetched, import specifiers are rewritten to reference exact URLs, and then executed as BlobURLs through the whole module graph.
 * CSP is not supported as we're using fetch and modular evaluation.
+* The [tokenizer](https://github.com/guybedford/es-module-lexer) handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
+* When executing a circular reference A -> B -> A, a shell module technique is used to "shim" the circular reference into an acyclic graph. As a result, live bindings for the circular parent A are not supported, and instead the bindings are captured immediately after the execution of A.
 
 ### Import Maps
 * The import maps specification is under active development and will change, all of the current specification features are implemented, but the edge cases are not currently fully handled. These will be refined as the specification and reference implementation continue to develop.
