@@ -1,10 +1,10 @@
 ## ES Module Shims
 
-[85% of desktop users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
+[85% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
 
 But a lot of the useful features of modules come from new specifications which either aren't implemented yet, or are only available in some browsers.
 
-_It turns out that we can actually polyfill most of the newer modules specifications on top of these baseline implementations in a performant 4KB shim._
+_It turns out that we can actually polyfill most of the newer modules specifications on top of these baseline implementations in a performant 7KB shim._
 
 This includes support for:
 
@@ -20,7 +20,11 @@ Because we are still using the native module loader the edge cases work out comp
 * Dynamic import expressions (`import('src/' + varname')`)
 * Circular references, with the execption that live bindings are disabled for the first unexecuted circular parent.
 
-Due to the use of a dedicated JS tokenizer for ES module syntax only, with very simple rewriting rules, transformation is instant.
+Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is instant.
+
+### Browser Support
+
+Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
 
 ### Import Maps
 
@@ -103,13 +107,12 @@ This matches the specification for ES module workers, supporting all features of
 
 ## Implementation Details
 
-### Tokenizer Rewriting
+### Import Rewriting
 
-* Tokenizing handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
-* Rewriting is based on fetching the sources, turning them into BlobURLs and executing up the graph.
-* When executing a circular reference A -> B -> A, a shell module technique is used to "shim" the circular reference into an acyclic graph. As a result, live bindings for the circular parent A are not supported, and instead the bindings are captured immediately after the execution of A.
-* The approach will only work in browsers supporting ES modules.
+* Sources are fetched, import specifiers are rewritten to reference exact URLs, and then executed as BlobURLs through the whole module graph.
 * CSP is not supported as we're using fetch and modular evaluation.
+* The [tokenizer](https://github.com/guybedford/es-module-lexer) handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
+* When executing a circular reference A -> B -> A, a shell module technique is used to "shim" the circular reference into an acyclic graph. As a result, live bindings for the circular parent A are not supported, and instead the bindings are captured immediately after the execution of A.
 
 ### Import Maps
 * The import maps specification is under active development and will change, all of the current specification features are implemented, but the edge cases are not currently fully handled. These will be refined as the specification and reference implementation continue to develop.

@@ -1,5 +1,5 @@
 import { baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob, resolveUrl } from './common.js';
-import analyzeModuleSyntax from '../node_modules/es-module-lexer/lexer.js';
+import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 import { WorkerShim } from './worker-shims.js';
 
 let id = 0;
@@ -40,6 +40,7 @@ async function loadAll (load, loaded) {
 }
 
 async function topLevelLoad (url, source) {
+  await init;
   const load = getOrCreateLoad(url, source);
   await loadAll(load, {});
   resolveDeps(load, {});
@@ -206,7 +207,7 @@ function getOrCreateLoad (url, source) {
       if (res.url.endsWith('.json'))
         source = `export default JSON.parse(${JSON.stringify(source)})`;
     }
-    load.a = analyzeModuleSyntax(source);
+    load.a = parse(source);
     load.S = source;
     return load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
   })();
