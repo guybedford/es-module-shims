@@ -1,3 +1,12 @@
+ES Module Shims 0.3.0 (2019/08/25)
+* Implement CSS modules (https://github.com/guybedford/es-module-shims/pull/41)
+* Upgrade to Wasm-based ES module lexer for performance (https://github.com/guybedford/es-module-shims/38)
+* Fix sourceMappingURL support in Firefox (https://github.com/guybedford/es-module-shims/pull/37, @MicahZoltu)
+* Separate ES module lexer into its own project (https://github.com/guybedford/es-module-shims/pull/36, @LarsDenBakker)
+
+ES Module Shims 0.2.15 (2019/07/28)
+* Early import map resolution (https://github.com/guybedford/es-module-shims/pull/32)
+
 ES Module Shims 0.2.14 (2019/07/17)
 * Support import map fallbacks by ignoring std modules (https://github.com/guybedford/es-module-shims/pull/28, @thepassle)
 * Support path separators in module URLs containing hashes and query strings (https://github.com/guybedford/es-module-shims/pull/30, @LarsDenBakker)
