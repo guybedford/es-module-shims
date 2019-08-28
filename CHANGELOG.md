@@ -1,3 +1,6 @@
+ES Module Shims 0.3.1 (2019/08/28)
+* Updates to ES module lexer 0.3.11 including better errors and invalid syntax handling (https://github.com/guybedford/es-module-shims/pull/46)
+
 ES Module Shims 0.3.0 (2019/08/25)
 * Implement CSS modules (https://github.com/guybedford/es-module-shims/pull/41)
 * Upgrade to Wasm-based ES module lexer for performance (https://github.com/guybedford/es-module-shims/38)
