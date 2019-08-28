@@ -209,7 +209,13 @@ function getOrCreateLoad (url, source) {
       if (res.url.endsWith('.css'))
         source = `const s=new CSSStyleSheet();s.replaceSync(${JSON.stringify(source)});export default s`;
     }
-    load.a = parse(source);
+    try {
+      load.a = parse(source, load.u);
+    }
+    catch (e) {
+      console.warn(e);
+      load.a = [[], []];
+    }
     load.S = source;
     return load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
   })();
