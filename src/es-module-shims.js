@@ -214,6 +214,7 @@ function getOrCreateLoad (url, source) {
     }
     catch (e) {
       console.warn(e);
+      console.warn(e.idx);
       load.a = [[], []];
     }
     load.S = source;
