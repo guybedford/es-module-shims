@@ -5,7 +5,13 @@ export { envGlobal as global };
 
 export let baseUrl;
 
-if (typeof document !== 'undefined') {
+export function createBlob (source) {
+  return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+}
+
+export const hasDocument = typeof document !== 'undefined';
+
+if (hasDocument) {
   const baseEl = document.querySelector('base[href]');
   if (baseEl)
     baseUrl = baseEl.href;
@@ -19,7 +25,7 @@ if (!baseUrl && typeof location !== 'undefined') {
 }
 
 export let esModuleShimsSrc;
-if (typeof document !== 'undefined') {
+if (hasDocument) {
   esModuleShimsSrc = document.currentScript && document.currentScript.src;
 }
 
@@ -113,39 +119,52 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
  * and then match based on backtracked hash lookups
  *
  */
+export const emptyImportMap = { imports: {}, scopes: {} };
 
 export function resolveUrl (relUrl, parentUrl) {
-  return resolveIfNotPlainOrUrl(relUrl, parentUrl) ||
-      relUrl.indexOf(':') !== -1 && relUrl ||
-      resolveIfNotPlainOrUrl('./' + relUrl, parentUrl);
+  return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (relUrl.indexOf(':') !== -1 ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
-function resolvePackages(pkgs, baseUrl) {
-  var outPkgs = {};
-  for (var p in pkgs) {
-    var value = pkgs[p];
-    if (Array.isArray(value))
-      value = value.find(v => !v.startsWith('std:'));
-    if (typeof value === 'string')
-      outPkgs[resolveIfNotPlainOrUrl(p, baseUrl) || p] = resolveUrl(value, baseUrl);
-  }
-  return outPkgs;
+function objectAssign (to, from) {
+  for (let p in from)
+    to[p] = from[p];
+  return to;
 }
 
-export function parseImportMap (json, baseUrl) {
-  const imports = resolvePackages(json.imports, baseUrl) || {};
-  const scopes = {};
-  if (json.scopes) {
-    for (let scopeName in json.scopes) {
-      const scope = json.scopes[scopeName];
-      let resolvedScopeName = resolveUrl(scopeName, baseUrl);
-      if (resolvedScopeName[resolvedScopeName.length - 1] !== '/')
-        resolvedScopeName += '/';
-      scopes[resolvedScopeName] = resolvePackages(scope, baseUrl) || {};
+function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl, stdModules) {
+  outer: for (let p in packages) {
+    let target = packages[p];
+    if (typeof target === 'string')
+      target = [target];
+    else if (!Array.isArray(target))
+      continue;
+
+    for (const rhs of target) {
+      if (typeof rhs !== 'string')
+        continue;
+      const mapped = resolveImportMap(parentMap, resolveIfNotPlainOrUrl(rhs, baseUrl) || rhs, parentUrl);
+      if (mapped && (!mapped.startsWith('std:') || stdModules.has(mapped))) {
+        outPackages[p] = mapped;
+        continue outer;
+      }
     }
+    targetWarning(p, packages[p], 'bare specifier did not resolve');
   }
+}
 
-  return { imports: imports, scopes: scopes };
+export function resolveAndComposeImportMap (json, baseUrl, parentMap, stdModules) {
+  const outMap = { imports: objectAssign({}, parentMap.imports), scopes: objectAssign({}, parentMap.scopes) };
+
+  if (json.imports)
+    resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null, stdModules);
+
+  if (json.scopes)
+    for (let s in json.scopes) {
+      const resolvedScope = resolveUrl(s, baseUrl);
+      resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap, resolvedScope, stdModules);
+    }
+
+  return outMap;
 }
 
 function getMatch (path, matchObj) {
@@ -165,33 +184,23 @@ function applyPackages (id, packages) {
     const pkg = packages[pkgName];
     if (pkg === null) return;
     if (id.length > pkgName.length && pkg[pkg.length - 1] !== '/')
-      console.warn("Invalid package target " + pkg + " for '" + pkgName + "' should have a trailing '/'.");
-    return pkg + id.slice(pkgName.length);
+      targetWarning(pkgName, pkg, "should have a trailing '/'");
+    else
+      return pkg + id.slice(pkgName.length);
   }
 }
 
-const protocolre = /^[a-z][a-z0-9.+-]*\:/i;
-export function resolveImportMap (id, parentUrl, importMap) {
-  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || id.indexOf(':') !== -1 && id;
-  if (urlResolved){
-    id = urlResolved;
-  } else if (protocolre.test(id)) { // non-relative URL with protocol
-    return id;
-  }
-  const scopeName = importMap.scopes && getMatch(parentUrl, importMap.scopes);
-  if (scopeName) {
-    const scopePackages = importMap.scopes[scopeName];
-    const packageResolution = applyPackages(id, scopePackages);
+function targetWarning (match, target, msg) {
+  console.warn("Package target " + msg + ", resolving target '" + target + "' for " + match);
+}
+
+export function resolveImportMap (importMap, resolvedOrPlain, parentUrl) {
+  let scopeUrl = parentUrl && getMatch(parentUrl, importMap.scopes);
+  while (scopeUrl) {
+    const packageResolution = applyPackages(resolvedOrPlain, importMap.scopes[scopeUrl]);
     if (packageResolution)
       return packageResolution;
+    scopeUrl = getMatch(scopeUrl.slice(0, scopeUrl.lastIndexOf('/')), importMap.scopes);
   }
-  return importMap.imports && applyPackages(id, importMap.imports) || urlResolved || throwBare(id, parentUrl);
-}
-
-export function throwBare (id, parentUrl) {
-  throw new Error('Unable to resolve bare specifier "' + id + (parentUrl ? '" from ' + parentUrl : '"'));
-}
-
-export function createBlob (source) {
-  return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+  return applyPackages(resolvedOrPlain, importMap.imports) || resolvedOrPlain.indexOf(':') !== -1 && resolvedOrPlain;
 }
