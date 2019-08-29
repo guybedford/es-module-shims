@@ -51,9 +51,10 @@ Current browser compatibility of modules features without ES module shims:
 | [Import Maps](#import-maps)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
 | [JSON Modules](#json-modules)      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
 | [CSS Modules](#css-modules)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :x:<sup>1</sup>          |
-| [Wasm Modules](#web-assembly)      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [Wasm Modules](#web-assembly)      | :heavy_check_mark:<sup>2</sup> | :heavy_check_mark: | :question:               | :heavy_check_mark:       |
 
 * 1: _CSS Modules support pending [Constructed Stylesheets Polyfill support in Edge](https://github.com/calebdwilliams/construct-style-sheets/issues/20)._
+* 2: Chrome limits Web Assembly to 4KiB synchronous instantiations. [Fix tracking in #1](https://github.com/guybedford/es-module-shims/issues/1).
 
 ### Import Maps
 
