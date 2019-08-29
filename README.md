@@ -1,6 +1,6 @@
 ## ES Module Shims
 
-[85% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
+[86% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
 
 But a lot of the useful features of modules come from new specifications which either aren't implemented yet, or are only available in some browsers.
 
@@ -25,6 +25,33 @@ Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](h
 ### Browser Support
 
 Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
+
+Current browser compatibility of modules features without ES module shims:
+
+| ES Modules Features                | Chrome (61+)             | Firefox (60+)            | Safari (10.1+)           | Edge (16+)               |
+| ---------------------------------- | ------------------------ | ------------------------ | ------------------------ | ------------------------ |
+| [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+   | :heavy_check_mark: 67+   | :heavy_check_mark: 11.1+ | :x:                      |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+  | :question:               | :question:               | :x:                      |
+| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+  | :x:                      | :x:                      | :x:                      |
+| [Import Maps](#import-maps)        | :x:<sup>1</sup>          | :x:                      | :x:                      | :x:                      |
+| [JSON Modules](#json-modules)      | :x:                      | :x:                      | :x:                      | :x:                      |
+| [CSS Modules](#css-modules)        | :x:                      | :x:                      | :x:                      | :x:                      |
+| [Wasm Modules](#web-assembly)      | :x:                      | :x:                      | :x:                      | :x:                      |
+
+* ~: _Indicates the exact first version of support has not been determined._
+* 1: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
+
+#### Browser Compatibility with ES Module Shims:
+
+| ES Modules Features                | Chrome (61+)             | Firefox (60+)            | Safari (10.1+)           | Edge (16+)               |
+| ---------------------------------- | ------------------------ | ------------------------ | ------------------------ | ------------------------ |
+| [Dynamic Import](#dynamic-import)  | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [Module Workers](#module-workers)  | :heavy_check_mark: 63+   | :heavy_check_mark: 67+   | :heavy_check_mark: 11.1+ | :x:                      |
+| [Import Maps](#import-maps)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [JSON Modules](#json-modules)      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [CSS Modules](#css-modules)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [Wasm Modules](#web-assembly)      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
 
 ### Import Maps
 
@@ -68,6 +95,10 @@ To load code dynamically (say from the browser console), `importShim` can be cal
 ```js
 importShim('/path/to/module.js').then(x => console.log(x));
 ```
+
+### import.meta.url
+
+`import.meta.url` provides the full URL of the current module within the context of the module execution.
 
 ### JSON Modules
 
