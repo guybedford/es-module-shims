@@ -28,31 +28,31 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 
 Current browser compatibility of modules features without ES module shims:
 
-| ES Modules Features                | Chrome Version     | Firefox Version    | Safari Version     | Edge Version       |
-| ---------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
-| Basic Modules Support              | :heavy_check_mark: 61+                | :heavy_check_mark: 60+                | :heavy_check_mark: 10.1+              | :heavy_check_mark: 16+                |
-| [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+                | :heavy_check_mark: 67+                | :heavy_check_mark: 11.1+              | :x:                |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+               | :heavy_check_mark: ~68+               | :heavy_check_mark: 11.1+              | :x:                |
-| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+               | :x:                | :x:                | :x:                |
-| [Import Maps](#import-maps)        | :x:<sup>1</sup>    | :x:                | :x:                | :x:                |
-| [JSON Modules](#json-modules)      | :x:                | :x:                | :x:                | :x:                |
-| [CSS Modules](#css-modules)        | :x:                | :x:                | :x:                | :x:                |
-| [Wasm Modules](#web-assembly)      | :x:                | :x:                | :x:                | :x:                |
+| ES Modules Features                | Chrome (61+)             | Firefox (60+)            | Safari (10.1+)           | Edge (16+)               |
+| ---------------------------------- | ------------------------ | ------------------------ | ------------------------ | ------------------------ |
+| Basic Modules Support              | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark: ~76+  |
+| [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+   | :heavy_check_mark: 67+   | :heavy_check_mark: 11.1+ | :x:                      |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+  | :heavy_check_mark: ~68+  | :heavy_check_mark: 11.1+ | :x:                      |
+| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+  | :x:                      | :x:                      | :x:                      |
+| [Import Maps](#import-maps)        | :x:<sup>1</sup>          | :x:                      | :x:                      | :x:                      |
+| [JSON Modules](#json-modules)      | :x:                      | :x:                      | :x:                      | :x:                      |
+| [CSS Modules](#css-modules)        | :x:                      | :x:                      | :x:                      | :x:                      |
+| [Wasm Modules](#web-assembly)      | :x:                      | :x:                      | :x:                      | :x:                      |
 
 * ~: _Indicates the exact first version of support has not been determined._
 * 1: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
 
 #### Browser Compatibility with ES Module Shims:
 
-| ES Modules Features                | Chrome (61+)       | Firefox (60+)      | Safari (10.1+)     | Edge (16+)         |
-| ---------------------------------- | -----------------  | ------------------ | ------------------ | -----------------  |
-| [Dynamic Import](#dynamic-import)  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [Module Workers](#module-workers)  | :heavy_check_mark: 63+                | :heavy_check_mark: 67+                | :heavy_check_mark: 11.1+              | :x:                |
-| [Import Maps](#import-maps)        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [JSON Modules](#json-modules)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [CSS Modules](#css-modules)        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [Wasm Modules](#web-assembly)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| ES Modules Features                | Chrome (61+)             | Firefox (60+)            | Safari (10.1+)           | Edge (16+)               |
+| ---------------------------------- | ------------------------ | ------------------------ | ------------------------ | ------------------------ |
+| [Dynamic Import](#dynamic-import)  | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [Module Workers](#module-workers)  | :heavy_check_mark: 63+   | :heavy_check_mark: 67+   | :heavy_check_mark: 11.1+ | :x:                      |
+| [Import Maps](#import-maps)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [JSON Modules](#json-modules)      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [CSS Modules](#css-modules)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
+| [Wasm Modules](#web-assembly)      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
 
 ### Import Maps
 
