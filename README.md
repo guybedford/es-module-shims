@@ -32,7 +32,7 @@ Current browser compatibility of modules features without ES module shims:
 | ---------------------------------- | ------------------------ | ------------------------ | ------------------------ | ------------------------ |
 | Basic Modules Support              | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+   | :heavy_check_mark: 67+   | :heavy_check_mark: 11.1+ | :x:                      |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+  | :question     :          | :question     :          | :x:                      |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+  | :question:               | :question:               | :x:                      |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+  | :x:                      | :x:                      | :x:                      |
 | [Import Maps](#import-maps)        | :x:<sup>1</sup>          | :x:                      | :x:                      | :x:                      |
 | [JSON Modules](#json-modules)      | :x:                      | :x:                      | :x:                      | :x:                      |
