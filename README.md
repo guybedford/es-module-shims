@@ -54,7 +54,7 @@ Current browser compatibility of modules features without ES module shims:
 | [Wasm Modules](#web-assembly)      | :heavy_multiplication_x:<sup>2</sup> | :heavy_check_mark: | :question:               | :heavy_check_mark:       |
 
 * 1: _CSS Modules support pending [Constructed Stylesheets Polyfill support in Edge](https://github.com/calebdwilliams/construct-style-sheets/issues/20)._
-* 2: Chrome limits Web Assembly to 4KiB synchronous instantiations. [Fix tracking in #1](https://github.com/guybedford/es-module-shims/issues/1).
+* 2: _Chrome limits Web Assembly to 4KiB synchronous instantiations. [Fix tracking in #1](https://github.com/guybedford/es-module-shims/issues/1)._
 * 3: _Module worker support cannot be implemented without dynamic import support in web workers._
 
 ### Import Maps
