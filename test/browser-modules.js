@@ -115,7 +115,7 @@ suite('Basic loading tests', () => {
   });
 
   test('Should import a module via data url', async function () {
-    var m = await importShim('data:text/plain;charset=utf-8;base64,ZXhwb3J0IHZhciBhc2RmID0gJ2FzZGYnOw0KZXhwb3J0IHZhciBvYmogPSB7fTs=');
+    var m = await importShim('data:application/javascript;charset=utf-8;base64,ZXhwb3J0IHZhciBhc2RmID0gJ2FzZGYnOw0KZXhwb3J0IHZhciBvYmogPSB7fTs=');
     assert(m);
     assert.equal(m.asdf, 'asdf');
   });
