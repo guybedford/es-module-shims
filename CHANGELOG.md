@@ -1,3 +1,6 @@
+ES Module Shims 0.3.2 (2019/08/29)
+* Update to ES module lexer 0.3.12
+
 ES Module Shims 0.3.1 (2019/08/28)
 * Updates to ES module lexer 0.3.11 including better errors and invalid syntax handling (https://github.com/guybedford/es-module-shims/pull/46)
 
