@@ -19,7 +19,7 @@
     "es-module-lexer": "^0.3.12",
     "esm": "^3.2.25",
     "kleur": "^2.0.2",
-    "mocha": "^5.2.0",
+    "mocha": "^6.2.0",
     "pretty-ms": "^3.2.0",
     "rollup": "^1.16.2",
     "terser": "^4.0.0"

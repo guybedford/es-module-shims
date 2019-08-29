@@ -133,7 +133,7 @@ async function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  const lastNonEmptyLine = resolvedSource.slice(resolvedSource.trimEnd().lastIndexOf('\n') + 1);
+  const lastNonEmptyLine = resolvedSource.slice(resolvedSource.lastIndexOf('\n') + 1);
   load.b = createBlob(resolvedSource + (lastNonEmptyLine.startsWith('//# sourceMappingURL=') ? '\n//# sourceMappingURL=' + resolveUrl(lastNonEmptyLine.slice(21), load.r) : '') + '\n//# sourceURL=' + load.r);
   load.S = undefined;
 }
@@ -258,7 +258,7 @@ async function resolve (id, parentUrl) {
       // check which standard modules are available
       for (const m of ['std:kv-storage']) {
         try {
-          await import(m);
+          await dynamicImport(m);
           stdModules.add(m);
         }
         catch (e) {}

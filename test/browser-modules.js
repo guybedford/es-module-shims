@@ -56,13 +56,13 @@ suite('Basic loading tests', () => {
       await importShim('./fixtures/json-error.json');
     }
     catch (e) {
-      assert(e instanceof SyntaxError);
+      assert(e);
     }
     try {
       await importShim('./fixtures/json-error.json');
     }
     catch (e) {
-      assert(e instanceof SyntaxError);
+      assert(e);
     }
   });
 

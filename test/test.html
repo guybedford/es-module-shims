@@ -25,6 +25,9 @@
 <script type="module" src="../src/es-module-shims.js"></script>
 <script type="module">
   mocha.setup('tdd');
+  mocha.setup({
+    ignoreLeaks: true
+  });
   mocha.allowUncaught();
 
   self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
