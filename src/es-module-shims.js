@@ -1,4 +1,4 @@
-import { baseUrl as pageBaseUrl, parseImportMap, resolveImportMap, createBlob, resolveUrl } from './common.js';
+import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resolveAndComposeImportMap, hasDocument, resolveIfNotPlainOrUrl, emptyImportMap } from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 import { WorkerShim } from './worker-shims.js';
 
@@ -11,7 +11,7 @@ try {
   dynamicImport = (0, eval)('u=>import(u)');
 }
 catch (e) {
-  if (typeof document !== 'undefined') {
+  if (hasDocument) {
     self.addEventListener('error', e => importShim.e = e.error);
     dynamicImport = blobUrl => {
       const topLevelBlobUrl = createBlob(
@@ -61,7 +61,7 @@ const meta = {};
 const wasmModules = {};
 
 Object.defineProperties(importShim, {
-  map: { value: {}, writable: true },
+  map: { value: emptyImportMap, writable: true },
   m: { value: meta },
   w: { value: wasmModules },
   l: { value: undefined, writable: true },
@@ -233,38 +233,42 @@ function getOrCreateLoad (url, source) {
 }
 
 let importMapPromise;
-if (typeof document !== 'undefined') {
-  const scripts = document.getElementsByTagName('script');
-  for (let i = 0; i < scripts.length; i++) {
-    const script = scripts[i];
-    if (script.type === 'importmap-shim' && !importMapPromise) {
-      if (script.src) {
-        importMapPromise = (async function () {
-          importShim.map = parseImportMap(await (await fetch(script.src)).json(), script.src.slice(0, script.src.lastIndexOf('/') + 1));
-        })();
-      }
-      else {
-        importShim.map = parseImportMap(JSON.parse(script.innerHTML), pageBaseUrl);
-      }
-    }
-    // this works here because there is a .then before resolve
-    else if (script.type === 'module-shim') {
-      if (script.src)
-        topLevelLoad(script.src);
-      else
-        topLevelLoad(`${pageBaseUrl}?${id++}`, script.innerHTML);
-    }
-  }
+
+if (hasDocument) {
+  // preload import maps
+  for (const script of document.querySelectorAll('script[type="importmap-shim"][src]'))
+    script._f = fetch(script.src);
+  // load any module scripts
+  for (const script of document.querySelectorAll('script[type="module-shim"]'))
+    topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, script.src ? null : script.innerHTML);
 }
 
 async function resolve (id, parentUrl) {
-  if (importMapPromise)
-    return importMapPromise
-    .then(function () {
-      return resolveImportMap(id, parentUrl, importShim.map);
-    });
+  if (!importMapPromise) {
+    const stdModules = new Set();
+    importMapPromise = (async () => {
+      // check which standard modules are available
+      for (const m of ['std:kv-storage']) {
+        try {
+          await import(m);
+          stdModules.add(m);
+        }
+        catch (e) {}
+      }
+    })();
+    if (hasDocument)
+      for (const script of document.querySelectorAll('script[type="importmap-shim"]')) {
+        importMapPromise = importMapPromise.then(async () => {
+          importShim.map = resolveAndComposeImportMap(script.src ? await (await (script._f || fetch(script.src))).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importShim.map, stdModules);
+        });
+      }
+  }
+  await importMapPromise;
+  return resolveImportMap(importShim.map, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl) || throwUnresolved(id, parentUrl);
+}
 
-  return resolveImportMap(id, parentUrl, importShim.map);
+function throwUnresolved (id, parentUrl) {
+  throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
 }
 
 self.WorkerShim = WorkerShim;

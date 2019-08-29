@@ -240,7 +240,7 @@ suite('Errors', function () {
 
   test('should give a plain name error', async function () {
     var err = await getImportError('plain-name');
-    assert.equal(err.indexOf('Error: Unable to resolve bare specifier "plain-name" from'), 0);
+    assert.equal(err.indexOf('Error: Unable to resolve specifier \'plain-name\' from'), 0);
   });
 
   test('should throw if on syntax error', async function () {
