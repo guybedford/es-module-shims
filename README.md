@@ -47,7 +47,7 @@ Current browser compatibility of modules features without ES module shims:
 | ---------------------------------- | ------------------------ | ------------------------ | ------------------------ | ------------------------ |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
 | [import.meta.url](#dynamic-import) | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
-| [Module Workers](#module-workers)  | :heavy_check_mark: 63+   | :x:                      | :question:               | :x:                      |
+| [Module Workers](#module-workers)  | :heavy_check_mark: 63+   | :x:<sup>3</sup>          | :question:               | :x:<sup>3</sup>          |
 | [Import Maps](#import-maps)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
 | [JSON Modules](#json-modules)      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
 | [CSS Modules](#css-modules)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :x:<sup>1</sup>          |
@@ -55,6 +55,7 @@ Current browser compatibility of modules features without ES module shims:
 
 * 1: _CSS Modules support pending [Constructed Stylesheets Polyfill support in Edge](https://github.com/calebdwilliams/construct-style-sheets/issues/20)._
 * 2: Chrome limits Web Assembly to 4KiB synchronous instantiations. [Fix tracking in #1](https://github.com/guybedford/es-module-shims/issues/1).
+* 3: _Module worker support cannot be implemented without dynamic import support in web workers._
 
 ### Import Maps
 
