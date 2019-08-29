@@ -71,7 +71,7 @@ importShim('/path/to/module.js').then(x => console.log(x));
 
 ### JSON Modules
 
-To load [JSON Modules](https://github.com/whatwg/html/pull/4407), import any file with a `.json` file extension:
+To load [JSON Modules](https://github.com/whatwg/html/pull/4407), import any JSON file served with `application/json`:
 
 ```js
 import json from './test.json';
@@ -79,7 +79,7 @@ import json from './test.json';
 
 ### CSS Modules
 
-To load [CSS Modules](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/css-modules-v1-explainer.md), import any file with a `.css` file extension:
+To load [CSS Modules](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/css-modules-v1-explainer.md), import any file with served with `text/css`:
 
 ```js
 import css from './style.css';
@@ -92,7 +92,7 @@ For other browsers a [polyfill](https://github.com/calebdwilliams/construct-styl
 
 ### Web Assembly
 
-To load [Web Assembly Modules](https://github.com/webassembly/esm-integration), import a module with a `.wasm` file extension:
+To load [Web Assembly Modules](https://github.com/webassembly/esm-integration), import a module served with `application/wasm`:
 
 ```js
 import { fn } from './test.wasm';
@@ -101,6 +101,8 @@ import { fn } from './test.wasm';
 Web Assembly imports are in turn supported.
 
 Import map support is provided both for mapping into Web Assembly URLs, as well as mapping import specifiers to JS or WebAssembly from within WASM.
+
+> Note some servers don't yet support serving `.wasm` files as `application/wasm` by default, in which case an invalid content type error will be thrown. The `application/wasm` MIME type is necessary for loading Web Assembly in line with the specification for browser modules.
 
 ### Module Workers
 
