@@ -177,8 +177,7 @@ function getOrCreateLoad (url, source) {
       const mime = semicolonIndex === -1 ? contentType : contentType.slice(0, semicolonIndex);
       switch (mime) {
         case 'application/wasm':
-          const module = wasmModules[url] = await (WebAssembly.compileStreaming ? WebAssembly.compileStreaming(res) : WebAssembly.compile(await res.arrayBuffer()));
-
+          const module = wasmModules[url] = await WebAssembly.compile(await res.arrayBuffer());
           let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
   
           const aDeps = [];
