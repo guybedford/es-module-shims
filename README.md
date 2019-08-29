@@ -31,7 +31,7 @@ Current browser compatibility of modules features without ES module shims:
 | ES Modules Features                | Chrome (61+)             | Firefox (60+)            | Safari (10.1+)           | Edge (16+)               |
 | ---------------------------------- | ------------------------ | ------------------------ | ------------------------ | ------------------------ |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+   | :heavy_check_mark: 67+   | :heavy_check_mark: 11.1+ | :x:                      |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+  | :question:               | :question:               | :x:                      |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+  | :heavy_check_mark: ~67+  | :question:               | :x:                      |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+  | :x:                      | :x:                      | :x:                      |
 | [Import Maps](#import-maps)        | :x:<sup>1</sup>          | :x:                      | :x:                      | :x:                      |
 | [JSON Modules](#json-modules)      | :x:                      | :x:                      | :x:                      | :x:                      |
