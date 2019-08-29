@@ -1,3 +1,7 @@
+ES Module Shims 0.4.0 (2019/08/29)
+* Support for cascading import maps (https://github.com/guybedford/es-module-shims/pull/49)
+* Use strict Content-Type checks for modules (https://github.com/guybedford/es-module-shims/pull/47)
+
 ES Module Shims 0.3.2 (2019/08/29)
 * Update to ES module lexer 0.3.12
 
