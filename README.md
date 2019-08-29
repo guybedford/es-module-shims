@@ -26,20 +26,21 @@ Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](h
 
 Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
 
-Current browser compatibility of modules features without ES module shims (`~` indicates the exact first version of support has not been determined):
+Current browser compatibility of modules features without ES module shims:
 
 | ES Modules Features                | Chrome Version     | Firefox Version    | Safari Version     | Edge Version       |
 | ---------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
 | Basic Modules Support              | 61+                | 60+                | 10.1+              | 16+                |
 | [Dynamic Import](#dynamic-import)  | 63+                | 67+                | 11.1+              | :x:                |
 | [import.meta.url](#dynamic-import) | ~76+               | ~68+               | 11.1+              | :x:                |
+| [Module Workers](#module-workers)  | ~68+               | :x:                | :x:                | :x:                |
 | [Import Maps](#import-maps)        | :x:<sup>1</sup>    | :x:                | :x:                | :x:                |
 | [JSON Modules](#json-modules)      | :x:                | :x:                | :x:                | :x:                |
 | [CSS Modules](#css-modules)        | :x:                | :x:                | :x:                | :x:                |
 | [Wasm Modules](#web-assembly)      | :x:                | :x:                | :x:                | :x:                |
-| [Module Workers](#module-workers)  | :x:                | :x:                | :x:                | :x:                |
 
-* _1_: Enabled under the Experimental Web Platform Features flag in Chrome.
+* `~`: _Indicates the exact first version of support has not been determined._
+* 1: _Enabled under the Experimental Web Platform Features flag in Chrome._
 
 #### Browser Compatibility with ES Module Shims:
 
@@ -47,11 +48,11 @@ Current browser compatibility of modules features without ES module shims (`~` i
 | ---------------------------------- | -----------------  | ------------------ | ------------------ | -----------------  |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [import.meta.url](#dynamic-import) | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| [Module Workers](#module-workers)  | 63+                | 67+                | 11.1+              | :x:                |
 | [Import Maps](#import-maps)        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [JSON Modules](#json-modules)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [CSS Modules](#css-modules)        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | [Wasm Modules](#web-assembly)      | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| [Module Workers](#module-workers)  | 63+                | 67+                | 11.1+              | :x:                |
 
 ### Import Maps
 
