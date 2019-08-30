@@ -210,6 +210,8 @@ function getOrCreateLoad (url, source) {
         case 'text/css':
           source = `const s=new CSSStyleSheet();s.replaceSync(${JSON.stringify(await res.text())});export default s`;
         break;
+
+        case 'text/javascript':
         case 'application/javascript':
           source = await res.text();
         break;
