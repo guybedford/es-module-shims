@@ -1,3 +1,6 @@
+ES Module Shims 0.4.1 (2019/08/30)
+* Support text/javascript MIME type (https://github.com/guybedford/es-module-shims/pull/53)
+
 ES Module Shims 0.4.0 (2019/08/29)
 * Support for cascading import maps (https://github.com/guybedford/es-module-shims/pull/49)
 * Use strict Content-Type checks for modules (https://github.com/guybedford/es-module-shims/pull/47)
