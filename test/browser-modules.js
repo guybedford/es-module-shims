@@ -49,7 +49,7 @@ suite('Basic loading tests', () => {
   test('should import json', async function () {
     var m = await importShim('./fixtures/json.json');
     assert.equal(m.default.json, 'module');
-  }); 
+  });
 
   test('should throw json parse errors', async function () {
     try {
@@ -176,6 +176,16 @@ suite('Loading order', function() {
 
   test('should load in order (_h)', async function () {
     await assertLoadOrder('_h.js', ['i', 'a', 'h']);
+  });
+});
+
+suite('Execution order', function () {
+  test('should execute in order', async function () {
+    window.executionOrder = [];
+    await importShim('./fixtures/es-modules/execution-order.js');
+    assert.equal(executionOrder[0], 'a');
+    assert.equal(executionOrder[1], 'b');
+    assert.equal(executionOrder[2], 'c');
   });
 });
 
