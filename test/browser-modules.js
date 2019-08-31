@@ -51,21 +51,6 @@ suite('Basic loading tests', () => {
     assert.equal(m.default.json, 'module');
   }); 
 
-  test('should throw json parse errors', async function () {
-    try {
-      await importShim('./fixtures/json-error.json');
-    }
-    catch (e) {
-      assert(e);
-    }
-    try {
-      await importShim('./fixtures/json-error.json');
-    }
-    catch (e) {
-      assert(e);
-    }
-  });
-
   test('should import css', async function () {
     var m = await importShim('./fixtures/style.css');
     assert(m.default);
@@ -144,38 +129,24 @@ suite('Circular dependencies', function() {
 
 suite('Loading order', function() {
   async function assertLoadOrder(module, exports) {
-    var m = await importShim('./fixtures/es-modules/' + module);
-    exports.forEach(function(name) {
-      assert.equal(m[name], name);
+    window.ordering = [];
+    await importShim(`./fixtures/es-modules/${module}`);
+    assert.equal(exports.length, ordering.length);
+    exports.forEach(function(name, index) {
+      assert.equal(ordering[index], name);
     });
   }
 
-  test('should load in order (a)', async function () {
-    await assertLoadOrder('a.js', ['a', 'b']);
-  });
-
-  test('should load in order (c)', async function () {
-    await assertLoadOrder('c.js', ['c', 'a', 'b']);
-  });
-
   test('should load in order (s)', async function () {
-    await assertLoadOrder('s.js', ['s', 'c', 'a', 'b']);
+    await assertLoadOrder('s.js', ['b', 'a', 'c', 's']);
   });
 
   test('should load in order (_a)', async function () {
-    await assertLoadOrder('_a.js', ['b', 'd', 'g', 'a']);
-  });
-
-  test('should load in order (_e)', async function () {
-    await assertLoadOrder('_e.js', ['c', 'e']);
-  });
-
-  test('should load in order (_f)', async function () {
-    await assertLoadOrder('_f.js', ['g', 'f']);
+    await assertLoadOrder('_a.js', ['_d', '_c', '_b', '_g', '_a']);
   });
 
   test('should load in order (_h)', async function () {
-    await assertLoadOrder('_h.js', ['i', 'a', 'h']);
+    await assertLoadOrder('_h.js', ['_i', '_h']);
   });
 });
 
@@ -226,6 +197,13 @@ suite('Export variations', function () {
   });
 });
 
+suite('wasm', () => {
+  test('Loads WASM', async () => {
+    const m = await importShim('/test/fixtures/wasm/example.wasm');
+    assert.equal(m.exampleExport(1), 2);
+  });
+});
+
 suite('Errors', function () {
 
   async function getImportError(module) {
@@ -237,6 +215,21 @@ suite('Errors', function () {
     }
     throw new Error('Test supposed to fail');
   }
+
+  test('should throw json parse errors', async function () {
+    try {
+      await importShim('./fixtures/json-error.json');
+    }
+    catch (e) {
+      assert(e);
+    }
+    try {
+      await importShim('./fixtures/json-error.json');
+    }
+    catch (e) {
+      assert(e);
+    }
+  });
 
   test('should give a plain name error', async function () {
     var err = await getImportError('plain-name');
@@ -259,11 +252,4 @@ suite('Errors', function () {
     assert(err.toString().startsWith('Error: 404 Not Found ' + new URL('./fixtures/es-modules/non-existent.js', baseURL).href));
   });
 
-});
-
-suite('wasm', () => {
-  test('Loads WASM', async () => {
-    const m = await importShim('/test/fixtures/wasm/example.wasm');
-    assert.equal(m.exampleExport(1), 2);
-  });
 });
