@@ -125,12 +125,6 @@ export function resolveUrl (relUrl, parentUrl) {
   return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (relUrl.indexOf(':') !== -1 ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
-function objectAssign (to, from) {
-  for (let p in from)
-    to[p] = from[p];
-  return to;
-}
-
 function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl, stdModules) {
   outer: for (let p in packages) {
     let target = packages[p];
@@ -153,7 +147,7 @@ function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, p
 }
 
 export function resolveAndComposeImportMap (json, baseUrl, parentMap, stdModules) {
-  const outMap = { imports: objectAssign({}, parentMap.imports), scopes: objectAssign({}, parentMap.scopes) };
+  const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes) };
 
   if (json.imports)
     resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null, stdModules);
