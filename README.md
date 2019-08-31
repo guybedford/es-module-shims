@@ -39,10 +39,9 @@ Current browser compatibility of modules features without ES module shims:
 | [CSS Modules](#css-modules)        | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
 | [Wasm Modules](#web-assembly)      | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
 
-* ~: _Indicates the exact first version of support has not yet been determined (PR's welcome!)._
-* ?: _Indicates support has not yet been determined (PR's welcome!)._
 * 1: _Edge executes parallel dependencies in non-deterministic order. ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
 * 2: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
+* ~,?: _Indicates the exact support has not yet been determined (PR's welcome!)._
 
 #### Browser Compatibility with ES Module Shims:
 
