@@ -173,50 +173,45 @@ function getOrCreateLoad (url, source) {
       load.r = res.url;
 
       const contentType = res.headers.get('content-type');
-      const semicolonIndex = contentType.indexOf(';');
-      const mime = semicolonIndex === -1 ? contentType : contentType.slice(0, semicolonIndex);
-      switch (mime) {
-        case 'application/wasm':
-          const module = wasmModules[url] = await WebAssembly.compile(await res.arrayBuffer());
-          let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
-  
-          const aDeps = [];
-          load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
-  
-          const depStrs = deps.map(dep => JSON.stringify(dep));
-  
-          let curIndex = 0;
-          load.S = depStrs.map((depStr, idx) => {
-              const index = idx.toString();
-              const strStart = curIndex + 17 + index.length;
-              const strEnd = strStart + depStr.length - 2;
-              aDeps.push({
-                s: strStart,
-                e: strEnd,
-                d: -1
-              });
-              curIndex += strEnd + 3;
-              return `import*as m${index} from${depStr};`
-            }).join('') +
-            `const module=importShim.w[${JSON.stringify(url)}],exports=new WebAssembly.Instance(module,{` +
-            depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
-            `}).exports;` +
-            load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
-          return deps;
+      if (contentType.match(/^(text|application)\/(x-)?javascript(;|$)/)) {
+        source = await res.text();
+      }
+      else if (contentType.match(/^application\/json(;|$)/)) {
+        source = `export default JSON.parse(${JSON.stringify(await res.text())})`;
+      }
+      else if (contentType.match(/^text\/css(;|$)/)) {
+        source = `const s=new CSSStyleSheet();s.replaceSync(${JSON.stringify(await res.text())});export default s`;
+      }
+      else if (contentType.match(/^application\/wasm(;|$)/)) {
+        const module = wasmModules[url] = await WebAssembly.compile(await res.arrayBuffer());
+        let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
 
-        case 'application/json':
-          source = `export default JSON.parse(${JSON.stringify(await res.text())})`;
-        break;
-        case 'text/css':
-          source = `const s=new CSSStyleSheet();s.replaceSync(${JSON.stringify(await res.text())});export default s`;
-        break;
+        const aDeps = [];
+        load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
 
-        case 'text/javascript':
-        case 'application/javascript':
-          source = await res.text();
-        break;
-        default:
-          throw new Error(`Unknown Content-Type "${contentType}"`);
+        const depStrs = deps.map(dep => JSON.stringify(dep));
+
+        let curIndex = 0;
+        load.S = depStrs.map((depStr, idx) => {
+            const index = idx.toString();
+            const strStart = curIndex + 17 + index.length;
+            const strEnd = strStart + depStr.length - 2;
+            aDeps.push({
+              s: strStart,
+              e: strEnd,
+              d: -1
+            });
+            curIndex += strEnd + 3;
+            return `import*as m${index} from${depStr};`
+          }).join('') +
+          `const module=importShim.w[${JSON.stringify(url)}],exports=new WebAssembly.Instance(module,{` +
+          depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
+          `}).exports;` +
+          load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
+        return deps;
+      }
+      else {
+        throw new Error(`Unknown Content-Type "${contentType}"`);
       }
     }
     try {
