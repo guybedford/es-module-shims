@@ -1,3 +1,7 @@
+ES Module Shims 0.4.2 (2019/08/31)
+* Fixes a critical Edge bug with parallel execution using a graph inlining to ensure execution order (https://github.com/guybedford/es-module-shims/pull/57, https://github.com/microsoft/ChakraCore/issues/6261)
+* `x-javascript` MIME type support (https://github.com/guybedford/es-module-shims/pull/56)
+
 ES Module Shims 0.4.1 (2019/08/30)
 * Support text/javascript MIME type (https://github.com/guybedford/es-module-shims/pull/53)
 
