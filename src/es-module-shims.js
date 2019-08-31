@@ -60,6 +60,8 @@ self.importShim = importShim;
 const meta = {};
 const wasmModules = {};
 
+const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
+
 Object.defineProperties(importShim, {
   map: { value: emptyImportMap, writable: true },
   m: { value: meta },
@@ -87,6 +89,7 @@ async function resolveDeps (load, seen) {
     // and define this blob
     let lastIndex = 0;
     resolvedSource = '';
+    
     let depIndex = 0;
     for (let i = 0; i < load.a[0].length; i++) {
       const { s: start, e: end, d: dynamicImportIndex } = load.a[0][i];
@@ -130,6 +133,11 @@ async function resolveDeps (load, seen) {
         lastIndex = end;
       }
     }
+
+    // edge executes in reverse order, so inline the dependency imports in reverse order first to correct this
+    if (edge)
+      resolvedSource = load.d.map(depLoad => `import "${depLoad.s || depLoad.b}";`).join('') + resolvedSource;
+
     resolvedSource += source.slice(lastIndex);
   }
 
@@ -224,7 +232,6 @@ function getOrCreateLoad (url, source) {
     }
     catch (e) {
       console.warn(e);
-      console.warn(e.idx);
       load.a = [[], []];
     }
     load.S = source;

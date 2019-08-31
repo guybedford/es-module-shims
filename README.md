@@ -28,34 +28,39 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 
 Current browser compatibility of modules features without ES module shims:
 
-| ES Modules Features                | Chrome (61+)             | Firefox (60+)            | Safari (10.1+)           | Edge (16+)               |
-| ---------------------------------- | ------------------------ | ------------------------ | ------------------------ | ------------------------ |
-| [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+   | :heavy_check_mark: 67+   | :heavy_check_mark: 11.1+ | :x:                      |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+  | :heavy_check_mark: ~67+  | :question:               | :x:                      |
-| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+  | :x:                      | :x:                      | :x:                      |
-| [Import Maps](#import-maps)        | :x:<sup>1</sup>          | :x:                      | :x:                      | :x:                      |
-| [JSON Modules](#json-modules)      | :x:                      | :x:                      | :x:                      | :x:                      |
-| [CSS Modules](#css-modules)        | :x:                      | :x:                      | :x:                      | :x:                      |
-| [Wasm Modules](#web-assembly)      | :x:                      | :x:                      | :x:                      | :x:                      |
+| ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       | Edge (16+)                           |
+| ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
+| Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :x:<sup>1</sup>                      |
+| [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+               | :heavy_check_mark: 67+               | :heavy_check_mark: 11.1+             | :x:                                  |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | ?                                    | :x:                                  |
+| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  | :x:                                  |
+| [Import Maps](#import-maps)        | :x:<sup>2</sup>                      | :x:                                  | :x:                                  | :x:                                  |
+| [JSON Modules](#json-modules)      | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
+| [CSS Modules](#css-modules)        | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
+| [Wasm Modules](#web-assembly)      | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
 
-* ~: _Indicates the exact first version of support has not been determined._
-* 1: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
+* ~: _Indicates the exact first version of support has not yet been determined (PR's welcome!)._
+* ?: _Indicates support has not yet been determined (PR's welcome!)._
+* 1: _Edge executes modules in an incorrect reverse post-order ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
+* 2: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
 
 #### Browser Compatibility with ES Module Shims:
 
-| ES Modules Features                | Chrome (61+)             | Firefox (60+)            | Safari (10.1+)           | Edge (16+)               |
-| ---------------------------------- | ------------------------ | ------------------------ | ------------------------ | ------------------------ |
-| [Dynamic Import](#dynamic-import)  | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
-| [Module Workers](#module-workers)  | :heavy_check_mark: 63+   | :x:<sup>3</sup>          | :question:               | :x:<sup>3</sup>          |
-| [Import Maps](#import-maps)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
-| [JSON Modules](#json-modules)      | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       |
-| [CSS Modules](#css-modules)        | :heavy_check_mark:       | :heavy_check_mark:       | :heavy_check_mark:       | :x:<sup>1</sup>          |
-| [Wasm Modules](#web-assembly)      | :heavy_multiplication_x:<sup>2</sup> | :heavy_check_mark: | :question:               | :heavy_check_mark:       |
+| ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       | Edge (16+)                           |
+| ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
+| Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:<sup>1</sup>       |
+| [Dynamic Import](#dynamic-import)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Module Workers](#module-workers)  | :heavy_check_mark: 63+               | :x:<sup>2</sup>                      | ?                                    | :x:<sup>2</sup>                      |
+| [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [JSON Modules](#json-modules)      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [CSS Modules](#css-modules)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :x:<sup>3</sup>                      |
+| [Wasm Modules](#web-assembly)      | :heavy_multiplication_x:<sup>4</sup> | :heavy_check_mark:                   | ?                                    | :heavy_check_mark:                   |
 
-* 1: _CSS Modules support pending [Constructed Stylesheets Polyfill support in Edge](https://github.com/calebdwilliams/construct-style-sheets/issues/20)._
-* 2: _Chrome limits Web Assembly to 4KiB synchronous instantiations. [Fix tracking in #1](https://github.com/guybedford/es-module-shims/issues/1)._
-* 3: _Module worker support cannot be implemented without dynamic import support in web workers._
+* 1: _The Edge reverse post-order bug is corrected with an Edge-specific reordering fix in ES Module Shims._
+* 2: _Module worker support cannot be implemented without dynamic import support in web workers._
+* 3: _CSS Modules support pending [Constructed Stylesheets Polyfill support in Edge](https://github.com/calebdwilliams/construct-style-sheets/issues/20)._
+* 4: _Chrome limits Web Assembly to 4KiB synchronous instantiations. [Fix tracking in #1](https://github.com/guybedford/es-module-shims/issues/1)._
 
 ### Import Maps
 
