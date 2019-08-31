@@ -31,19 +31,21 @@ catch (e) {
   }
 }
 
-async function loadAll (load, loaded) {
-  if (load.b || loaded[load.u])
+async function loadAll (load, seen) {
+  if (load.b || seen[load.u])
     return;
-  loaded[load.u] = true;
+  seen[load.u] = 1;
   await load.L;
-  await Promise.all(load.d.map(dep => loadAll(dep, loaded)));
+  return Promise.all(load.d.map(dep => loadAll(dep, seen)));
 }
 
 async function topLevelLoad (url, source) {
   await init;
   const load = getOrCreateLoad(url, source);
-  await loadAll(load, {});
-  resolveDeps(load, {});
+  const seen = {};
+  await loadAll(load, seen);
+  lastLoad = undefined;
+  resolveDeps(load, seen);
   const module = await dynamicImport(load.b);
   // if the top-level load is a shell, run its update function
   if (load.s)
@@ -60,6 +62,8 @@ self.importShim = importShim;
 const meta = {};
 const wasmModules = {};
 
+const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
+
 Object.defineProperties(importShim, {
   map: { value: emptyImportMap, writable: true },
   m: { value: meta },
@@ -68,28 +72,30 @@ Object.defineProperties(importShim, {
   e: { value: undefined, writable: true }
 });
 
-async function resolveDeps (load, seen) {
-  if (load.b)
+let lastLoad;
+function resolveDeps (load, seen) {
+  if (load.b || !seen[load.u])
     return;
-  seen[load.u] = true;
+  seen[load.u] = 0;
 
-  let source = load.S;
-  let resolvedSource;
+  for (const dep of load.d)
+    resolveDeps(dep, seen);
 
-  for (const depLoad of load.d)
-    if (!seen[depLoad.u])
-      resolveDeps(depLoad, seen);
-  if (!load.a[0].length) {
-    resolvedSource = source;
+  // "execution"
+  const source = load.S;
+  // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
+  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';
+
+  const [imports] = load.a;
+
+  if (!imports.length) {
+    resolvedSource += source;
   }
   else {
     // once all deps have loaded we can inline the dependency resolution blobs
     // and define this blob
-    let lastIndex = 0;
-    resolvedSource = '';
-    let depIndex = 0;
-    for (let i = 0; i < load.a[0].length; i++) {
-      const { s: start, e: end, d: dynamicImportIndex } = load.a[0][i];
+    let lastIndex = 0, depIndex = 0;
+    for (const { s: start, e: end, d: dynamicImportIndex } of imports) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
         const depLoad = load.d[depIndex++];
@@ -130,11 +136,12 @@ async function resolveDeps (load, seen) {
         lastIndex = end;
       }
     }
+
     resolvedSource += source.slice(lastIndex);
   }
 
   const lastNonEmptyLine = resolvedSource.slice(resolvedSource.lastIndexOf('\n') + 1);
-  load.b = createBlob(resolvedSource + (lastNonEmptyLine.startsWith('//# sourceMappingURL=') ? '\n//# sourceMappingURL=' + resolveUrl(lastNonEmptyLine.slice(21), load.r) : '') + '\n//# sourceURL=' + load.r);
+  load.b = lastLoad = createBlob(resolvedSource + (lastNonEmptyLine.startsWith('//# sourceMappingURL=') ? '\n//# sourceMappingURL=' + resolveUrl(lastNonEmptyLine.slice(21), load.r) : '') + '\n//# sourceURL=' + load.r);
   load.S = undefined;
 }
 
@@ -224,7 +231,6 @@ function getOrCreateLoad (url, source) {
     }
     catch (e) {
       console.warn(e);
-      console.warn(e.idx);
       load.a = [[], []];
     }
     load.S = source;
