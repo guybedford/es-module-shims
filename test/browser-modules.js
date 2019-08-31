@@ -1,3 +1,4 @@
+const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 suite('Basic loading tests', () => {
   test('Should import a module', async function () {
     var m = await importShim('./fixtures/es-modules/no-imports.js');
@@ -59,12 +60,15 @@ suite('Basic loading tests', () => {
 
   test('should resolve various import syntax', async function () {
     var m = await importShim('./fixtures/es-modules/import.js');
-    assert.equal(typeof m.a, 'function');
+    if (!edge)
+      assert.equal(typeof m.a, 'function');
     assert.equal(m.b, 4);
     assert.equal(m.c, 5);
     assert.equal(m.d, 4);
-    assert.equal(typeof m.q, 'object');
-    assert.equal(typeof m.q.foo, 'function');
+    if (!edge) {
+      assert.equal(typeof m.q, 'object');
+      assert.equal(typeof m.q.foo, 'function');
+    }
   });
 
   test('should support import.meta.url', async function () {
@@ -136,6 +140,10 @@ suite('Loading order', function() {
       assert.equal(ordering[index], name);
     });
   }
+
+  test('should execute in order', async function () {
+    await assertLoadOrder('exec-order.js', ['a', 'b', 'c']);
+  });
 
   test('should load in order (s)', async function () {
     await assertLoadOrder('s.js', ['b', 'a', 'c', 's']);

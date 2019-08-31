@@ -31,19 +31,27 @@ catch (e) {
   }
 }
 
-async function loadAll (load, loaded) {
+async function loadAll (load, loaded, execOrder) {
   if (load.b || loaded[load.u])
     return;
   loaded[load.u] = true;
   await load.L;
-  await Promise.all(load.d.map(dep => loadAll(dep, loaded)));
+  for (const dep of load.d)
+    await loadAll(dep, loaded, execOrder);
+  execOrder.push(load);
 }
 
 async function topLevelLoad (url, source) {
   await init;
   const load = getOrCreateLoad(url, source);
-  await loadAll(load, {});
-  resolveDeps(load, {});
+  const execOrder = [];
+  await loadAll(load, {}, execOrder);
+  let edgePrevLoad = undefined;
+  for (const load of execOrder) {
+    resolveDeps(load, edgePrevLoad);
+    if (edge)
+      edgePrevLoad = load.b;
+  }
   const module = await dynamicImport(load.b);
   // if the top-level load is a shell, run its update function
   if (load.s)
@@ -70,29 +78,23 @@ Object.defineProperties(importShim, {
   e: { value: undefined, writable: true }
 });
 
-async function resolveDeps (load, seen) {
-  if (load.b)
-    return;
-  seen[load.u] = true;
-
+function resolveDeps (load, edgePrevLoad) {
   let source = load.S;
-  let resolvedSource;
+  // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
+  let resolvedSource = edgePrevLoad ? `import '${edgePrevLoad}';` : '';
 
-  for (const depLoad of load.d)
-    if (!seen[depLoad.u])
-      resolveDeps(depLoad, seen);
-  if (!load.a[0].length) {
-    resolvedSource = source;
+  const [imports] = load.a;
+
+  if (!imports.length) {
+    resolvedSource += source;
   }
   else {
     // once all deps have loaded we can inline the dependency resolution blobs
     // and define this blob
     let lastIndex = 0;
-    resolvedSource = '';
     
     let depIndex = 0;
-    for (let i = 0; i < load.a[0].length; i++) {
-      const { s: start, e: end, d: dynamicImportIndex } = load.a[0][i];
+    for (const { s: start, e: end, d: dynamicImportIndex } of imports) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
         const depLoad = load.d[depIndex++];
@@ -133,10 +135,6 @@ async function resolveDeps (load, seen) {
         lastIndex = end;
       }
     }
-
-    // edge executes in reverse order, so inline the dependency imports in reverse order first to correct this
-    if (edge)
-      resolvedSource = load.d.map(depLoad => `import "${depLoad.s || depLoad.b}";`).join('') + resolvedSource;
 
     resolvedSource += source.slice(lastIndex);
   }
