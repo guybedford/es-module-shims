@@ -63,7 +63,7 @@ Current browser compatibility of modules features without ES module shims:
 
 ### Import Maps
 
-> It is also possible to ship import maps directly in Chrome (without using this project!) through the [Chrome Origin Trial](https://developers.chrome.com/origintrials/#/view_trial/3175037737296199681). The hope is for this project to eventually become a true polyfill for import maps in older browsers, but this will only happen once the spec is implemented in more than one browser and demonstrated to be stable.
+> The goal is for this project to eventually become a true polyfill for import maps in older browsers, but this will only happen once the spec is implemented in more than one browser and demonstrated to be stable.
 
 In order to import bare package specifiers like `import "lodash"` we need [import maps](https://github.com/domenic/import-maps), which are still an experimental specification.
 
