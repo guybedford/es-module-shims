@@ -32,7 +32,7 @@ Current browser compatibility of modules features without ES module shims:
 | ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
 | Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :x:<sup>1</sup>                      |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+               | :heavy_check_mark: 67+               | :heavy_check_mark: 11.1+             | :x:                                  |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | ?                                    | :x:                                  |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+              | :x:                                  |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  | :x:                                  |
 | [Import Maps](#import-maps)        | :x:<sup>2</sup>                      | :x:                                  | :x:                                  | :x:                                  |
 | [JSON Modules](#json-modules)      | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
@@ -50,11 +50,11 @@ Current browser compatibility of modules features without ES module shims:
 | Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:<sup>1</sup>       |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [import.meta.url](#dynamic-import) | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Module Workers](#module-workers)  | :heavy_check_mark: 63+               | :x:<sup>2</sup>                      | ?                                    | :x:<sup>2</sup>                      |
+| [Module Workers](#module-workers)  | :heavy_check_mark: 63+               | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      |
 | [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [JSON Modules](#json-modules)      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [CSS Modules](#css-modules)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :x:<sup>3</sup>                      |
-| [Wasm Modules](#web-assembly)      | :heavy_multiplication_x:<sup>4</sup> | :heavy_check_mark:                   | ?                                    | :heavy_check_mark:                   |
+| [Wasm Modules](#web-assembly)      | :heavy_multiplication_x:<sup>4</sup> | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 
 * 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
 * 2: _Module worker support cannot be implemented without dynamic import support in web workers._
