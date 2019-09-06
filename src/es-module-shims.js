@@ -1,4 +1,4 @@
-import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resolveAndComposeImportMap, hasDocument, resolveIfNotPlainOrUrl, emptyImportMap, dynamicImport } from './common.js';
+import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resolveAndComposeImportMap, hasDocument, resolveIfNotPlainOrUrl, emptyImportMap, dynamicImport, resolvedPromise } from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 import { WorkerShim } from './worker-shims.js';
 
@@ -145,6 +145,14 @@ function getOrCreateLoad (url, source) {
     s: undefined,
   };
 
+  if (url.startsWith('std:'))
+    return Object.assign(load, {
+      r: url,
+      f: resolvedPromise,
+      L: resolvedPromise,
+      b: url
+    });
+
   load.f = (async () => {
     if (!source) {
       const res = await fetch(url);
@@ -230,6 +238,7 @@ if (hasDocument) {
 
 async function resolve (id, parentUrl) {
   if (!importMapPromise) {
+    importMapPromise = resolvedPromise;
     if (hasDocument)
       for (const script of document.querySelectorAll('script[type="importmap-shim"]')) {
         importMapPromise = importMapPromise.then(async () => {

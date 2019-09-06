@@ -3,6 +3,8 @@ export const hasSelf = typeof self !== 'undefined';
 const envGlobal = hasSelf ? self : global;
 export { envGlobal as global };
 
+export const resolvedPromise = Promise.resolve();
+
 export let baseUrl;
 
 export function createBlob (source) {
@@ -151,7 +153,7 @@ export function resolveUrl (relUrl, parentUrl) {
   return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (relUrl.indexOf(':') !== -1 ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
-async function hasStdModule (name) {
+export async function hasStdModule (name) {
   try {
     await dynamicImport(name);
     return true;
@@ -161,7 +163,7 @@ async function hasStdModule (name) {
   }
 }
 
-function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl) {
+async function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl) {
   outer: for (let p in packages) {
     let target = packages[p];
     if (typeof target === 'string')
