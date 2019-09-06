@@ -3,10 +3,38 @@ export const hasSelf = typeof self !== 'undefined';
 const envGlobal = hasSelf ? self : global;
 export { envGlobal as global };
 
+export const resolvedPromise = Promise.resolve();
+
 export let baseUrl;
 
 export function createBlob (source) {
   return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+}
+
+// support browsers without dynamic import support (eg Firefox 6x)
+export let dynamicImport;
+try {
+  dynamicImport = (0, eval)('u=>import(u)');
+}
+catch (e) {
+  if (hasDocument) {
+    self.addEventListener('error', e => importShim.e = e.error);
+    dynamicImport = blobUrl => {
+      const topLevelBlobUrl = createBlob(
+        `import*as m from'${blobUrl}';self.importShim.l=m;self.importShim.e=null`
+      );
+      const s = document.createElement('script');
+      s.type = 'module';
+      s.src = topLevelBlobUrl;
+      document.head.appendChild(s);
+      return new Promise((resolve, reject) => {
+        s.addEventListener('load', () => {
+          document.head.removeChild(s);
+          importShim.e ? reject(importShim.e) : resolve(importShim.l, pageBaseUrl);
+        });
+      });
+    };
+  }
 }
 
 export const hasDocument = typeof document !== 'undefined';
@@ -125,7 +153,17 @@ export function resolveUrl (relUrl, parentUrl) {
   return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (relUrl.indexOf(':') !== -1 ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
-function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl, stdModules) {
+export async function hasStdModule (name) {
+  try {
+    await dynamicImport(name);
+    return true;
+  }
+  catch (e) {
+    return false;
+  }
+}
+
+async function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl) {
   outer: for (let p in packages) {
     let target = packages[p];
     if (typeof target === 'string')
@@ -137,7 +175,7 @@ function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, p
       if (typeof rhs !== 'string')
         continue;
       const mapped = resolveImportMap(parentMap, resolveIfNotPlainOrUrl(rhs, baseUrl) || rhs, parentUrl);
-      if (mapped && (!mapped.startsWith('std:') || stdModules.has(mapped))) {
+      if (mapped && (!mapped.startsWith('std:') || await hasStdModule(mapped))) {
         outPackages[p] = mapped;
         continue outer;
       }
@@ -146,16 +184,16 @@ function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, p
   }
 }
 
-export function resolveAndComposeImportMap (json, baseUrl, parentMap, stdModules) {
+export async function resolveAndComposeImportMap (json, baseUrl, parentMap) {
   const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes) };
 
   if (json.imports)
-    resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null, stdModules);
+    await resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null);
 
   if (json.scopes)
     for (let s in json.scopes) {
       const resolvedScope = resolveUrl(s, baseUrl);
-      resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap, resolvedScope, stdModules);
+      await resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap, resolvedScope);
     }
 
   return outMap;

@@ -1,35 +1,9 @@
-import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resolveAndComposeImportMap, hasDocument, resolveIfNotPlainOrUrl, emptyImportMap } from './common.js';
+import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resolveAndComposeImportMap, hasDocument, resolveIfNotPlainOrUrl, emptyImportMap, dynamicImport, resolvedPromise } from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 import { WorkerShim } from './worker-shims.js';
 
 let id = 0;
 const registry = {};
-
-// support browsers without dynamic import support (eg Firefox 6x)
-let dynamicImport;
-try {
-  dynamicImport = (0, eval)('u=>import(u)');
-}
-catch (e) {
-  if (hasDocument) {
-    self.addEventListener('error', e => importShim.e = e.error);
-    dynamicImport = blobUrl => {
-      const topLevelBlobUrl = createBlob(
-        `import*as m from'${blobUrl}';self.importShim.l=m;self.importShim.e=null`
-      );
-      const s = document.createElement('script');
-      s.type = 'module';
-      s.src = topLevelBlobUrl;
-      document.head.appendChild(s);
-      return new Promise((resolve, reject) => {
-        s.addEventListener('load', () => {
-          document.head.removeChild(s);
-          importShim.e ? reject(importShim.e) : resolve(importShim.l, pageBaseUrl);
-        });
-      });
-    };
-  }
-}
 
 async function loadAll (load, seen) {
   if (load.b || seen[load.u])
@@ -171,6 +145,14 @@ function getOrCreateLoad (url, source) {
     s: undefined,
   };
 
+  if (url.startsWith('std:'))
+    return Object.assign(load, {
+      r: url,
+      f: resolvedPromise,
+      L: resolvedPromise,
+      b: url
+    });
+
   load.f = (async () => {
     if (!source) {
       const res = await fetch(url);
@@ -256,21 +238,11 @@ if (hasDocument) {
 
 async function resolve (id, parentUrl) {
   if (!importMapPromise) {
-    const stdModules = new Set();
-    importMapPromise = (async () => {
-      // check which standard modules are available
-      for (const m of ['std:kv-storage']) {
-        try {
-          await dynamicImport(m);
-          stdModules.add(m);
-        }
-        catch (e) {}
-      }
-    })();
+    importMapPromise = resolvedPromise;
     if (hasDocument)
       for (const script of document.querySelectorAll('script[type="importmap-shim"]')) {
         importMapPromise = importMapPromise.then(async () => {
-          importShim.map = resolveAndComposeImportMap(script.src ? await (await (script._f || fetch(script.src))).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importShim.map, stdModules);
+          importShim.map = await resolveAndComposeImportMap(script.src ? await (await (script._f || fetch(script.src))).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importShim.map);
         });
       }
   }
