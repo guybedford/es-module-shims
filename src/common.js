@@ -99,7 +99,11 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
     // join together and split for removal of .. and . segments
     // looping the string instead of anything fancy for perf reasons
     // '../../../../../z' resolved to 'x/y' is just 'z'
-    const segmented = pathname.slice(0, pathname.lastIndexOf('/') + 1) + relUrl;
+    const segmented = pathname.slice(0, pathname.lastIndexOf('/') + 1) + (relUrl.startsWith('./') ? relUrl.slice(2) : relUrl);
+
+    // fastpath
+    if (segmented.indexOf('/..') === -1 && segmented.indexOf('/.') === -1)
+      return parentUrl.slice(0, parentUrl.length - pathname.length) + segmented;
 
     const output = [];
     let segmentIndex = -1;
