@@ -1,3 +1,7 @@
+ES Module Shims 0.4.3 (2019/09/08)
+* Remove unnecessary Object.assign polyfill (https://github.com/guybedford/es-module-shims/commit/6bc90c059377e254e71b6695368215ce6ebff7d7)
+* Rework standard module detection (https://github.com/guybedford/es-module-shims/pull/62)
+
 ES Module Shims 0.4.2 (2019/08/31)
 * Fixes a critical Edge bug with parallel execution using a graph inlining to ensure execution order (https://github.com/guybedford/es-module-shims/pull/57, https://github.com/microsoft/ChakraCore/issues/6261)
 * `x-javascript` MIME type support (https://github.com/guybedford/es-module-shims/pull/56)
