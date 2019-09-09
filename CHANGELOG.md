@@ -1,3 +1,6 @@
+ES Module Shims 0.4.4 (2019/09/09)
+* Fix to ensure build against latest es-module-lexer
+
 ES Module Shims 0.4.3 (2019/09/08)
 * Remove unnecessary Object.assign polyfill (https://github.com/guybedford/es-module-shims/commit/6bc90c059377e254e71b6695368215ce6ebff7d7)
 * Rework standard module detection (https://github.com/guybedford/es-module-shims/pull/62)
