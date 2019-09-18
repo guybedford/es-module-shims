@@ -53,13 +53,12 @@ Current browser compatibility of modules features without ES module shims:
 | [Module Workers](#module-workers)  | :heavy_check_mark: 63+               | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      |
 | [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [JSON Modules](#json-modules)      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [CSS Modules](#css-modules)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :x:<sup>3</sup>                      |
+| [CSS Modules](#css-modules)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Wasm Modules](#web-assembly)      | :heavy_multiplication_x:<sup>4</sup> | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 
 * 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
 * 2: _Module worker support cannot be implemented without dynamic import support in web workers._
-* 3: _CSS Modules support pending [Constructed Stylesheets Polyfill support in Edge](https://github.com/calebdwilliams/construct-style-sheets/issues/20)._
-* 4: _Chrome limits Web Assembly to 4KiB synchronous instantiations. [Fix tracking in #1](https://github.com/guybedford/es-module-shims/issues/1)._
+* 3: _Chrome limits Web Assembly to 4KiB synchronous instantiations. [Fix tracking in #1](https://github.com/guybedford/es-module-shims/issues/1)._
 
 ### Import Maps
 
