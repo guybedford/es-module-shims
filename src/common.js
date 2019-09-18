@@ -11,6 +11,8 @@ export function createBlob (source) {
   return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
 }
 
+export const hasDocument = typeof document !== 'undefined';
+
 // support browsers without dynamic import support (eg Firefox 6x)
 export let dynamicImport;
 try {
@@ -36,8 +38,6 @@ catch (e) {
     };
   }
 }
-
-export const hasDocument = typeof document !== 'undefined';
 
 if (hasDocument) {
   const baseEl = document.querySelector('base[href]');
