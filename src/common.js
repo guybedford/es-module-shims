@@ -32,7 +32,7 @@ catch (e) {
       return new Promise((resolve, reject) => {
         s.addEventListener('load', () => {
           document.head.removeChild(s);
-          importShim.e ? reject(importShim.e) : resolve(importShim.l, pageBaseUrl);
+          importShim.e ? reject(importShim.e) : resolve(importShim.l, baseUrl);
         });
       });
     };
