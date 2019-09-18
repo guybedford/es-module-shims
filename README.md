@@ -54,7 +54,7 @@ Current browser compatibility of modules features without ES module shims:
 | [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [JSON Modules](#json-modules)      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [CSS Modules](#css-modules)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Wasm Modules](#web-assembly)      | :heavy_multiplication_x:<sup>4</sup> | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Wasm Modules](#web-assembly)      | :heavy_multiplication_x:<sup>3</sup> | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 
 * 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
 * 2: _Module worker support cannot be implemented without dynamic import support in web workers._
