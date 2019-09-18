@@ -1,3 +1,7 @@
+ES Module Shims 0.4.5 (2019/09/18)
+* Fixup incorrect pageBaseUrl reference (7391880e836712)
+* Fixup hasDocument check for Firefox (https://github.com/guybedford/es-module-shims/issues/62)
+
 ES Module Shims 0.4.4 (2019/09/09)
 * Fix to ensure build against latest es-module-lexer
 
