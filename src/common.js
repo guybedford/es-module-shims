@@ -165,6 +165,7 @@ export async function hasStdModule (name) {
 
 async function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl) {
   outer: for (let p in packages) {
+    const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
     let target = packages[p];
     if (typeof target === 'string')
       target = [target];
@@ -176,7 +177,7 @@ async function resolveAndComposePackages (packages, outPackages, baseUrl, parent
         continue;
       const mapped = resolveImportMap(parentMap, resolveIfNotPlainOrUrl(rhs, baseUrl) || rhs, parentUrl);
       if (mapped && (!mapped.startsWith('std:') || await hasStdModule(mapped))) {
-        outPackages[p] = mapped;
+        outPackages[resolvedLhs] = mapped;
         continue outer;
       }
     }
