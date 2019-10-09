@@ -114,8 +114,14 @@ function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  const lastNonEmptyLine = resolvedSource.slice(resolvedSource.lastIndexOf('\n') + 1);
-  load.b = lastLoad = createBlob(resolvedSource + (lastNonEmptyLine.startsWith('//# sourceMappingURL=') ? '\n//# sourceMappingURL=' + resolveUrl(lastNonEmptyLine.slice(21), load.r) : '') + '\n//# sourceURL=' + load.r);
+  let sourceMappingResolved = '';
+  const sourceMappingIndex = resolvedSource.lastIndexOf('//# sourceMappingURL=');
+  if (sourceMappingIndex > -1) {
+    const sourceMappingEnd = resolvedSource.indexOf('\n',sourceMappingIndex);
+    const sourceMapping = resolvedSource.slice(sourceMappingIndex, sourceMappingEnd > -1 ? sourceMappingEnd : undefined);
+    sourceMappingResolved = `\n//# sourceMappingURL=` + resolveUrl(sourceMapping.slice(21), load.r);
+  }
+  load.b = lastLoad = createBlob(resolvedSource + sourceMappingResolved + '\n//# sourceURL=' + load.r);
   load.S = undefined;
 }
 
