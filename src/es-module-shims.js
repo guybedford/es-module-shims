@@ -45,6 +45,7 @@ Object.defineProperties(importShim, {
   l: { value: undefined, writable: true },
   e: { value: undefined, writable: true }
 });
+importShim.fetch = url => fetch(url);
 
 let lastLoad;
 function resolveDeps (load, seen) {
@@ -161,7 +162,7 @@ function getOrCreateLoad (url, source) {
 
   load.f = (async () => {
     if (!source) {
-      const res = await fetch(url);
+      const res = await importShim.fetch(url);
       if (!res.ok)
         throw new Error(`${res.status} ${res.statusText} ${res.url}`);
 
