@@ -14,6 +14,8 @@ This includes support for:
 * Importing JSON
 * Importing Web Assembly (note, there is an [open issue on how to handle the 4KB imposed limit](https://github.com/guybedford/es-module-shims/issues/1))
 
+In addition a custom [fetch hook](#fetch-hook) can be implemented allowing for streaming in-browser transform workflows.
+
 Because we are still using the native module loader the edge cases work out comprehensively, including:
 
 * Live bindings in ES modules
@@ -157,6 +159,38 @@ const worker = new WorkerShim('./module.js', {
 This matches the specification for ES module workers, supporting all features of import shims within the workers.
 
 > Module workers are only supported in browsers that provide dynamic import in worker environments, which is only Chrome currently.
+
+### Fetch Hook
+
+> Note: This hook is non spec-compliant, but is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
+
+The ES Module Shims fetch hook can be used to implement transform plugins.
+
+For example:
+
+```js
+importShim.fetch = async function (url) {
+  const response = await fetch(url);
+  if (response.url.endsWith('.ts')) {
+    const source = await response.body();
+    const transformed = tsCompile(source);
+    return new Response(new Blob([transformed], { type: 'application/javascript' }));
+  }
+  return response;
+};
+```
+
+Because the dependency analysis applies by ES Module Shims takes care of ensuring all dependencies run through the same fetch hook,
+the above is all that is needed to implement custom plugins.
+
+Streaming support can be handled through the above as well, although most compilers likely want synchronous sources as in the above.
+
+#### Plugins
+
+Since the Fetch Hook is very new, there are no plugin examples of it yet, but it should be easy to support various workflows
+such as TypeScript and new JS features this way.
+
+If you work on something here please do share to link to from here.
 
 ## Implementation Details
 

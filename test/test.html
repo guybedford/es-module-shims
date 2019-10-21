@@ -45,9 +45,9 @@
     throw new Error(msg);
   };
 
-  const suites = ['browser-modules'];
+  const suites = ['browser-modules', 'fetch-hook'];
   function runNextSuite () {
-    mocha.suite.suites.shift();
+    mocha.suite.suites = [];
     const suite = suites.shift();
     if (suite)
       importShim('./' + suite + '.js')
