@@ -1,3 +1,6 @@
+ES Module Shims 0.4.6 (2019/10/21)
+* Implement fetch hook (https://github.com/guybedford/es-module-shims/pull/73)
+
 ES Module Shims 0.4.5 (2019/09/18)
 * Fixup incorrect pageBaseUrl reference (7391880e836712)
 * Fixup hasDocument check for Firefox (https://github.com/guybedford/es-module-shims/issues/62)
