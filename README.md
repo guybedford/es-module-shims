@@ -162,6 +162,8 @@ This matches the specification for ES module workers, supporting all features of
 
 ### Fetch Hook
 
+> Note: This hook is non spec-compliant, but is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
+
 The ES Module Shims fetch hook can be used to implement transform plugins.
 
 For example:
@@ -172,7 +174,7 @@ importShim.fetch = async function (url) {
   if (response.url.endsWith('.ts')) {
     const source = await response.body();
     const transformed = tsCompile(source);
-    return new Response(URL.createObjectURL(new Blob([transformed], { type: 'application/javascript' })), { status: 200 });
+    return new Response(new Blob([transformed], { type: 'application/javascript' }));
   }
   return response;
 };
