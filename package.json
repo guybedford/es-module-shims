@@ -10,6 +10,7 @@
     "prepublishOnly": "npm run build && npm run min"
   },
   "type": "module",
+  "module": "dist/es-modules-shims.js",
   "files": [
     "dist"
   ],
