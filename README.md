@@ -34,7 +34,7 @@ Current browser compatibility of modules features without ES module shims:
 | ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
 | Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :x:<sup>1</sup>                      |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+               | :heavy_check_mark: 67+               | :heavy_check_mark: 11.1+             | :x:                                  |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+              | :x:                                  |
+| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+ ❕<sup>1</sup>| :x:                                  |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  | :x:                                  |
 | [Import Maps](#import-maps)        | :x:<sup>2</sup>                      | :x:                                  | :x:                                  | :x:                                  |
 | [JSON Modules](#json-modules)      | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
@@ -44,6 +44,7 @@ Current browser compatibility of modules features without ES module shims:
 * 1: _Edge executes parallel dependencies in non-deterministic order. ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
 * 2: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
 * ~: _Indicates the exact first version support has not yet been determined (PR's welcome!)._
+* ❕<sup>1</sup>: On module redirects, Safari returns the request URL in `import.meta.url` instead of the response URL as per the spec.
 
 #### Browser Compatibility with ES Module Shims:
 
