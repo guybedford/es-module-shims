@@ -22,7 +22,7 @@ Because we are still using the native module loader the edge cases work out comp
 * Dynamic import expressions (`import('src/' + varname')`)
 * Circular references, with the execption that live bindings are disabled for the first unexecuted circular parent.
 
-Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is instant.
+Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is very fast, although in complex cases of hundreds of modules it can be a few hundred milliseconds slower than using SystemJS or native ES modules. See the [SystemJS performance comparison](https://github.com/systemjs/systemjs#performance) for a full performance breakdown in a complex loading scenario.
 
 ### Browser Support
 
