@@ -1,6 +1,6 @@
 ## ES Module Shims
 
-[86% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
+[90% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
 
 But a lot of the useful features of modules come from new specifications which either aren't implemented yet, or are only available in some browsers.
 
