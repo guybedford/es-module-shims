@@ -4,7 +4,7 @@
 
 But a lot of the useful features of modules come from new specifications which either aren't implemented yet, or are only available in some browsers.
 
-_It turns out that we can actually polyfill most of the newer modules specifications on top of these baseline implementations in a performant 7KB shim._
+_It turns out that we can actually polyfill most of the newer modules specifications on top of these baseline implementations in a performant 8KB shim._
 
 This includes support for:
 
@@ -160,6 +160,19 @@ const worker = new WorkerShim('./module.js', {
 This matches the specification for ES module workers, supporting all features of import shims within the workers.
 
 > Module workers are only supported in browsers that provide dynamic import in worker environments, which is only Chrome currently.
+
+### Skip Processing
+
+When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
+opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
+
+This can be configured by setting the `importShim.skip` URL regular expression:
+
+```js
+importShim.skip = /^https:\/\/cdn\.com/;
+```
+
+By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
 
 ### Fetch Hook
 

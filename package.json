@@ -16,13 +16,13 @@
   "author": "Guy Bedford",
   "license": "MIT",
   "devDependencies": {
-    "es-module-lexer": "^0.3.13",
+    "es-module-lexer": "^0.3.24",
     "esm": "^3.2.25",
     "kleur": "^2.0.2",
     "mocha": "^6.2.0",
     "pretty-ms": "^3.2.0",
-    "rollup": "^1.16.2",
-    "terser": "^4.0.0"
+    "rollup": "^2.17.0",
+    "terser": "^4.8.0"
   },
   "directories": {
     "test": "test"

@@ -46,6 +46,7 @@ Object.defineProperties(importShim, {
   e: { value: undefined, writable: true }
 });
 importShim.fetch = url => fetch(url);
+importShim.skip = /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
 
 let lastLoad;
 function resolveDeps (load, seen) {
@@ -223,7 +224,10 @@ function getOrCreateLoad (url, source) {
 
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
-      const depLoad = getOrCreateLoad(await resolve(depId, load.r || load.u));
+      const resolved = await resolve(depId, load.r || load.u);
+      if (importShim.skip.test(resolved))
+        return { b: resolved };
+      const depLoad = getOrCreateLoad(resolved);
       await depLoad.f;
       return depLoad;
     }));
