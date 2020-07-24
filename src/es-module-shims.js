@@ -161,6 +161,13 @@ function getOrCreateLoad (url, source) {
       b: url
     });
 
+  const depcache = importShim.map.depcache[url];
+  if (depcache) {
+    depcache.forEach(async depUrl => {
+      getOrCreateLoad(await resolve(depUrl, url));
+    });
+  }
+
   load.f = (async () => {
     if (!source) {
       const res = await importShim.fetch(url);
