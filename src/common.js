@@ -147,13 +147,11 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
  * and then match based on backtracked hash lookups
  *
  */
-export const emptyImportMap = { imports: {}, scopes: {}, depcache: {} };
-
 export function resolveUrl (relUrl, parentUrl) {
   return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (relUrl.indexOf(':') !== -1 ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
-async function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl) {
+function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl) {
   for (let p in packages) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
     let target = packages[p];
@@ -168,16 +166,16 @@ async function resolveAndComposePackages (packages, outPackages, baseUrl, parent
   }
 }
 
-export async function resolveAndComposeImportMap (json, baseUrl, parentMap) {
+export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
   const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes), depcache: Object.assign({}, parentMap.depcache) };
 
   if (json.imports)
-    await resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null);
+    resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null);
 
   if (json.scopes)
     for (let s in json.scopes) {
       const resolvedScope = resolveUrl(s, baseUrl);
-      await resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap, resolvedScope);
+      resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap, resolvedScope);
     }
 
   if (json.depcache)

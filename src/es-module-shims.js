@@ -1,4 +1,4 @@
-import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resolveAndComposeImportMap, hasDocument, resolveIfNotPlainOrUrl, emptyImportMap, dynamicImport, resolvedPromise } from './common.js';
+import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resolveAndComposeImportMap, hasDocument, resolveIfNotPlainOrUrl, dynamicImport, resolvedPromise } from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 
 let id = 0;
@@ -12,7 +12,14 @@ async function loadAll (load, seen) {
   return Promise.all(load.d.map(dep => loadAll(dep, seen)));
 }
 
+let waitingForImportMapsInterval;
 async function topLevelLoad (url, source) {
+  if (waitingForImportMapsInterval > 0) {
+    clearTimeout(waitingForImportMapsInterval);
+    waitingForImportMapsInterval = 0;
+  }
+  processScripts();
+  await importMapPromise;
   await init;
   const load = getOrCreateLoad(url, source);
   const seen = {};
@@ -27,7 +34,7 @@ async function topLevelLoad (url, source) {
 }
 
 async function importShim (id, parentUrl) {
-  return topLevelLoad(await resolve(id, parentUrl || pageBaseUrl));
+  return topLevelLoad(resolve(id, parentUrl || pageBaseUrl));
 }
 
 self.importShim = importShim;
@@ -37,13 +44,13 @@ const meta = {};
 const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 Object.defineProperties(importShim, {
-  map: { value: emptyImportMap, writable: true },
   m: { value: meta },
   l: { value: undefined, writable: true },
   e: { value: undefined, writable: true }
 });
 importShim.fetch = url => fetch(url);
 importShim.skip = /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
+importShim.load = processScripts;
 
 let lastLoad;
 function resolveDeps (load, seen) {
@@ -150,10 +157,10 @@ function getOrCreateLoad (url, source) {
     s: undefined,
   };
 
-  const depcache = importShim.map.depcache[url];
+  const depcache = importMap.depcache[url];
   if (depcache) {
     depcache.forEach(async depUrl => {
-      getOrCreateLoad(await resolve(depUrl, url));
+      getOrCreateLoad(resolve(depUrl, url));
     });
   }
 
@@ -182,7 +189,7 @@ function getOrCreateLoad (url, source) {
 
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
-      const resolved = await resolve(depId, load.r || load.u);
+      const resolved = resolve(depId, load.r || load.u);
       if (importShim.skip.test(resolved))
         return { b: resolved };
       const depLoad = getOrCreateLoad(resolved);
@@ -194,29 +201,39 @@ function getOrCreateLoad (url, source) {
   return load;
 }
 
-let importMapPromise;
+let importMap = { imports: {}, scopes: {}, depcache: {} };
+let importMapPromise = resolvedPromise;
 
 if (hasDocument) {
-  // preload import maps
-  for (const script of document.querySelectorAll('script[type="importmap-shim"][src]'))
-    script._f = fetch(script.src);
-  // load any module scripts
-  for (const script of document.querySelectorAll('script[type="module-shim"]'))
-    topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, script.src ? null : script.innerHTML);
+  processScripts();
+  waitingForImportMapsInterval = setInterval(processScripts, 20);
 }
 
-async function resolve (id, parentUrl) {
-  if (!importMapPromise) {
-    importMapPromise = resolvedPromise;
-    if (hasDocument)
-      for (const script of document.querySelectorAll('script[type="importmap-shim"]')) {
-        importMapPromise = importMapPromise.then(async () => {
-          importShim.map = await resolveAndComposeImportMap(script.src ? await (await (script._f || fetch(script.src))).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importShim.map);
-        });
-      }
+function processScripts () {
+  if (waitingForImportMapsInterval > 0 && document.readyState !== 'loading') {
+    clearTimeout(waitingForImportMapsInterval);
+    waitingForImportMapsInterval = 0;
   }
-  await importMapPromise;
-  return resolveImportMap(importShim.map, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl) || throwUnresolved(id, parentUrl);
+  for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]')) {
+    if (script.ep) // ep marker = script processed
+      return;
+    if (script.type === 'module-shim') {
+      topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML);
+    }
+    else {
+      if (!script.src)
+        importMap = resolveAndComposeImportMap(JSON.parse(script.innerHTML), pageBaseUrl, importMap);
+      else
+        importMapPromise = importMapPromise.then(async () =>
+          importMap = resolveAndComposeImportMap(await (await fetch(script.src)).json(), script.src, importMap)
+        );
+    }
+    script.ep = true;
+  }
+}
+
+function resolve (id, parentUrl) {
+  return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl) || throwUnresolved(id, parentUrl);
 }
 
 function throwUnresolved (id, parentUrl) {

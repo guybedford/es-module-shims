@@ -4,7 +4,7 @@
 
 But modules features like Import Maps will take a while to be supported in browsers.
 
-_It turns out that we can actually polyfill new modules features on top of these baseline implementations in a performant 8KB shim._
+_It turns out that we can actually polyfill new modules features on top of these baseline implementations in a performant 6.5KB shim._
 
 This includes support for:
 
@@ -113,6 +113,36 @@ importShim.skip = /^https:\/\/cdn\.com/;
 ```
 
 By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
+
+### Depcache
+
+Like in SystemJS, a [`"depcache"` property is supported](https://github.com/guybedford/import-maps-extensions#depcache) in import maps to enable waterfall flattening.
+
+### Dynamic Import Map Updates
+
+Import maps are frozen as soon as the first module load is loaded.
+
+To support dynamic injection of new import maps into the page, call `importShim.load()` to pick up any new `<script type="importmap-shim">` tags.
+
+This can be linked up to mutation observers if desired, with something like:
+
+```js
+new MutationObserver(mutations => {
+  for (const mutation of mutations) {
+    if (mutation.type !== 'childList') continue;
+    for (const node of mutation.addedNodes) {
+      if (node.tagName === 'SCRIPT' && node.type === 'importmap-shim' && !node.ep) {
+        importShim.load();
+        break;
+      }
+    }
+  }
+}).observe(document, { childList: true, subtree: true });
+```
+
+then allowing dynamic injection of `<script type="importmap-shim">` to immediately update the internal import maps.
+
+This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
 
 ### Fetch Hook
 
