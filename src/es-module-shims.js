@@ -12,9 +12,13 @@ async function loadAll (load, seen) {
   return Promise.all(load.d.map(dep => loadAll(dep, seen)));
 }
 
-let waitingForImportMaps = true;
+let waitingForImportMapsInterval = 0;
 async function topLevelLoad (url, source) {
-  waitingForImportMaps = false;
+  if (waitingForImportMapsInterval !== undefined) {
+    clearWaitingForImportMapsInterval();
+    waitingForImportMapsInterval = undefined;
+    processScripts();
+  }
   await importMapPromise;
   await init;
   const load = getOrCreateLoad(url, source);
@@ -200,13 +204,18 @@ function getOrCreateLoad (url, source) {
 let importMap = { imports: {}, scopes: {}, depcache: {} };
 let importMapPromise = resolvedPromise;
 
+const clearWaitingForImportMapsInterval = () => {
+  if (waitingForImportMapsInterval > 0) {
+    clearTimeout(waitingForImportMapsInterval);
+    waitingForImportMapsInterval = 0;
+  }
+};
+
 if (hasDocument) {
   processScripts();
-  // check every 20 ms until dom ready
-  const check = () => waitingForImportMaps ? processScripts() : clearInterval(interval);
-  const interval = setInterval(check, 20);
-  // only do DOMready processing if nothing loaded yet
-  window.addEventListener('DOMContentLoaded', () => (waitingForImportMaps = false), check());
+  waitingForImportMapsInterval = setInterval(processScripts, 20);
+  // DOMReady stops the interval, but we will still process on first import if nothing imported
+  window.addEventListener('DOMContentLoaded', clearWaitingForImportMapsInterval);
 }
 
 function processScripts () {
