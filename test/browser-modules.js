@@ -6,12 +6,6 @@ suite('Basic loading tests', () => {
     assert.equal(m.asdf, 'asdf');
   });
 
-  test('Should import the fallback for a built-in module', async function () {
-    var m = await importShim('std:built-in');
-    assert(m);
-    assert.equal(m.fallback, 'fallback');
-  });
-
   test('Should import a module cached', async function () {
     var m1 = await importShim('./fixtures/es-modules/no-imports.js');
     var m2 = await importShim('./fixtures/es-modules/no-imports.js');
@@ -46,17 +40,6 @@ suite('Basic loading tests', () => {
     if (!thrown)
       throw new Error('Supposed to throw');
   });
-
-  test('should import json', async function () {
-    var m = await importShim('./fixtures/json.json');
-    assert.equal(m.default.json, 'module');
-  }); 
-
-  test('should import css', async function () {
-    var m = await importShim('./fixtures/style.css');
-    assert(m.default);
-    document.adoptedStyleSheets = [...document.adoptedStyleSheets, m.default];
-  })
 
   test('should resolve various import syntax', async function () {
     var m = await importShim('./fixtures/es-modules/import.js');
@@ -205,13 +188,6 @@ suite('Export variations', function () {
   });
 });
 
-suite('wasm', () => {
-  test('Loads WASM', async () => {
-    const m = await importShim('/test/fixtures/wasm/example.wasm');
-    assert.equal(m.exampleExport(1), 2);
-  });
-});
-
 suite('Errors', function () {
 
   async function getImportError(module) {
@@ -223,21 +199,6 @@ suite('Errors', function () {
     }
     throw new Error('Test supposed to fail');
   }
-
-  test('should throw json parse errors', async function () {
-    try {
-      await importShim('./fixtures/json-error.json');
-    }
-    catch (e) {
-      assert(e);
-    }
-    try {
-      await importShim('./fixtures/json-error.json');
-    }
-    catch (e) {
-      assert(e);
-    }
-  });
 
   test('should give a plain name error', async function () {
     var err = await getImportError('plain-name');

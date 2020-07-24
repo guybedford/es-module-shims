@@ -1,1 +1,1 @@
-{ "a": "b" }
+export { default } from './json.json';
