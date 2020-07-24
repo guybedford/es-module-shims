@@ -2,19 +2,17 @@
 
 [90% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
 
-But a lot of the useful features of modules come from new specifications which either aren't implemented yet, or are only available in some browsers.
+But modules features like Import Maps will take a while to be supported in browsers.
 
-_It turns out that we can actually polyfill most of the newer modules specifications on top of these baseline implementations in a performant 8KB shim._
+_It turns out that we can actually polyfill new modules features on top of these baseline implementations in a performant 8KB shim._
 
 This includes support for:
 
-* Dynamic `import()` shimming when necessary in eg older Firefox versions.
+* [Import Maps](https://github.com/wicg/import-maps) support.
 * `import.meta` and `import.meta.url`.
-* [Import Maps](https://github.com/domenic/import-maps) support.
-* Importing JSON
-* Importing Web Assembly (note, there is an [open issue on how to handle the 4KB imposed limit](https://github.com/guybedford/es-module-shims/issues/1))
+* Dynamic `import()` shimming when necessary in eg older Firefox versions.
 
-In addition a custom [fetch hook](#fetch-hook) can be implemented allowing for streaming in-browser transform workflows.
+In addition a custom [fetch hook](#fetch-hook) can be implemented allowing for streaming in-browser transform workflows to support custom module types.
 
 Because we are still using the native module loader the edge cases work out comprehensively, including:
 
@@ -34,12 +32,9 @@ Current browser compatibility of modules features without ES module shims:
 | ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
 | Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :x:<sup>1</sup>                      |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+               | :heavy_check_mark: 67+               | :heavy_check_mark: 11.1+             | :x:                                  |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+ ❕<sup>1</sup>| :x:                                  |
+| [import.meta.url](#importmetaurl)  | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+ ❕<sup>1</sup>| :x:                                  |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  | :x:                                  |
 | [Import Maps](#import-maps)        | :x:<sup>2</sup>                      | :x:                                  | :x:                                  | :x:                                  |
-| [JSON Modules](#json-modules)      | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
-| [CSS Modules](#css-modules)        | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
-| [Wasm Modules](#web-assembly)      | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
 
 * 1: _Edge executes parallel dependencies in non-deterministic order. ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
 * 2: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
@@ -52,16 +47,12 @@ Current browser compatibility of modules features without ES module shims:
 | ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
 | Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:<sup>1</sup>       |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [import.meta.url](#dynamic-import) | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Module Workers](#module-workers)  | :heavy_check_mark: 63+               | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      |
+| [import.meta.url](#importmetaurl)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      |
 | [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [JSON Modules](#json-modules)      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [CSS Modules](#css-modules)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Wasm Modules](#web-assembly)      | :heavy_multiplication_x:<sup>3</sup> | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 
 * 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
 * 2: _Module worker support cannot be implemented without dynamic import support in web workers._
-* 3: _Chrome limits Web Assembly to 4KiB synchronous instantiations. [Fix tracking in #1](https://github.com/guybedford/es-module-shims/issues/1)._
 
 ### Import Maps
 
@@ -110,57 +101,6 @@ importShim('/path/to/module.js').then(x => console.log(x));
 
 `import.meta.url` provides the full URL of the current module within the context of the module execution.
 
-### JSON Modules
-
-To load [JSON Modules](https://github.com/whatwg/html/pull/4407), import any JSON file served with `application/json`:
-
-```js
-import json from './test.json';
-```
-
-### CSS Modules
-
-To load [CSS Modules](https://github.com/w3c/webcomponents/blob/gh-pages/proposals/css-modules-v1-explainer.md), import any file with served with `text/css`:
-
-```js
-import css from './style.css';
-document.adoptedStyleSheets = [...document.adoptedStyleSheets, css];
-```
-
-Support relies on the `new CSSStyleSheet` constructor, which is currently only available in Chromium.
-
-For other browsers a [polyfill](https://github.com/calebdwilliams/construct-style-sheets) can be used.
-
-### Web Assembly
-
-To load [Web Assembly Modules](https://github.com/webassembly/esm-integration), import a module served with `application/wasm`:
-
-```js
-import { fn } from './test.wasm';
-```
-
-Web Assembly imports are in turn supported.
-
-Import map support is provided both for mapping into Web Assembly URLs, as well as mapping import specifiers to JS or WebAssembly from within WASM.
-
-> Note some servers don't yet support serving `.wasm` files as `application/wasm` by default, in which case an invalid content type error will be thrown. The `application/wasm` MIME type is necessary for loading Web Assembly in line with the specification for browser modules.
-
-### Module Workers
-
-To load workers with full import shims support, the `WorkerShim` constructor can be used:
-
-```js
-const worker = new WorkerShim('./module.js', {
-  type: 'module',
-  // optional import map for worker:
-  importMap: {...}
-});
-```
-
-This matches the specification for ES module workers, supporting all features of import shims within the workers.
-
-> Module workers are only supported in browsers that provide dynamic import in worker environments, which is only Chrome currently.
-
 ### Skip Processing
 
 When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
@@ -197,14 +137,41 @@ importShim.fetch = async function (url) {
 Because the dependency analysis applies by ES Module Shims takes care of ensuring all dependencies run through the same fetch hook,
 the above is all that is needed to implement custom plugins.
 
-Streaming support can be handled through the above as well, although most compilers likely want synchronous sources as in the above.
+Streaming support is also provided, for example here is a hook with streaming support for JSON:
+
+```js
+importShim.fetch = async function (url) {
+  const response = await fetch(url);
+  if (!response.ok)
+    throw new Error(`${response.status} ${response.statusText} ${response.url}`);
+  const contentType = response.headers.get('content-type');
+  if (!/^application\/json($|;)/.test(contentType))
+    return response;
+  const reader = response.body.getReader();
+  return new Response(new ReadableStream({
+    async start (controller) {
+      let done, value;
+      controller.enqueue(new Uint8Array([...'export default '].map(c => c.charCodeAt(0))));
+      while (({ done, value } = await reader.read()) && !done) {
+        controller.enqueue(value);
+      }
+      controller.close();
+    }
+  }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/javascript"
+    }
+  });
+}
+```
 
 #### Plugins
 
 Since the Fetch Hook is very new, there are no plugin examples of it yet, but it should be easy to support various workflows
 such as TypeScript and new JS features this way.
 
-If you work on something here please do share to link to from here.
+If you work on something here (or even just wrap the examples above into a separate project) please do share to link to from here!
 
 ## Implementation Details
 
@@ -217,10 +184,6 @@ If you work on something here please do share to link to from here.
 
 ### Import Maps
 * The import maps specification is under active development and will change, all of the current specification features are implemented, but the edge cases are not currently fully handled. These will be refined as the specification and reference implementation continue to develop.
-
-### Web Assembly
-* In order for Web Assembly to execute in the module graph as a blob: URL we need to use `new WebAssembly.Instance` for synchronous execution, but this has a 4KB size limit in Chrome and Firefox which will throw for larger binaries. There is no known workaround currently. Tracking in https://github.com/guybedford/es-module-shims/issues/1.
-* Exports are snapshotted on execution. Unexecuted circular dependencies will be snapshotted as empty imports. This matches the [current integration plans for Web Assembly](https://github.com/WebAssembly/esm-integration/).
 
 ## Inspiration
 

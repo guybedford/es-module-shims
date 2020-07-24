@@ -153,33 +153,16 @@ export function resolveUrl (relUrl, parentUrl) {
   return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (relUrl.indexOf(':') !== -1 ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
-export async function hasStdModule (name) {
-  try {
-    await dynamicImport(name);
-    return true;
-  }
-  catch (e) {
-    return false;
-  }
-}
-
 async function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, parentUrl) {
-  outer: for (let p in packages) {
+  for (let p in packages) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
     let target = packages[p];
-    if (typeof target === 'string')
-      target = [target];
-    else if (!Array.isArray(target))
+    if (typeof target !== 'string') 
       continue;
-
-    for (const rhs of target) {
-      if (typeof rhs !== 'string')
-        continue;
-      const mapped = resolveImportMap(parentMap, resolveIfNotPlainOrUrl(rhs, baseUrl) || rhs, parentUrl);
-      if (mapped && (!mapped.startsWith('std:') || await hasStdModule(mapped))) {
-        outPackages[resolvedLhs] = mapped;
-        continue outer;
-      }
+    const mapped = resolveImportMap(parentMap, resolveIfNotPlainOrUrl(target, baseUrl) || target, parentUrl);
+    if (mapped) {
+      outPackages[resolvedLhs] = mapped;
+      continue;
     }
     targetWarning(p, packages[p], 'bare specifier did not resolve');
   }

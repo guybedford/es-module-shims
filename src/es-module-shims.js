@@ -1,6 +1,5 @@
 import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resolveAndComposeImportMap, hasDocument, resolveIfNotPlainOrUrl, emptyImportMap, dynamicImport, resolvedPromise } from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
-import { WorkerShim } from './worker-shims.js';
 
 let id = 0;
 const registry = {};
@@ -34,14 +33,12 @@ async function importShim (id, parentUrl) {
 self.importShim = importShim;
 
 const meta = {};
-const wasmModules = {};
 
 const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 Object.defineProperties(importShim, {
   map: { value: emptyImportMap, writable: true },
   m: { value: meta },
-  w: { value: wasmModules },
   l: { value: undefined, writable: true },
   e: { value: undefined, writable: true }
 });
@@ -153,14 +150,6 @@ function getOrCreateLoad (url, source) {
     s: undefined,
   };
 
-  if (url.startsWith('std:'))
-    return Object.assign(load, {
-      r: url,
-      f: resolvedPromise,
-      L: resolvedPromise,
-      b: url
-    });
-
   const depcache = importShim.map.depcache[url];
   if (depcache) {
     depcache.forEach(async depUrl => {
@@ -173,50 +162,12 @@ function getOrCreateLoad (url, source) {
       const res = await importShim.fetch(url);
       if (!res.ok)
         throw new Error(`${res.status} ${res.statusText} ${res.url}`);
-
       load.r = res.url;
-
       const contentType = res.headers.get('content-type');
-      if (contentType.match(/^(text|application)\/(x-)?javascript(;|$)/)) {
+      if (contentType.match(/^(text|application)\/(x-)?javascript(;|$)/))
         source = await res.text();
-      }
-      else if (contentType.match(/^application\/json(;|$)/)) {
-        source = `export default JSON.parse(${JSON.stringify(await res.text())})`;
-      }
-      else if (contentType.match(/^text\/css(;|$)/)) {
-        source = `const s=new CSSStyleSheet();s.replaceSync(${JSON.stringify(await res.text())});export default s`;
-      }
-      else if (contentType.match(/^application\/wasm(;|$)/)) {
-        const module = wasmModules[url] = await WebAssembly.compile(await res.arrayBuffer());
-        let deps = WebAssembly.Module.imports ? WebAssembly.Module.imports(module).map(impt => impt.module) : [];
-
-        const aDeps = [];
-        load.a = [aDeps, WebAssembly.Module.exports(module).map(expt => expt.name)];
-
-        const depStrs = deps.map(dep => JSON.stringify(dep));
-
-        let curIndex = 0;
-        load.S = depStrs.map((depStr, idx) => {
-            const index = idx.toString();
-            const strStart = curIndex + 17 + index.length;
-            const strEnd = strStart + depStr.length - 2;
-            aDeps.push({
-              s: strStart,
-              e: strEnd,
-              d: -1
-            });
-            curIndex += strEnd + 3;
-            return `import*as m${index} from${depStr};`
-          }).join('') +
-          `const module=importShim.w[${JSON.stringify(url)}],exports=new WebAssembly.Instance(module,{` +
-          depStrs.map((depStr, idx) => `${depStr}:m${idx},`).join('') +
-          `}).exports;` +
-          load.a[1].map(name => name === 'default' ? `export default exports.${name}` : `export const ${name}=exports.${name}`).join(';');
-        return deps;
-      }
-      else {
+      else
         throw new Error(`Unknown Content-Type "${contentType}"`);
-      }
     }
     try {
       load.a = parse(source, load.u);
@@ -271,5 +222,3 @@ async function resolve (id, parentUrl) {
 function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
 }
-
-self.WorkerShim = WorkerShim;

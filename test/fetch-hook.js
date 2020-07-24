@@ -1,14 +1,17 @@
 
 suite('Fetch hook', () => {
   importShim.fetch = async function (url) {
-    if (!url.endsWith('json-or-js.js'))
-      return fetch(url);
     const response = await fetch(url);
+    if (!response.ok)
+      throw new Error(`${response.status} ${response.statusText} ${response.url}`);
+    const contentType = response.headers.get('content-type');
+    if (!/^application\/json($|;)/.test(contentType))
+      return response;
     const reader = response.body.getReader();
-    console.log('--');
     return new Response(new ReadableStream({
       async start (controller) {
         let done, value;
+        controller.enqueue(new Uint8Array([...'export default '].map(c => c.charCodeAt(0))));
         while (({ done, value } = await reader.read()) && !done) {
           controller.enqueue(value);
         }
@@ -16,15 +19,14 @@ suite('Fetch hook', () => {
       }
     }), {
       status: 200,
-      statusText: 'CRAP',
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/javascript"
       }
     });
   }
   test('Should hook fetch', async function () {
     var m = await importShim('./fixtures/json-or-js.js');
     assert(m.default);
-    assert.equal(m.default.a, 'b');
+    assert.equal(m.default.json, 'module');
   });
 });
