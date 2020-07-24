@@ -158,11 +158,8 @@ function getOrCreateLoad (url, source) {
   };
 
   const depcache = importMap.depcache[url];
-  if (depcache) {
-    depcache.forEach(async depUrl => {
-      getOrCreateLoad(resolve(depUrl, url));
-    });
-  }
+  if (depcache)
+    depcache.forEach(depUrl => getOrCreateLoad(resolve(depUrl, url)));
 
   load.f = (async () => {
     if (!source) {
@@ -221,12 +218,9 @@ function processScripts () {
       topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML);
     }
     else {
-      if (!script.src)
-        importMap = resolveAndComposeImportMap(JSON.parse(script.innerHTML), pageBaseUrl, importMap);
-      else
-        importMapPromise = importMapPromise.then(async () =>
-          importMap = resolveAndComposeImportMap(await (await fetch(script.src)).json(), script.src, importMap)
-        );
+      importMapPromise = importMapPromise.then(async () =>
+        importMap = resolveAndComposeImportMap(script.src ? await (await fetch(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap)
+      );
     }
     script.ep = true;
   }
