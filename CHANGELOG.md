@@ -1,3 +1,8 @@
+ES Module Shims 0.5.0 (2020/07/24)
+* Dynamic import map support (https://github.com/guybedford/es-module-shims/pull/85)
+* Remove support for array fallbacks, builtin modules, workers, CSS modules, JSON modules, Wasm modules (https://github.com/guybedford/es-module-shims/pull/84)
+* Depcache implementation (https://github.com/guybedford/es-module-shims/pull/78)
+
 ES Module Shims 0.4.6 (2019/10/21)
 * Implement fetch hook (https://github.com/guybedford/es-module-shims/pull/73)
 
