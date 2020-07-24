@@ -12,13 +12,13 @@ async function loadAll (load, seen) {
   return Promise.all(load.d.map(dep => loadAll(dep, seen)));
 }
 
-let waitingForImportMapsInterval = 0;
+let waitingForImportMapsInterval;
 async function topLevelLoad (url, source) {
-  if (waitingForImportMapsInterval !== undefined) {
-    clearWaitingForImportMapsInterval();
-    waitingForImportMapsInterval = undefined;
-    processScripts();
+  if (waitingForImportMapsInterval > 0) {
+    clearTimeout(waitingForImportMapsInterval);
+    waitingForImportMapsInterval = 0;
   }
+  processScripts();
   await importMapPromise;
   await init;
   const load = getOrCreateLoad(url, source);
@@ -204,21 +204,16 @@ function getOrCreateLoad (url, source) {
 let importMap = { imports: {}, scopes: {}, depcache: {} };
 let importMapPromise = resolvedPromise;
 
-const clearWaitingForImportMapsInterval = () => {
-  if (waitingForImportMapsInterval > 0) {
-    clearTimeout(waitingForImportMapsInterval);
-    waitingForImportMapsInterval = 0;
-  }
-};
-
 if (hasDocument) {
   processScripts();
   waitingForImportMapsInterval = setInterval(processScripts, 20);
-  // DOMReady stops the interval, but we will still process on first import if nothing imported
-  window.addEventListener('DOMContentLoaded', clearWaitingForImportMapsInterval);
 }
 
 function processScripts () {
+  if (waitingForImportMapsInterval > 0 && document.readyState !== 'loading') {
+    clearTimeout(waitingForImportMapsInterval);
+    waitingForImportMapsInterval = 0;
+  }
   for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]')) {
     if (script.ep) // ep marker = script processed
       return;
