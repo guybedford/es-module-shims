@@ -26,7 +26,20 @@ Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](h
 
 Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
 
-Current browser compatibility of modules features without ES module shims:
+#### Browser Compatibility with ES Module Shims:
+
+| ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       | Edge (16+)                           |
+| ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
+| Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:<sup>1</sup>       |
+| [Dynamic Import](#dynamic-import)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [import.meta.url](#importmetaurl)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      |
+| [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+
+* 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
+* 2: _Module worker support cannot be implemented without dynamic import support in web workers._
+
+#### Current browser compatibility of modules features without ES module shims:
 
 | ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       | Edge (16+)                           |
 | ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
@@ -40,19 +53,6 @@ Current browser compatibility of modules features without ES module shims:
 * 2: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
 * ~: _Indicates the exact first version support has not yet been determined (PR's welcome!)._
 * ❕<sup>1</sup>: On module redirects, Safari returns the request URL in `import.meta.url` instead of the response URL as per the spec.
-
-#### Browser Compatibility with ES Module Shims:
-
-| ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       | Edge (16+)                           |
-| ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
-| Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:<sup>1</sup>       |
-| [Dynamic Import](#dynamic-import)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [import.meta.url](#importmetaurl)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      |
-| [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-
-* 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
-* 2: _Module worker support cannot be implemented without dynamic import support in web workers._
 
 ### Import Maps
 
