@@ -13,12 +13,16 @@ async function loadAll (load, seen) {
 }
 
 let waitingForImportMapsInterval;
+let firstTopLevelProcess = true;
 async function topLevelLoad (url, source) {
   if (waitingForImportMapsInterval > 0) {
     clearTimeout(waitingForImportMapsInterval);
     waitingForImportMapsInterval = 0;
   }
-  processScripts();
+  if (firstTopLevelProcess) {
+    firstTopLevelProcess = false;
+    processScripts();
+  }
   await importMapPromise;
   await init;
   const load = getOrCreateLoad(url, source);
