@@ -47,6 +47,11 @@ const meta = {};
 
 const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
+async function importMetaResolve (id, parentUrl = this.url) {
+  await importMapPromise;
+  return resolve(id, `${parentUrl}`);
+}
+
 Object.defineProperties(importShim, {
   m: { value: meta },
   l: { value: undefined, writable: true },
@@ -110,7 +115,7 @@ function resolveDeps (load, seen) {
       }
       // import.meta
       else if (dynamicImportIndex === -2) {
-        meta[load.r] = { url: load.r };
+        meta[load.r] = { url: load.r, resolve: importMetaResolve };
         resolvedSource += source.slice(lastIndex, start) + 'importShim.m[' + JSON.stringify(load.r) + ']';
         lastIndex = end;
       }
