@@ -186,6 +186,23 @@ suite('Export variations', function () {
     assert.equal(m.bar, 'bar');
     assert.equal(typeof m.foo, 'function');
   });
+
+  test('import meta resolve', async function () {
+    var m = await importShim('./fixtures/es-modules/import-meta-resolve.js');
+    assert.equal(await m.resolve('./export-star2.js'), new URL('./export-star2.js', m.url).href);
+    assert.equal(await m.resolve('test'), new URL('/test/fixtures/es-modules/es6-file.js', m.url).href);
+    assert.equal(await m.resolve('test/'), new URL('/test/fixtures/', m.url).href);
+    assert.equal(await m.resolve('test/sub/'), new URL('/test/fixtures/sub/', m.url).href);
+    assert.equal(await m.resolve('test/custom.css'), new URL('/test/fixtures/custom.css', m.url).href);
+    assert.equal(await m.resolve('test-dep'), new URL('/test/fixtures/test-dep.js', m.url).href);
+    try {
+      await m.resolve('test-dep', new URL('https://other.com'));
+      assert(false);
+    }
+    catch (e) {
+      assert.equal(e.message.indexOf('Unable to resolve'), 0);
+    }
+  });
 });
 
 suite('Errors', function () {

@@ -33,6 +33,7 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:<sup>1</sup>       |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [import.meta.url](#importmetaurl)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [import.meta.resolve](#resolve)    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      |
 | [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 
@@ -46,6 +47,7 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :x:<sup>1</sup>                      |
 | [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+               | :heavy_check_mark: 67+               | :heavy_check_mark: 11.1+             | :x:                                  |
 | [import.meta.url](#importmetaurl)  | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+ ❕<sup>1</sup>| :x:                                  |
+| [import.meta.resolve](#resolve)    | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  | :x:                                  |
 | [Import Maps](#import-maps)        | :x:<sup>2</sup>                      | :x:                                  | :x:                                  | :x:                                  |
 
@@ -55,6 +57,8 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 * ❕<sup>1</sup>: On module redirects, Safari returns the request URL in `import.meta.url` instead of the response URL as per the spec.
 
 ### Import Maps
+
+> Stability: Draft browser standard, Chrome flagged implementation only
 
 > The goal is for this project to eventually become a true polyfill for import maps in older browsers, but this will only happen once the spec is implemented in more than one browser and demonstrated to be stable.
 
@@ -88,6 +92,8 @@ All modules are still loaded with the native browser module loader, just as Blob
 
 ### Dynamic Import
 
+> Stability: Stable browser standard
+
 Dynamic `import(...)` within any modules loaded will be rewritten as `importShim(...)` automatically
 providing full support for all es-module-shims features through dynamic import.
 
@@ -99,9 +105,35 @@ importShim('/path/to/module.js').then(x => console.log(x));
 
 ### import.meta.url
 
+> Stability: Stable browser standard
+
 `import.meta.url` provides the full URL of the current module within the context of the module execution.
 
+### Resolve
+
+> Stability: No current browser standard
+
+`import.meta.resolve` provides a contextual resolver within modules. It is asynchronous, like the Node.js implementation, to support waiting on any in-flight
+import map loads when import maps are [loaded dynamically](#dynamic-import-map-updates).
+
+The second argument to `import.meta.resolve` permits a custom parent URL scope for the resolution, which defaults to `import.meta.url`.
+
+```js
+// resolve a relative path to a module
+var resolvedUrl = await import.meta.resolve('./relative.js');
+// resolve a dependency from a module
+var resolvedUrl = await import.meta.resolve('dep');
+// resolve a path
+var resolvedUrlPath = await import.meta.resolve('dep/');
+// resolve with a custom parent scope
+var resolvedUrl = await import.meta.resolve('dep', 'https://site.com/another/scope');
+```
+
+This implementation is as provided experimentally in Node.js - https://nodejs.org/dist/latest-v14.x/docs/api/esm.html#esm_no_require_resolve.
+
 ### Skip Processing
+
+> Stability: Non-spec feature
 
 When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
 opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
@@ -115,6 +147,8 @@ importShim.skip = /^https:\/\/cdn\.com/;
 By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
 
 ### Depcache
+
+> Stability: Pre-Draft Standard
 
 Like in SystemJS, a [`"depcache"` property is supported](https://github.com/guybedford/import-maps-extensions#depcache) in import maps to enable waterfall flattening.
 
@@ -146,7 +180,9 @@ This follows the [dynamic import map specification approach outlined in import m
 
 ### Fetch Hook
 
-> Note: This hook is non spec-compliant, but is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
+> Stability: Non-spec feature
+
+This is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
 
 The ES Module Shims fetch hook can be used to implement transform plugins.
 
