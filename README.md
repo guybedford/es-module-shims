@@ -4,7 +4,7 @@
 
 But modules features like Import Maps will take a while to be supported in browsers.
 
-_It turns out that we can actually polyfill new modules features on top of these baseline implementations in a performant 6.5KB shim._
+_It turns out that we can actually polyfill new modules features on top of these baseline implementations in a performant 7KB shim._
 
 This includes support for:
 

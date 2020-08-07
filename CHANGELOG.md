@@ -1,3 +1,6 @@
+ES Module Shims 0.5.2 (2020/08/07)
+* import.meta.resolve (https://github.com/guybedford/es-module-shims/pull/89)
+
 ES Module Shims 0.5.0 (2020/07/24)
 * Dynamic import map support (https://github.com/guybedford/es-module-shims/pull/85)
 * Remove support for array fallbacks, builtin modules, workers, CSS modules, JSON modules, Wasm modules (https://github.com/guybedford/es-module-shims/pull/84)
