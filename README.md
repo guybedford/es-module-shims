@@ -148,7 +148,7 @@ By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev
 
 ### Depcache
 
-> Stability: Draft standard
+> Stability: Pre-Draft Standard
 
 Like in SystemJS, a [`"depcache"` property is supported](https://github.com/guybedford/import-maps-extensions#depcache) in import maps to enable waterfall flattening.
 
