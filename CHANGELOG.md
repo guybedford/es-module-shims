@@ -1,3 +1,6 @@
+ES Module Shims 0.6.0 (2020/09/17)
+* Resolve scopes to the baseURL not the scopeURL (d2893159e4b66c43)
+
 ES Module Shims 0.5.2 (2020/08/07)
 * import.meta.resolve (https://github.com/guybedford/es-module-shims/pull/89)
 
