@@ -60,6 +60,7 @@ Object.defineProperties(importShim, {
 importShim.fetch = url => fetch(url);
 importShim.skip = /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
 importShim.load = processScripts;
+importShim.onerror = () => {};
 
 let lastLoad;
 function resolveDeps (load, seen) {
@@ -215,7 +216,7 @@ if (hasDocument) {
   waitingForImportMapsInterval = setInterval(processScripts, 20);
 }
 
-function processScripts () {
+async function processScripts () {
   if (waitingForImportMapsInterval > 0 && document.readyState !== 'loading') {
     clearTimeout(waitingForImportMapsInterval);
     waitingForImportMapsInterval = 0;
@@ -224,7 +225,7 @@ function processScripts () {
     if (script.ep) // ep marker = script processed
       return;
     if (script.type === 'module-shim') {
-      topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML);
+      await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML).catch(e => importShim.onerror(e));
     }
     else {
       importMapPromise = importMapPromise.then(async () =>
