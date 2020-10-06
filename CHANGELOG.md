@@ -1,3 +1,6 @@
+ES Module Shims 0.7.0 (2020/10/06)
+* Process scripts in order, global importShims.onerror hook (a3e3f639e835d6)
+
 ES Module Shims 0.6.0 (2020/09/17)
 * Resolve scopes to the baseURL not the scopeURL (d2893159e4b66c43)
 
