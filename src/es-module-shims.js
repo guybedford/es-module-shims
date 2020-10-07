@@ -43,12 +43,12 @@ async function topLevelLoad (url, source) {
 }
 
 async function importShimFn (id, parentUrl) {
-  return topLevelLoad(importShim.resolveImport(id, parentUrl || pageBaseUrl));
+  return topLevelLoad(importShim.resolveImport(id, parentUrl || pageBaseUrl, importMap));
 }
 
 async function importMetaResolve (id, parentUrl = this.url) {
   await importMapPromise;
-  return importShim.resolveImport(id, `${parentUrl}`);
+  return importShim.resolveImport(id, `${parentUrl}`, importMap);
 }
 
 function resolveDeps (load, seen) {
@@ -157,7 +157,7 @@ function getOrCreateLoad (url, source) {
 
   const depcache = importMap.depcache[url];
   if (depcache)
-    depcache.forEach(depUrl => getOrCreateLoad(importShim.resolveImport(depUrl, url)));
+    depcache.forEach(depUrl => getOrCreateLoad(importShim.resolveImport(depUrl, url, importMap)));
 
   load.f = (async () => {
     if (!source) {
@@ -184,7 +184,7 @@ function getOrCreateLoad (url, source) {
 
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
-      const resolved = importShim.resolveImport(depId, load.r || load.u);
+      const resolved = importShim.resolveImport(depId, load.r || load.u, importMap);
       if (importShim.skip.test(resolved))
         return { b: resolved };
       const depLoad = getOrCreateLoad(resolved);
@@ -216,7 +216,7 @@ async function processScripts () {
   }
 }
 
-function resolve (id, parentUrl) {
+function resolve (id, parentUrl, importMap) {
   return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl) || throwUnresolved(id, parentUrl);
 }
 
