@@ -43,12 +43,12 @@ async function topLevelLoad (url, source) {
 }
 
 async function importShimFn (id, parentUrl) {
-  return topLevelLoad(importShim.resolveImport(id, parentUrl || pageBaseUrl, importMap));
+  return topLevelLoad(importShim.resolve(id, parentUrl || pageBaseUrl, importMap));
 }
 
 async function importMetaResolve (id, parentUrl = this.url) {
   await importMapPromise;
-  return importShim.resolveImport(id, `${parentUrl}`, importMap);
+  return importShim.resolve(id, `${parentUrl}`, importMap);
 }
 
 function resolveDeps (load, seen) {
@@ -157,7 +157,7 @@ function getOrCreateLoad (url, source) {
 
   const depcache = importMap.depcache[url];
   if (depcache)
-    depcache.forEach(depUrl => getOrCreateLoad(importShim.resolveImport(depUrl, url, importMap)));
+    depcache.forEach(depUrl => getOrCreateLoad(importShim.resolve(depUrl, url, importMap)));
 
   load.f = (async () => {
     if (!source) {
@@ -184,7 +184,7 @@ function getOrCreateLoad (url, source) {
 
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
-      const resolved = importShim.resolveImport(depId, load.r || load.u, importMap);
+      const resolved = importShim.resolve(depId, load.r || load.u, importMap);
       if (importShim.skip.test(resolved))
         return { b: resolved };
       const depLoad = getOrCreateLoad(resolved);
@@ -229,7 +229,7 @@ const importShimDefaults = {
   fetch: url => fetch(url),
   skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
   load: processScripts,
-  resolveImport: resolve,
+  resolve: resolve,
   resolveImportMap: resolveAndComposeImportMap,
   onerror: () => {}
 }
