@@ -196,7 +196,7 @@ function getOrCreateLoad (url, source) {
   return load;
 }
 
-function processScripts () {
+async function processScripts () {
   if (waitingForImportMapsInterval > 0 && document.readyState !== 'loading') {
     clearTimeout(waitingForImportMapsInterval);
     waitingForImportMapsInterval = 0;
@@ -205,7 +205,7 @@ function processScripts () {
     if (script.ep) // ep marker = script processed
       return;
     if (script.type === 'module-shim') {
-      topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML);
+      await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML).catch(e => importShim.onerror(e));
     }
     else {
       importMapPromise = importMapPromise.then(async () =>
@@ -224,17 +224,21 @@ function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
 }
 
-const importShim = self.importShim = Object.assign(importShimFn, {
+const importShimOptions = self.importShimOptions || {};
+const importShimDefaults = {
   fetch: url => fetch(url),
   skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
   load: processScripts,
   resolveImport: resolve,
-  resolveImportMap: resolveAndComposeImportMap
-}, self.importShimOptions || {});
+  resolveImportMap: resolveAndComposeImportMap,
+  onerror: () => {}
+}
+const importShim = self.importShim = Object.assign(importShimFn, importShimDefaults, importShimOptions);
 Object.defineProperties(importShim, {
   m: { value: meta },
   l: { value: undefined, writable: true },
-  e: { value: undefined, writable: true }
+  e: { value: undefined, writable: true },
+  defaults: { value: importShimDefaults }
 });
 
 if (hasDocument) {

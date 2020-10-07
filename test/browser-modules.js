@@ -206,7 +206,6 @@ suite('Export variations', function () {
 });
 
 suite('Errors', function () {
-
   async function getImportError(module) {
     try {
       await importShim(module);
@@ -216,6 +215,10 @@ suite('Errors', function () {
     }
     throw new Error('Test supposed to fail');
   }
+
+  test('onerror hook worked correctly', function () {
+    assert.equal(window.e.toString(), 'ReferenceError: syntax is not defined');
+  });
 
   test('should give a plain name error', async function () {
     var err = await getImportError('plain-name');
