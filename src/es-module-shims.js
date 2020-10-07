@@ -2,7 +2,14 @@ import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resol
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 
 let id = 0;
+let waitingForImportMapsInterval;
+let firstTopLevelProcess = true;
+let lastLoad;
+let importMap = { imports: {}, scopes: {}, depcache: {} };
+let importMapPromise = resolvedPromise;
+const meta = {};
 const registry = {};
+const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 async function loadAll (load, seen) {
   if (load.b || seen[load.u])
@@ -12,8 +19,6 @@ async function loadAll (load, seen) {
   return Promise.all(load.d.map(dep => loadAll(dep, seen)));
 }
 
-let waitingForImportMapsInterval;
-let firstTopLevelProcess = true;
 async function topLevelLoad (url, source) {
   if (waitingForImportMapsInterval > 0) {
     clearTimeout(waitingForImportMapsInterval);
@@ -21,7 +26,7 @@ async function topLevelLoad (url, source) {
   }
   if (firstTopLevelProcess) {
     firstTopLevelProcess = false;
-    processScripts();
+    importShim.load();
   }
   await importMapPromise;
   await init;
@@ -37,31 +42,15 @@ async function topLevelLoad (url, source) {
   return module;
 }
 
-async function importShim (id, parentUrl) {
-  return topLevelLoad(resolve(id, parentUrl || pageBaseUrl));
+async function importShimFn (id, parentUrl) {
+  return topLevelLoad(importShim.resolveImport(id, parentUrl || pageBaseUrl));
 }
-
-self.importShim = importShim;
-
-const meta = {};
-
-const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 async function importMetaResolve (id, parentUrl = this.url) {
   await importMapPromise;
-  return resolve(id, `${parentUrl}`);
+  return importShim.resolveImport(id, `${parentUrl}`);
 }
 
-Object.defineProperties(importShim, {
-  m: { value: meta },
-  l: { value: undefined, writable: true },
-  e: { value: undefined, writable: true }
-});
-importShim.fetch = url => fetch(url);
-importShim.skip = /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
-importShim.load = processScripts;
-
-let lastLoad;
 function resolveDeps (load, seen) {
   if (load.b || !seen[load.u])
     return;
@@ -168,7 +157,7 @@ function getOrCreateLoad (url, source) {
 
   const depcache = importMap.depcache[url];
   if (depcache)
-    depcache.forEach(depUrl => getOrCreateLoad(resolve(depUrl, url)));
+    depcache.forEach(depUrl => getOrCreateLoad(importShim.resolveImport(depUrl, url)));
 
   load.f = (async () => {
     if (!source) {
@@ -195,7 +184,7 @@ function getOrCreateLoad (url, source) {
 
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
-      const resolved = resolve(depId, load.r || load.u);
+      const resolved = importShim.resolveImport(depId, load.r || load.u);
       if (importShim.skip.test(resolved))
         return { b: resolved };
       const depLoad = getOrCreateLoad(resolved);
@@ -205,14 +194,6 @@ function getOrCreateLoad (url, source) {
   });
 
   return load;
-}
-
-let importMap = { imports: {}, scopes: {}, depcache: {} };
-let importMapPromise = resolvedPromise;
-
-if (hasDocument) {
-  processScripts();
-  waitingForImportMapsInterval = setInterval(processScripts, 20);
 }
 
 function processScripts () {
@@ -228,7 +209,7 @@ function processScripts () {
     }
     else {
       importMapPromise = importMapPromise.then(async () =>
-        importMap = resolveAndComposeImportMap(script.src ? await (await fetch(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap)
+        importMap = importShim.resolveImportMap(script.src ? await (await importShim.fetch(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap)
       );
     }
     script.ep = true;
@@ -241,4 +222,22 @@ function resolve (id, parentUrl) {
 
 function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
+}
+
+const importShim = self.importShim = Object.assign(importShimFn, {
+  fetch: url => fetch(url),
+  skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
+  load: processScripts,
+  resolveImport: resolve,
+  resolveImportMap: resolveAndComposeImportMap
+}, self.importShimOptions || {});
+Object.defineProperties(importShim, {
+  m: { value: meta },
+  l: { value: undefined, writable: true },
+  e: { value: undefined, writable: true }
+});
+
+if (hasDocument) {
+  importShim.load();
+  waitingForImportMapsInterval = setInterval(importShim.load, 20);
 }

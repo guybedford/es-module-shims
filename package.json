@@ -7,7 +7,8 @@
     "build": "rollup ./src/es-module-shims.js -f iife -o dist/es-module-shims.js --banner \"/* ES Module Shims 0.5.0 */\"",
     "min": "cd dist && terser es-module-shims.js -c passes=2 -m --source-map --comments \"/ES Module Shims/\" -o es-module-shims.min.js",
     "footprint": "npm run build && npm run min && cat dist/es-module-shims.min.js | gzip -9f | wc -c",
-    "prepublishOnly": "npm run build && npm run min"
+    "prepublishOnly": "npm run build && npm run min",
+    "start": "http-server -d -o test"
   },
   "type": "module",
   "files": [
@@ -17,10 +18,8 @@
   "license": "MIT",
   "devDependencies": {
     "es-module-lexer": "^0.3.25",
-    "esm": "^3.2.25",
-    "kleur": "^2.0.2",
+    "http-server": "^0.12.3",
     "mocha": "^6.2.0",
-    "pretty-ms": "^3.2.0",
     "rollup": "^2.17.0",
     "terser": "^4.8.0"
   },
