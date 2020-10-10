@@ -60,7 +60,9 @@ Object.defineProperties(importShim, {
 importShim.fetch = url => fetch(url);
 importShim.skip = /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
 importShim.load = processScripts;
-importShim.onerror = () => {};
+importShim.onerror = (e) => {
+  throw e;
+};
 
 let lastLoad;
 function resolveDeps (load, seen) {
