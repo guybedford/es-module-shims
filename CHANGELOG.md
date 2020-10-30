@@ -1,3 +1,7 @@
+ES Module Shims 0.7.1 (2020/10/30)
+* Update to es-module-shims@0.3.26
+* Fixup onerror hook to throw by default (#96)
+
 ES Module Shims 0.7.0 (2020/10/06)
 * Process scripts in order, global importShims.onerror hook (a3e3f639e835d6)
 
