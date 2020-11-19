@@ -132,14 +132,10 @@ function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  let sourceMappingResolved = '';
-  const sourceMappingIndex = resolvedSource.lastIndexOf('//# sourceMappingURL=');
-  if (sourceMappingIndex > -1) {
-    const sourceMappingEnd = resolvedSource.indexOf('\n',sourceMappingIndex);
-    const sourceMapping = resolvedSource.slice(sourceMappingIndex, sourceMappingEnd > -1 ? sourceMappingEnd : undefined);
-    sourceMappingResolved = `\n//# sourceMappingURL=` + resolveUrl(sourceMapping.slice(21), load.r);
-  }
-  load.b = lastLoad = createBlob(resolvedSource + sourceMappingResolved + '\n//# sourceURL=' + load.r);
+  if (resolvedSource.indexOf('//# sourceURL=') === -1)
+    resolvedSource += '\n//# sourceURL=' + load.r;
+
+  load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
 }
 
