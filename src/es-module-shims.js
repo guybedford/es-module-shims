@@ -221,7 +221,7 @@ async function processScripts () {
   }
   for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]')) {
     if (script.ep) // ep marker = script processed
-      return;
+      continue;
     if (script.type === 'module-shim') {
       await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML).catch(e => importShim.onerror(e));
     }
