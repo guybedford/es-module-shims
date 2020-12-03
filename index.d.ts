@@ -20,7 +20,7 @@ declare namespace importShim {
    * By default, this expression supports jspm.dev, dev.jspm.io and
    * cdn.pika.dev.
    */
-  const skip: RegExp;
+  let skip: RegExp;
 
   /**
    * #### Skip URL Cache Registry
@@ -40,7 +40,7 @@ declare namespace importShim {
    *
    * @default () => false
    */
-  const skipRegistry: ((url: string) => boolean) | RegExp;
+  let skipRegistry: ((url: string) => boolean) | RegExp;
 
   /**
    * #### Fetch Hook
