@@ -9,6 +9,7 @@
     "footprint": "npm run build && npm run min && cat dist/es-module-shims.min.js | gzip -9f | wc -c",
     "prepublishOnly": "npm run build && npm run min"
   },
+  "types": "index.d.ts",
   "type": "module",
   "files": [
     "dist"
