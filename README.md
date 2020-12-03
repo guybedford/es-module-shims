@@ -146,6 +146,22 @@ importShim.skip = /^https:\/\/cdn\.com/;
 
 By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
 
+#### Skip URL Cache Registry
+
+> Stability: Non-spec feature
+
+When loading a url you may always want to run a custom `importShim.fetch` pre-processor. By default all URL's are cached within an internal registry after the first load. Every subsequent request to the URL will be resolved from the cache. In order to disable caching for a url, you can add your own custom regex, or a function that takes the `url` as the first parameter and returns `true` to skip the registry.
+
+```js
+importShim.skipRegistry = /^\/__internal-modules\/.*$/
+```
+
+By default all urls are resolved from the internal registry.
+
+```js
+importShim.skipRegistry = () => false;
+```
+
 ### Depcache
 
 > Stability: Pre-Draft Standard

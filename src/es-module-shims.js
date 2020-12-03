@@ -59,6 +59,7 @@ Object.defineProperties(importShim, {
 });
 importShim.fetch = url => fetch(url);
 importShim.skip = /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
+importShim.skipRegistry = () => false;
 importShim.load = processScripts;
 importShim.onerror = (e) => {
   throw e;
@@ -139,10 +140,19 @@ function resolveDeps (load, seen) {
   load.S = undefined;
 }
 
+/**
+ * Return `true` when the url import should not be resolved from the internal
+ * registry.
+ */
+function shouldSkipRegistry(url) {
+  return typeof importShim.skipRegistry === 'function'
+    ? importShim.skipRegistry(url)
+    : importShim.skipRegistry.test(url);
+}
+
 function getOrCreateLoad (url, source) {
   let load = registry[url];
-  if (load)
-    return load;
+  if (load && !shouldSkipRegistry(url)) return load;
 
   load = registry[url] = {
     // url
