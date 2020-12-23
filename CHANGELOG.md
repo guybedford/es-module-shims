@@ -1,3 +1,9 @@
+ES Module Shims 0.8.0 (2020/12/23)
+* Fix URL to URL import map mappings (https://github.com/guybedford/es-module-shims/pull/107, @vovacodes)
+* Include TypeScript types (https://github.com/guybedford/es-module-shims/pull/104, @ifiokjr)
+* Fix processScripts to permit dynamic additions (https://github.com/guybedford/es-module-shims/pull/102, @ifiokjr)
+* Remove unnecessary sourceMappingURL rebase (https://github.com/guybedford/es-module-shims/pull/98)
+
 ES Module Shims 0.7.1 (2020/10/30)
 * Update to es-module-shims@0.3.26
 * Fixup onerror hook to throw by default (#96)
