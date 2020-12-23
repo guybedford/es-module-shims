@@ -151,9 +151,9 @@ export function resolveUrl (relUrl, parentUrl) {
   return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (relUrl.indexOf(':') !== -1 ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
-function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap) {
+function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, scopeUrl) {
   for (let p in packages) {
-    const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
+    const resolvedLhs = resolveIfNotPlainOrUrl(p, scopeUrl || baseUrl) || p;
     let target = packages[p];
     if (typeof target !== 'string') 
       continue;
@@ -170,12 +170,12 @@ export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
   const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes), depcache: Object.assign({}, parentMap.depcache) };
 
   if (json.imports)
-    resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap,);
+    resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null);
 
   if (json.scopes)
     for (let s in json.scopes) {
       const resolvedScope = resolveUrl(s, baseUrl);
-      resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap);
+      resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap, resolvedScope);
     }
 
   if (json.depcache)
