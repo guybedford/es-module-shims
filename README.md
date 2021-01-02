@@ -131,21 +131,6 @@ var resolvedUrl = await import.meta.resolve('dep', 'https://site.com/another/sco
 
 This implementation is as provided experimentally in Node.js - https://nodejs.org/dist/latest-v14.x/docs/api/esm.html#esm_no_require_resolve.
 
-### Skip Processing
-
-> Stability: Non-spec feature
-
-When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
-opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
-
-This can be configured by setting the `importShim.skip` URL regular expression:
-
-```js
-importShim.skip = /^https:\/\/cdn\.com/;
-```
-
-By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
-
 ### Depcache
 
 > Stability: Pre-Draft Standard
@@ -178,6 +163,29 @@ then allowing dynamic injection of `<script type="importmap-shim">` to immediate
 
 This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
 
+### Skip Processing
+
+> Stability: Non-spec feature
+
+When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
+opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
+
+This can be configured by setting the `skip` URL regular expression on a `importShimInitialOptions` global before loading es-module-shims:
+
+```js
+self.importShimInitialOptions = {
+  skip: /^https:\/\/cdn\.com/
+}
+```
+
+Alternatively, to update this option after es-module-shims has been loaded, you can set `importShim.skip` directly:
+
+```js
+importShim.skip = /^https:\/\/cdn\.com/
+```
+
+By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
+
 ### Fetch Hook
 
 > Stability: Non-spec feature
@@ -189,15 +197,17 @@ The ES Module Shims fetch hook can be used to implement transform plugins.
 For example:
 
 ```js
-importShim.fetch = async function (url) {
-  const response = await fetch(url);
-  if (response.url.endsWith('.ts')) {
-    const source = await response.body();
-    const transformed = tsCompile(source);
-    return new Response(new Blob([transformed], { type: 'application/javascript' }));
+self.importShimInitialOptions = {
+  fetch: async function (url) {
+    const response = await fetch(url);
+    if (response.url.endsWith('.ts')) {
+      const source = await response.body();
+      const transformed = tsCompile(source);
+      return new Response(new Blob([transformed], { type: 'application/javascript' }));
+    }
+    return response;
   }
-  return response;
-};
+}
 ```
 
 Because the dependency analysis applies by ES Module Shims takes care of ensuring all dependencies run through the same fetch hook,
@@ -206,31 +216,35 @@ the above is all that is needed to implement custom plugins.
 Streaming support is also provided, for example here is a hook with streaming support for JSON:
 
 ```js
-importShim.fetch = async function (url) {
-  const response = await fetch(url);
-  if (!response.ok)
-    throw new Error(`${response.status} ${response.statusText} ${response.url}`);
-  const contentType = response.headers.get('content-type');
-  if (!/^application\/json($|;)/.test(contentType))
-    return response;
-  const reader = response.body.getReader();
-  return new Response(new ReadableStream({
-    async start (controller) {
-      let done, value;
-      controller.enqueue(new Uint8Array([...'export default '].map(c => c.charCodeAt(0))));
-      while (({ done, value } = await reader.read()) && !done) {
-        controller.enqueue(value);
+self.importShimInitialOptions = {
+  fetch: async function (url) {
+    const response = await fetch(url);
+    if (!response.ok)
+      throw new Error(`${response.status} ${response.statusText} ${response.url}`);
+    const contentType = response.headers.get('content-type');
+    if (!/^application\/json($|;)/.test(contentType))
+      return response;
+    const reader = response.body.getReader();
+    return new Response(new ReadableStream({
+      async start (controller) {
+        let done, value;
+        controller.enqueue(new Uint8Array([...'export default '].map(c => c.charCodeAt(0))));
+        while (({ done, value } = await reader.read()) && !done) {
+          controller.enqueue(value);
+        }
+        controller.close();
       }
-      controller.close();
-    }
-  }), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/javascript"
-    }
-  });
+    }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/javascript"
+      }
+    });
+  }
 }
 ```
+
+For most use cases you'll likely want to supply the fetch hook as part of the `importShimInitialOptions` global before loading es-module-shims to guarantee the hook gets applied before loading the first shimmed module. Though it is still possible to supply a new fetch hook after es-module-shims is loaded, by setting `importShim.fetch` directly.
 
 #### Plugins
 
