@@ -1,0 +1,51 @@
+<!doctype html>
+<link rel="stylesheet" type="text/css" href="../node_modules/mocha/mocha.css"/>
+<script src="../node_modules/mocha/mocha.js"></script>
+<script type="importmap-shim">
+  {
+    "imports": {
+      "test": "/test/fixtures/es-modules/es6-file.js",
+    }
+  }
+</script>
+<script type="module-shim">
+  import test from "test";
+  console.log(test);
+</script>
+<script type="module">
+  mocha.setup('tdd');
+  mocha.setup({
+    ignoreLeaks: true
+  });
+  mocha.allowUncaught();
+
+  self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
+  self.rootURL = location.href.substr(0, location.href.length - 'test/test.html'.length);
+  self.assert = function (val) {
+    equal(!!val, true);
+  };
+  assert.equal = equal;
+  assert.ok = assert;
+  function equal (a, b) {
+    if (a !== b)
+      throw new Error('Expected "' + a + '" to be "' + b + '"');
+  }
+  self.fail = function (msg) {
+    throw new Error(msg);
+  };
+
+  const suites = ['initial-options'];
+  function runNextSuite () {
+    mocha.suite.suites = [];
+    const suite = suites.shift();
+    if (suite)
+      import('./' + suite + '.js')
+      .then(function () {
+        mocha.run(runNextSuite);
+      });
+  }
+
+  runNextSuite();
+</script>
+
+<div id="mocha"></div>

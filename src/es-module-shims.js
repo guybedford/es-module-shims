@@ -57,12 +57,11 @@ Object.defineProperties(importShim, {
   l: { value: undefined, writable: true },
   e: { value: undefined, writable: true }
 });
-importShim.fetch = url => fetch(url);
-importShim.skip = /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
+const importShimInitialOptions = self.importShimInitialOptions || {};
+importShim.fetch = importShimInitialOptions.fetch || (url => fetch(url));
+importShim.skip = importShimInitialOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
+importShim.onerror = importShimInitialOptions.onerror || ((e) => { throw e; });
 importShim.load = processScripts;
-importShim.onerror = (e) => {
-  throw e;
-};
 
 let lastLoad;
 function resolveDeps (load, seen) {
