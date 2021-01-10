@@ -57,10 +57,10 @@ Object.defineProperties(importShim, {
   l: { value: undefined, writable: true },
   e: { value: undefined, writable: true }
 });
-const importShimInitialOptions = self.importShimInitialOptions || {};
-importShim.fetch = importShimInitialOptions.fetch || (url => fetch(url));
-importShim.skip = importShimInitialOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
-importShim.onerror = importShimInitialOptions.onerror || ((e) => { throw e; });
+const esmsInitOptions = self.esmsInitOptions || {};
+importShim.fetch = esmsInitOptions.fetch || (url => fetch(url));
+importShim.skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
+importShim.onerror = esmsInitOptions.onerror || ((e) => { throw e; });
 importShim.load = processScripts;
 
 let lastLoad;

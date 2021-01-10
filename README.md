@@ -170,10 +170,10 @@ This follows the [dynamic import map specification approach outlined in import m
 When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
 opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
 
-This can be configured by setting the `skip` URL regular expression on a `importShimInitialOptions` global before loading es-module-shims:
+This can be configured by setting the `skip` URL regular expression on a `esmsInitOptions` global before loading es-module-shims:
 
 ```js
-self.importShimInitialOptions = {
+self.esmsInitOptions = {
   skip: /^https:\/\/cdn\.com/
 }
 ```
@@ -197,7 +197,7 @@ The ES Module Shims fetch hook can be used to implement transform plugins.
 For example:
 
 ```js
-self.importShimInitialOptions = {
+self.esmsInitOptions = {
   fetch: async function (url) {
     const response = await fetch(url);
     if (response.url.endsWith('.ts')) {
@@ -216,7 +216,7 @@ the above is all that is needed to implement custom plugins.
 Streaming support is also provided, for example here is a hook with streaming support for JSON:
 
 ```js
-self.importShimInitialOptions = {
+self.esmsInitOptions = {
   fetch: async function (url) {
     const response = await fetch(url);
     if (!response.ok)
@@ -244,7 +244,7 @@ self.importShimInitialOptions = {
 }
 ```
 
-For most use cases you'll likely want to supply the fetch hook as part of the `importShimInitialOptions` global before loading es-module-shims to guarantee the hook gets applied before loading the first shimmed module. Though it is still possible to supply a new fetch hook after es-module-shims is loaded, by setting `importShim.fetch` directly.
+For most use cases you'll likely want to supply the fetch hook as part of the `esmsInitOptions` global before loading es-module-shims to guarantee the hook gets applied before loading the first shimmed module. Though it is still possible to supply a new fetch hook after es-module-shims is loaded, by setting `importShim.fetch` directly.
 
 #### Plugins
 
