@@ -68,7 +68,7 @@ Using this polyfill we can write:
 
 ```html
 <!doctype html>
-<!-- either user "defer" or load this polyfill after the scripts below-->
+<!-- either use "defer" or load this polyfill after the scripts below-->
 <script defer src="es-module-shims.js"></script>
 <script type="importmap-shim">
 {
