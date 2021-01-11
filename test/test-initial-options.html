@@ -4,7 +4,7 @@
 <script type="importmap-shim">
   {
     "imports": {
-      "test": "/test/fixtures/es-modules/es6-file.js",
+      "test": "/test/fixtures/es-modules/es6-file.js"
     }
   }
 </script>
@@ -12,6 +12,7 @@
   import test from "test";
   console.log(test);
 </script>
+<script type="module-shim" src="/test/fixtures/es-modules/es6.js"></script>
 <script type="module">
   mocha.setup('tdd');
   mocha.setup({

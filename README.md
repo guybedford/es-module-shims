@@ -173,15 +173,9 @@ opt-out modules from rewriting. This improves performance because those modules 
 This can be configured by setting the `skip` URL regular expression on a `esmsInitOptions` global before loading es-module-shims:
 
 ```js
-self.esmsInitOptions = {
+globalThis.esmsInitOptions = {
   skip: /^https:\/\/cdn\.com/
 }
-```
-
-Alternatively, to update this option after es-module-shims has been loaded, you can set `importShim.skip` directly:
-
-```js
-importShim.skip = /^https:\/\/cdn\.com/
 ```
 
 By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
@@ -197,7 +191,7 @@ The ES Module Shims fetch hook can be used to implement transform plugins.
 For example:
 
 ```js
-self.esmsInitOptions = {
+globalThis.esmsInitOptions = {
   fetch: async function (url) {
     const response = await fetch(url);
     if (response.url.endsWith('.ts')) {
@@ -216,7 +210,7 @@ the above is all that is needed to implement custom plugins.
 Streaming support is also provided, for example here is a hook with streaming support for JSON:
 
 ```js
-self.esmsInitOptions = {
+globalThis.esmsInitOptions = {
   fetch: async function (url) {
     const response = await fetch(url);
     if (!response.ok)
@@ -243,8 +237,6 @@ self.esmsInitOptions = {
   }
 }
 ```
-
-For most use cases you'll likely want to supply the fetch hook as part of the `esmsInitOptions` global before loading es-module-shims to guarantee the hook gets applied before loading the first shimmed module. Though it is still possible to supply a new fetch hook after es-module-shims is loaded, by setting `importShim.fetch` directly.
 
 #### Plugins
 

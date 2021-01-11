@@ -21,7 +21,7 @@ async function topLevelLoad (url, source) {
   }
   if (firstTopLevelProcess) {
     firstTopLevelProcess = false;
-    processScripts();
+    esmsState.load();
   }
   await importMapPromise;
   await init;
@@ -52,16 +52,20 @@ async function importMetaResolve (id, parentUrl = this.url) {
   return resolve(id, `${parentUrl}`);
 }
 
-Object.defineProperties(importShim, {
+let esmsState = {}
+self.esmsState = esmsState
+
+Object.defineProperties(esmsState, {
   m: { value: meta },
   l: { value: undefined, writable: true },
   e: { value: undefined, writable: true }
 });
+
 const esmsInitOptions = self.esmsInitOptions || {};
-importShim.fetch = esmsInitOptions.fetch || (url => fetch(url));
-importShim.skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
-importShim.onerror = esmsInitOptions.onerror || ((e) => { throw e; });
-importShim.load = processScripts;
+esmsState.fetch = esmsInitOptions.fetch || (url => fetch(url));
+esmsState.skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
+esmsState.onerror = esmsInitOptions.onerror || ((e) => { throw e; });
+esmsState.load = processScripts;
 
 let lastLoad;
 function resolveDeps (load, seen) {
@@ -118,7 +122,7 @@ function resolveDeps (load, seen) {
       // import.meta
       else if (dynamicImportIndex === -2) {
         meta[load.r] = { url: load.r, resolve: importMetaResolve };
-        resolvedSource += source.slice(lastIndex, start) + 'importShim.m[' + JSON.stringify(load.r) + ']';
+        resolvedSource += source.slice(lastIndex, start) + 'self.esmsState.m[' + JSON.stringify(load.r) + ']';
         lastIndex = end;
       }
       // dynamic import
@@ -170,7 +174,7 @@ function getOrCreateLoad (url, source) {
 
   load.f = (async () => {
     if (!source) {
-      const res = await importShim.fetch(url);
+      const res = await esmsState.fetch(url);
       if (!res.ok)
         throw new Error(`${res.status} ${res.statusText} ${res.url}`);
       load.r = res.url;
@@ -194,7 +198,7 @@ function getOrCreateLoad (url, source) {
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
       const resolved = resolve(depId, load.r || load.u);
-      if (importShim.skip.test(resolved))
+      if (esmsState.skip.test(resolved))
         return { b: resolved };
       const depLoad = getOrCreateLoad(resolved);
       await depLoad.f;
@@ -209,8 +213,8 @@ let importMap = { imports: {}, scopes: {}, depcache: {} };
 let importMapPromise = resolvedPromise;
 
 if (hasDocument) {
-  processScripts();
-  waitingForImportMapsInterval = setInterval(processScripts, 20);
+  esmsState.load();
+  waitingForImportMapsInterval = setInterval(esmsState.load, 20);
 }
 
 async function processScripts () {
@@ -222,7 +226,7 @@ async function processScripts () {
     if (script.ep) // ep marker = script processed
       continue;
     if (script.type === 'module-shim') {
-      await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML).catch(e => importShim.onerror(e));
+      await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML).catch(e => esmsState.onerror(e));
     }
     else {
       importMapPromise = importMapPromise.then(async () =>

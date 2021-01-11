@@ -8,8 +8,8 @@ suite('Initial options', () => {
 
     await import('../src/es-module-shims.js');
 
-    assert.equal(self.esmsInitOptions.fetch, self.importShim.fetch);
-    assert.equal(self.esmsInitOptions.skip, self.importShim.skip);
-    assert.equal(self.esmsInitOptions.onerror, self.importShim.onerror);
+    assert.equal(self.esmsInitOptions.fetch, self.esmsState.fetch);
+    assert.equal(self.esmsInitOptions.skip, self.esmsState.skip);
+    assert.equal(self.esmsInitOptions.onerror, self.esmsState.onerror);
   });
 });
