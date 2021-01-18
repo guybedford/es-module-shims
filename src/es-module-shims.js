@@ -53,7 +53,7 @@ async function importMetaResolve (id, parentUrl = this.url) {
 }
 
 let esmsState = {}
-self.esmsState = esmsState
+self._esmsState = esmsState
 
 Object.defineProperties(esmsState, {
   m: { value: meta },
