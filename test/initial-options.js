@@ -1,15 +1,17 @@
 suite('Initial options', () => {
   test('Should apply initial options', async function () {
-    self.esmsInitOptions = {
+    const esmsInitOptions = {
       fetch: (url) => fetch(url),
       skip: /.*/,
       onerror: (error) => console.log(error)
     };
 
+    self.esmsInitOptions = esmsInitOptions
+
     await import('../src/es-module-shims.js');
 
-    assert.equal(self.esmsInitOptions.fetch, self._esmsState.fetch);
-    assert.equal(self.esmsInitOptions.skip, self._esmsState.skip);
-    assert.equal(self.esmsInitOptions.onerror, self._esmsState.onerror);
+    assert.equal(esmsInitOptions.fetch, self._esmsState.fetch);
+    assert.equal(esmsInitOptions.skip, self._esmsState.skip);
+    assert.equal(esmsInitOptions.onerror, self._esmsState.onerror);
   });
 });

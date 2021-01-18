@@ -62,6 +62,7 @@ Object.defineProperties(esmsState, {
 });
 
 const esmsInitOptions = self.esmsInitOptions || {};
+self.esmsInitOptions = undefined;
 esmsState.fetch = esmsInitOptions.fetch || (url => fetch(url));
 esmsState.skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
 esmsState.onerror = esmsInitOptions.onerror || ((e) => { throw e; });
