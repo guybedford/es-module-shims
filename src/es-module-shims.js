@@ -123,7 +123,7 @@ function resolveDeps (load, seen) {
       // import.meta
       else if (dynamicImportIndex === -2) {
         meta[load.r] = { url: load.r, resolve: importMetaResolve };
-        resolvedSource += source.slice(lastIndex, start) + 'self.esmsState.m[' + JSON.stringify(load.r) + ']';
+        resolvedSource += source.slice(lastIndex, start) + 'self._esmsState.m[' + JSON.stringify(load.r) + ']';
         lastIndex = end;
       }
       // dynamic import
