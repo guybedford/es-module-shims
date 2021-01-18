@@ -131,21 +131,6 @@ var resolvedUrl = await import.meta.resolve('dep', 'https://site.com/another/sco
 
 This implementation is as provided experimentally in Node.js - https://nodejs.org/dist/latest-v14.x/docs/api/esm.html#esm_no_require_resolve.
 
-### Skip Processing
-
-> Stability: Non-spec feature
-
-When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
-opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
-
-This can be configured by setting the `importShim.skip` URL regular expression:
-
-```js
-importShim.skip = /^https:\/\/cdn\.com/;
-```
-
-By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
-
 ### Depcache
 
 > Stability: Pre-Draft Standard
@@ -178,9 +163,57 @@ then allowing dynamic injection of `<script type="importmap-shim">` to immediate
 
 This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
 
-### Fetch Hook
+### Init Options
 
 > Stability: Non-spec feature
+
+Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
+
+```html
+<script>
+  globalThis.esmsInitOptions = {
+    fetch: (url => fetch(url)),
+    skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
+    onerror: ((e) => { throw e; }),
+  }
+</script>
+<script defer src="es-module-shims.js"></script>
+```
+
+See below for a detailed description of each of these options.
+
+#### Skip Processing
+
+When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
+opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
+
+This can be configured by providing a URL regular expression for the `skip` option:
+
+```js
+<script>
+  globalThis.esmsInitOptions = {
+    skip: /^https:\/\/cdn\.com/ // defaults to `/^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//`
+  }
+</script>
+<script defer src="es-module-shims.js"></script>
+```
+
+By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
+
+#### Error hook
+
+You can provide a function to handle errors during the module loading process by providing a `onerror` option:
+
+```js
+<script>
+  globalThis.esmsInitOptions = {
+    onerror: error => console.log(error) // defaults to `((e) => { throw e; })`
+  }
+</script>
+<script defer src="es-module-shims.js"></script>
+```
+
+#### Fetch Hook
 
 This is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
 
@@ -189,15 +222,20 @@ The ES Module Shims fetch hook can be used to implement transform plugins.
 For example:
 
 ```js
-importShim.fetch = async function (url) {
-  const response = await fetch(url);
-  if (response.url.endsWith('.ts')) {
-    const source = await response.body();
-    const transformed = tsCompile(source);
-    return new Response(new Blob([transformed], { type: 'application/javascript' }));
+<script>
+  globalThis.esmsInitOptions = {
+    fetch: async function (url) {
+      const response = await fetch(url);
+      if (response.url.endsWith('.ts')) {
+        const source = await response.body();
+        const transformed = tsCompile(source);
+        return new Response(new Blob([transformed], { type: 'application/javascript' }));
+      }
+      return response;
+    } // defaults to `(url => fetch(url))`
   }
-  return response;
-};
+</script>
+<script defer src="es-module-shims.js"></script>
 ```
 
 Because the dependency analysis applies by ES Module Shims takes care of ensuring all dependencies run through the same fetch hook,
@@ -206,33 +244,35 @@ the above is all that is needed to implement custom plugins.
 Streaming support is also provided, for example here is a hook with streaming support for JSON:
 
 ```js
-importShim.fetch = async function (url) {
-  const response = await fetch(url);
-  if (!response.ok)
-    throw new Error(`${response.status} ${response.statusText} ${response.url}`);
-  const contentType = response.headers.get('content-type');
-  if (!/^application\/json($|;)/.test(contentType))
-    return response;
-  const reader = response.body.getReader();
-  return new Response(new ReadableStream({
-    async start (controller) {
-      let done, value;
-      controller.enqueue(new Uint8Array([...'export default '].map(c => c.charCodeAt(0))));
-      while (({ done, value } = await reader.read()) && !done) {
-        controller.enqueue(value);
+globalThis.esmsInitOptions = {
+  fetch: async function (url) {
+    const response = await fetch(url);
+    if (!response.ok)
+      throw new Error(`${response.status} ${response.statusText} ${response.url}`);
+    const contentType = response.headers.get('content-type');
+    if (!/^application\/json($|;)/.test(contentType))
+      return response;
+    const reader = response.body.getReader();
+    return new Response(new ReadableStream({
+      async start (controller) {
+        let done, value;
+        controller.enqueue(new Uint8Array([...'export default '].map(c => c.charCodeAt(0))));
+        while (({ done, value } = await reader.read()) && !done) {
+          controller.enqueue(value);
+        }
+        controller.close();
       }
-      controller.close();
-    }
-  }), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/javascript"
-    }
-  });
+    }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/javascript"
+      }
+    });
+  }
 }
 ```
 
-#### Plugins
+##### Plugins
 
 Since the Fetch Hook is very new, there are no plugin examples of it yet, but it should be easy to support various workflows
 such as TypeScript and new JS features this way.
