@@ -1,3 +1,7 @@
+ES Module Shims 0.9.0 (2021/01/23)
+* Breaking: New initialOptions global API instead of hooking importShims properties (https://github.com/guybedford/es-module-shims/pull/109, @lewisl9029)
+* Fix inline script double execution issue (https://github.com/guybedford/es-module-shims/pull/111)
+
 ES Module Shims 0.8.0 (2020/12/23)
 * Fix URL to URL import map mappings (https://github.com/guybedford/es-module-shims/pull/107, @vovacodes)
 * Include TypeScript types (https://github.com/guybedford/es-module-shims/pull/104, @ifiokjr)
