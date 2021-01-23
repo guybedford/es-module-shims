@@ -1,5 +1,8 @@
 const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 suite('Basic loading tests', () => {
+  test('Load counter', function () {
+    assert.equal(count, 2);
+  });
   test('Should import a module', async function () {
     var m = await importShim('./fixtures/es-modules/no-imports.js');
     assert(m);
