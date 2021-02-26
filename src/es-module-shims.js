@@ -274,7 +274,7 @@ async function processScript (script, dynamic) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('shim');
-  if (!shim && noPolyfill)
+  if (!shim && noPolyfill || script.getAttribute('noshim'))
     return;
   script.ep = true;
   if (script.type.startsWith('module')) {

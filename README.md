@@ -40,6 +40,48 @@ run its fast source analysis, determine this is the case, and then reexecute the
 There will still be a browser console error in these browsers since we cannot turn off the native module loader, but the application
 will execute correctly.
 
+#### "noshim" Attribute
+
+There are some rare cases where the polyfill might execute modules twice. In these cases the `"noshim"` attribute can be used to avoid this:
+
+```html
+<script type="module" noshim>
+  if (false) import('bare-specifier');
+</script>
+```
+
+Without this attribute, ES Module Shims sees the `import('bare-specifier')` nd assumes browsers without import maps support require the polyfill,
+but the module will have already executed.
+
+### ES Module Shims Only Scripts
+
+To ensure ES Module Shims definitely executes modules and entirely separately from native modules, use the importmap-shim and module-shim tags:
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "x": "./x".js"
+  }  
+}
+</script>
+<script type="importmap-shim">
+{
+  "imports": {
+    "x": "./x-shim".js"
+  }  
+}
+</script>
+<script type="module-shim">
+  import 'x';
+  console.log("Executed by ES Module Shims Only");
+</script>
+<script type="module" noshim>
+  import 'x';
+  console.log("Executed by the Native Loader Only");
+</script>
+```
+
 ### Browser Support
 
 Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
