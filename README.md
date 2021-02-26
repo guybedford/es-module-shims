@@ -201,27 +201,9 @@ document.body.appendChild(Object.assign(document.createElement('script'), {
 }));
 ```
 
-Note that dynamic import map extensions are not 
+Dynamic import map extensions after the first module load are not supported by the native module loader.
 
-To support dynamic injection of new import maps into the page, call `importShim.load()` to pick up any new `<script type="importmap-shim">` tags.
-
-This can be linked up to mutation observers if desired, with something like:
-
-```js
-new MutationObserver(mutations => {
-  for (const mutation of mutations) {
-    if (mutation.type !== 'childList') continue;
-    for (const node of mutation.addedNodes) {
-      if (node.tagName === 'SCRIPT' && node.type === 'importmap-shim' && !node.ep) {
-        importShim.load();
-        break;
-      }
-    }
-  }
-}).observe(document, { childList: true, subtree: true });
-```
-
-then allowing dynamic injection of `<script type="importmap-shim">` to immediately update the internal import maps.
+ES Module Shims will carefully polyfill these map cases specifically.
 
 This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
 

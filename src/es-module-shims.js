@@ -265,7 +265,7 @@ new MutationObserver(mutations => {
     if (mutation.type !== 'childList') continue;
     for (const node of mutation.addedNodes) {
       if (node.tagName === 'SCRIPT')
-        processScript(node, true);
+        processScript(node, !firstTopLevelProcess);
     }
   }
 }).observe(document, { childList: true, subtree: true });
