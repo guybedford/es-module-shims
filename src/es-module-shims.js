@@ -288,7 +288,7 @@ async function processScript (script, dynamic) {
         importMapShim = resolveAndComposeImportMap(await (await fetch(script.src)).json(), script.src || pageBaseUrl, importMapShim);
       }
       else {
-        const same = importMapNoshim === importMapShim;
+        const same = importMapNoShim === importMapShim;
         importMapShim = resolveAndComposeImportMap(JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMapShim);
         if (!dynamic || supportsImportMapsDynamic) {
           if (same)
