@@ -22,6 +22,24 @@ Because we are still using the native module loader the edge cases work out comp
 
 Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is very fast, although in complex cases of hundreds of modules it can be a few hundred milliseconds slower than using SystemJS or native ES modules. See the [SystemJS performance comparison](https://github.com/systemjs/systemjs#performance) for a full performance breakdown in a complex loading scenario.
 
+### Polyfill Mode
+
+To use ES Module Shims as a polyfill for import maps, just include the script on the page of any modules application:
+
+```js
+<script src="dist/es-module-shims.js" defer></script>
+```
+
+Then go ahead and use import maps and other new modules features.
+
+In Chrome 89+ with import maps support, ES Module Shims won't do anything at all apart from feature detections.
+
+In browsers that don't support import maps, resolution of bare specifiers like `import 'lib'` will throw an error. ES Module Shims will
+run its fast source analysis, determine this is the case, and then reexecute the modules with the rewritten resolutions.
+
+There will still be a browser console error in these browsers since we cannot turn off the native module loader, but the application
+will execute correctly.
+
 ### Browser Support
 
 Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
@@ -49,18 +67,13 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | [import.meta.url](#importmetaurl)  | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+ ❕<sup>1</sup>| :x:                                  |
 | [import.meta.resolve](#resolve)    | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  | :x:                                  |
-| [Import Maps](#import-maps)        | :x:<sup>2</sup>                      | :x:                                  | :x:                                  | :x:                                  |
+| [Import Maps](#import-maps)        | :heavy_check_mark: 89+               | :x:                                  | :x:                                  | :x:                                  |
 
 * 1: _Edge executes parallel dependencies in non-deterministic order. ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
-* 2: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
 * ~: _Indicates the exact first version support has not yet been determined (PR's welcome!)._
 * ❕<sup>1</sup>: On module redirects, Safari returns the request URL in `import.meta.url` instead of the response URL as per the spec.
 
 ### Import Maps
-
-> Stability: Draft browser standard, Chrome flagged implementation only
-
-> The goal is for this project to eventually become a true polyfill for import maps in older browsers, but this will only happen once the spec is implemented in more than one browser and demonstrated to be stable.
 
 In order to import bare package specifiers like `import "lodash"` we need [import maps](https://github.com/domenic/import-maps), which are still an experimental specification.
 
@@ -131,15 +144,22 @@ var resolvedUrl = await import.meta.resolve('dep', 'https://site.com/another/sco
 
 This implementation is as provided experimentally in Node.js - https://nodejs.org/dist/latest-v14.x/docs/api/esm.html#esm_no_require_resolve.
 
-### Depcache
-
-> Stability: Pre-Draft Standard
-
-Like in SystemJS, a [`"depcache"` property is supported](https://github.com/guybedford/import-maps-extensions#depcache) in import maps to enable waterfall flattening.
-
 ### Dynamic Import Map Updates
 
-Import maps are frozen as soon as the first module load is loaded.
+> Stability: No current browser standard
+
+Support is provided for dynamic import map updates via Mutation Observers.
+
+This allows extending the import map via:
+
+```js
+document.body.appendChild(Object.assign(document.createElement('script'), {
+  type: 'importmap',
+  innerHTML: JSON.stringify({ imports: { x: './y.js' } })
+}));
+```
+
+Note that dynamic import map extensions are not 
 
 To support dynamic injection of new import maps into the page, call `importShim.load()` to pick up any new `<script type="importmap-shim">` tags.
 
@@ -164,8 +184,6 @@ then allowing dynamic injection of `<script type="importmap-shim">` to immediate
 This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
 
 ### Init Options
-
-> Stability: Non-spec feature
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
 
@@ -287,9 +305,6 @@ If you work on something here (or even just wrap the examples above into a separ
 * CSP is not supported as we're using fetch and modular evaluation.
 * The [tokenizer](https://github.com/guybedford/es-module-lexer) handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
 * When executing a circular reference A -> B -> A, a shell module technique is used to "shim" the circular reference into an acyclic graph. As a result, live bindings for the circular parent A are not supported, and instead the bindings are captured immediately after the execution of A.
-
-### Import Maps
-* The import maps specification is under active development and will change, all of the current specification features are implemented, but the edge cases are not currently fully handled. These will be refined as the specification and reference implementation continue to develop.
 
 ## Inspiration
 

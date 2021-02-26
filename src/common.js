@@ -7,16 +7,18 @@ export const resolvedPromise = Promise.resolve();
 
 export let baseUrl;
 
-export function createBlob (source) {
-  return URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+export function createBlob (source, type = 'text/javascript') {
+  return URL.createObjectURL(new Blob([source], { type }));
 }
 
 export const hasDocument = typeof document !== 'undefined';
 
 // support browsers without dynamic import support (eg Firefox 6x)
+export let supportsDynamicImport = false;
 export let dynamicImport;
 try {
   dynamicImport = (0, eval)('u=>import(u)');
+  supportsDynamicImport = true;
 }
 catch (e) {
   if (hasDocument) {
@@ -46,6 +48,24 @@ catch (e) {
   }
 }
 
+export let supportsImportMeta = false;
+export let supportsImportMaps = false;
+
+export const featureDetectionPromise = Promise.all([
+  dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true),
+  supportsDynamicImport && new Promise(resolve => {
+    self._$s = v => {
+      if (v) supportsImportMaps = true;
+      delete self._$s;
+      resolve();
+    };
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = createBlob(`<script type=importmap>{"imports":{"x":"data:text/javascript,"}}<${''}/script><script>import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`, 'text/html');
+    document.body.appendChild(iframe);
+  })
+]);
+
 if (hasDocument) {
   const baseEl = document.querySelector('base[href]');
   if (baseEl)
@@ -57,11 +77,6 @@ if (!baseUrl && typeof location !== 'undefined') {
   const lastSepIndex = baseUrl.lastIndexOf('/');
   if (lastSepIndex !== -1)
     baseUrl = baseUrl.slice(0, lastSepIndex + 1);
-}
-
-export let esModuleShimsSrc;
-if (hasDocument) {
-  esModuleShimsSrc = document.currentScript && document.currentScript.src;
 }
 
 const backslashRegEx = /\\/g;
@@ -174,7 +189,7 @@ function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, s
 }
 
 export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
-  const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes), depcache: Object.assign({}, parentMap.depcache) };
+  const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes) };
 
   if (json.imports)
     resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null);
@@ -183,12 +198,6 @@ export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
     for (let s in json.scopes) {
       const resolvedScope = resolveUrl(s, baseUrl);
       resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap, resolvedScope);
-    }
-
-  if (json.depcache)
-    for (let d in json.depcache) {
-      const resolvedDepcache = resolveUrl(d, baseUrl);
-      outMap.depcache[resolvedDepcache] = json.depcache[d];
     }
 
   return outMap;
