@@ -24,16 +24,16 @@ Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](h
 
 ### Usage
 
-Include ES Module Shims with a `defer` attribute on the script:
+Include ES Module Shims with a `async` attribute on the script:
 
 For example, from CDN:
 
 ```html
 <!-- UNPKG -->
-<script defer src="https://unpkg.com/es-module-shims@0.10.1/dist/es-module-shims.js"></script>
+<script async src="https://unpkg.com/es-module-shims@0.10.1/dist/es-module-shims.js"></script>
 
 <!-- JSPM.IO -->
-<script defer src="https://ga.jspm.io/npm:es-module-shims@0.10.1/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@0.10.1/dist/es-module-shims.js"></script>
 ```
 
 Then there are two ways to use ES Module Shims:
@@ -260,7 +260,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
     onerror: ((e) => { throw e; }),
   }
 </script>
-<script defer src="es-module-shims.js"></script>
+<script async src="es-module-shims.js"></script>
 ```
 
 See below for a detailed description of each of these options.
@@ -293,7 +293,7 @@ This can be configured by providing a URL regular expression for the `skip` opti
     skip: /^https:\/\/cdn\.com/ // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
   }
 </script>
-<script defer src="es-module-shims.js"></script>
+<script async src="es-module-shims.js"></script>
 ```
 
 By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
@@ -308,7 +308,7 @@ You can provide a function to handle errors during the module loading process by
     onerror: error => console.log(error) // defaults to `((e) => { throw e; })`
   }
 </script>
-<script defer src="es-module-shims.js"></script>
+<script async src="es-module-shims.js"></script>
 ```
 
 #### Fetch Hook
@@ -335,7 +335,7 @@ For example:
     } // defaults to `(url => fetch(url))`
   }
 </script>
-<script defer src="es-module-shims.js"></script>
+<script async src="es-module-shims.js"></script>
 ```
 
 Because the dependency analysis applies by ES Module Shims takes care of ensuring all dependencies run through the same fetch hook,
