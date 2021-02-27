@@ -24,16 +24,16 @@ Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](h
 
 ### Usage
 
-Include ES Module Shims with a `defer` attribute or as a module itself.
+Include ES Module Shims with a `defer` attribute on the script:
 
 For example, from CDN:
 
 ```html
 <!-- UNPKG -->
-<script type="module" src="https://unpkg.com/es-module-shims@0.10.0/dist/es-module-shims.js"></script>
+<script defer src="https://unpkg.com/es-module-shims@0.10.0/dist/es-module-shims.js"></script>
 
 <!-- JSPM.IO -->
-<script type="module" src="https://ga.jspm.io/npm:es-module-shims@0.10.0/dist/es-module-shims.js"></script>
+<script defer src="https://ga.jspm.io/npm:es-module-shims@0.10.0/dist/es-module-shims.js"></script>
 ```
 
 Then there are two ways to use ES Module Shims:
