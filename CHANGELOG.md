@@ -1,3 +1,6 @@
+ES Module Shims 0.10.0 (2021/02/27)
+* Feature: Comprehensive polyfill mode (https://github.com/guybedford/es-module-shims/pull/113)
+
 ES Module Shims 0.9.0 (2021/01/23)
 * Breaking: New initialOptions global API instead of hooking importShims properties (https://github.com/guybedford/es-module-shims/pull/109, @lewisl9029)
 * Fix inline script double execution issue (https://github.com/guybedford/es-module-shims/pull/111)
