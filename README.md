@@ -22,6 +22,60 @@ Because we are still using the native module loader the edge cases work out comp
 
 Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is very fast, although in complex cases of hundreds of modules it can be a few hundred milliseconds slower than using SystemJS or native ES modules. See the [SystemJS performance comparison](https://github.com/systemjs/systemjs#performance) for a full performance breakdown in a complex loading scenario.
 
+### Usage
+
+Include ES Module Shims with a `defer` attribute or as a module itself.
+
+For example, from CDN:
+
+```html
+<!-- UNPKG -->
+<script type="module" src="https://unpkg.com/es-module-shims@0.10.0/dist/es-module-shims.js"></script>
+
+<!-- JSPM.IO -->
+<script type="module" src="https://ga.jspm.io/npm:es-module-shims@0.10.0/dist/es-module-shims.js"></script>
+```
+
+Then there are two ways to use ES Module Shims:
+
+#### Polyfill Mode
+
+Just write your HTML modules like you would in the latest Chrome:
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "x": "./x.js"
+  }
+}
+</script>
+<script type="module">
+import 'x';
+</script>
+```
+
+and ES Module Shims will make it work in [all browsers with any ES Module Support](#browser-support).
+
+Note that you will typically see a console error like:
+
+```
+Uncaught TypeError: Failed to resolve module specifier "x". Relative references must start with either "/", "./", or "../".
+  at <anonymous>:1:15
+```
+
+This is because the polyfill cannot disable the native loader - instead it will only execute modules that are known to fail while avoiding duplicate fetches or executions.
+
+#### Shim Mode
+
+Shim mode is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly
+setting the [`shimMode` init option](#shim-mode-option).
+
+In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES
+Module Shims instead.
+
+This can useful in some [polyfill mode edge cases](#polyfill-edge-cases) where it's not clear whether or not a given module will execute in the native browser loader or not.
+
 ### Browser Support
 
 Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
@@ -49,27 +103,19 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | [import.meta.url](#importmetaurl)  | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+ ❕<sup>1</sup>| :x:                                  |
 | [import.meta.resolve](#resolve)    | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  | :x:                                  |
-| [Import Maps](#import-maps)        | :x:<sup>2</sup>                      | :x:                                  | :x:                                  | :x:                                  |
+| [Import Maps](#import-maps)        | :heavy_check_mark: 89+               | :x:                                  | :x:                                  | :x:                                  |
 
 * 1: _Edge executes parallel dependencies in non-deterministic order. ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
-* 2: _Enabled under the Experimental Web Platform Features flag in Chrome 76._
 * ~: _Indicates the exact first version support has not yet been determined (PR's welcome!)._
 * ❕<sup>1</sup>: On module redirects, Safari returns the request URL in `import.meta.url` instead of the response URL as per the spec.
 
 ### Import Maps
 
-> Stability: Draft browser standard, Chrome flagged implementation only
-
-> The goal is for this project to eventually become a true polyfill for import maps in older browsers, but this will only happen once the spec is implemented in more than one browser and demonstrated to be stable.
-
-In order to import bare package specifiers like `import "lodash"` we need [import maps](https://github.com/domenic/import-maps), which are still an experimental specification.
+Import maps allow for importing "bare specifiers" in JavaScript modules, which prior to import maps throw in all browsers with native modules support.
 
 Using this polyfill we can write:
 
 ```html
-<!doctype html>
-<!-- either use "defer" or load this polyfill after the scripts below-->
-<script defer src="es-module-shims.js"></script>
 <script type="importmap-shim">
 {
   "imports": {
@@ -88,7 +134,7 @@ Using this polyfill we can write:
 </script>
 ```
 
-All modules are still loaded with the native browser module loader, just as Blob URLs, meaning there is minimal overhead to using a polyfill approach like this.
+All modules are still loaded with the native browser module loader, but with their specifiers rewritten then executed as Blob URLs, so there is a relatively minimal overhead to using a polyfill approach like this.
 
 ### Dynamic Import
 
@@ -131,41 +177,76 @@ var resolvedUrl = await import.meta.resolve('dep', 'https://site.com/another/sco
 
 This implementation is as provided experimentally in Node.js - https://nodejs.org/dist/latest-v14.x/docs/api/esm.html#esm_no_require_resolve.
 
-### Depcache
-
-> Stability: Pre-Draft Standard
-
-Like in SystemJS, a [`"depcache"` property is supported](https://github.com/guybedford/import-maps-extensions#depcache) in import maps to enable waterfall flattening.
-
 ### Dynamic Import Map Updates
 
-Import maps are frozen as soon as the first module load is loaded.
+Support is provided for dynamic import map updates via Mutation Observers.
 
-To support dynamic injection of new import maps into the page, call `importShim.load()` to pick up any new `<script type="importmap-shim">` tags.
-
-This can be linked up to mutation observers if desired, with something like:
+This allows extending the import map via:
 
 ```js
-new MutationObserver(mutations => {
-  for (const mutation of mutations) {
-    if (mutation.type !== 'childList') continue;
-    for (const node of mutation.addedNodes) {
-      if (node.tagName === 'SCRIPT' && node.type === 'importmap-shim' && !node.ep) {
-        importShim.load();
-        break;
-      }
-    }
-  }
-}).observe(document, { childList: true, subtree: true });
+document.body.appendChild(Object.assign(document.createElement('script'), {
+  type: 'importmap',
+  innerHTML: JSON.stringify({ imports: { x: './y.js' } })
+}));
 ```
 
-then allowing dynamic injection of `<script type="importmap-shim">` to immediately update the internal import maps.
+Dynamic import map extensions after the first module load are not supported by the native module loader so ES Module Shims will carefully polyfill these map cases specifically.
 
 This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
 
-### Init Options
+### Polyfill Edge Cases
 
-> Stability: Non-spec feature
+In polyfill mode all sources are analyzed using the fast Wasm-based lexer. Only those sources known by the analysis
+to require syntax features not supported natively in the current browser will be re-executed, with the rest shared with the native loader directly.
+
+For the most part this will work without issue, including avoiding refetching, ensuring exact instance sharing between the native loader
+and shims and avoiding duplicate reexecution in the majority of cases.
+
+There are still some edge cases where this analysis decision gets tricky and can result in duplicate execution / module instances though,
+specifically when dealing with import maps and dynamic imports.
+
+Consider the following example:
+
+```html
+<script type="module">
+  console.log('Executing');
+  const dynamic = 'bare-specifier';
+  import(dynamic).then(x => {
+    console.log('Ok');
+  }, err => {
+    console.log('Fail');
+  });
+</script>
+```
+
+The native browser loader will execute the above module fine, but fail on the lazy dynamic import.
+
+ES Module Shims will still automatically polyfill the module because it can see that it the dynamic import
+might need import map support.
+
+As a result, in polyfill mode we get the console output:
+
+```
+Executing
+Executing
+Fail
+Ok
+```
+
+The double execution being a result of the polyfill approach for this edge case.
+
+To avoid double execution in cases like this, adding the `"noshim"` attribute to the script tag will
+ensure that ES Module Shims skips processing this script entirely:
+
+```html
+<script type="module" noshim>
+  // ...
+</script>
+```
+
+Alternatively [shim mode](#shim-mode) can be used instead.
+
+### Init Options
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
 
@@ -182,6 +263,21 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 
 See below for a detailed description of each of these options.
 
+#### Shim Mode Option
+
+[Shim Mode](#shim-mode) can be overridden using the `shimMode` option:
+
+```js
+<script>
+  globalThis.esmsInitOptions = {
+    shimMode: true
+  }
+</script>
+```
+
+For example, if lazy loading `<script type="module-shim">` scripts shim mode would not be enabled by default,
+or if wanting to disable shim mode and have `"module-shim"` and `"module"` tags both load in an application together.
+
 #### Skip Processing
 
 When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
@@ -192,7 +288,7 @@ This can be configured by providing a URL regular expression for the `skip` opti
 ```js
 <script>
   globalThis.esmsInitOptions = {
-    skip: /^https:\/\/cdn\.com/ // defaults to `/^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//`
+    skip: /^https:\/\/cdn\.com/ // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
   }
 </script>
 <script defer src="es-module-shims.js"></script>
@@ -216,6 +312,8 @@ You can provide a function to handle errors during the module loading process by
 #### Fetch Hook
 
 This is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
+
+When using the fetch hook, [shim mode](#shim-mode) is enabled by default.
 
 The ES Module Shims fetch hook can be used to implement transform plugins.
 
@@ -285,11 +383,8 @@ If you work on something here (or even just wrap the examples above into a separ
 
 * Sources are fetched, import specifiers are rewritten to reference exact URLs, and then executed as BlobURLs through the whole module graph.
 * CSP is not supported as we're using fetch and modular evaluation.
-* The [tokenizer](https://github.com/guybedford/es-module-lexer) handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
+* The [lexer](https://github.com/guybedford/es-module-lexer) handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
 * When executing a circular reference A -> B -> A, a shell module technique is used to "shim" the circular reference into an acyclic graph. As a result, live bindings for the circular parent A are not supported, and instead the bindings are captured immediately after the execution of A.
-
-### Import Maps
-* The import maps specification is under active development and will change, all of the current specification features are implemented, but the edge cases are not currently fully handled. These will be refined as the specification and reference implementation continue to develop.
 
 ## Inspiration
 

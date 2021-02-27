@@ -228,12 +228,14 @@ suite('Errors', function () {
     throw new Error('Test supposed to fail');
   }
 
-  test('onerror hook worked correctly', function () {
+  test('onerror hook worked correctly', async function () {
+    await new Promise(resolve => setTimeout(resolve, 50));
     assert.equal(window.e.toString(), 'ReferenceError: syntax is not defined');
   });
 
   test('should give a plain name error', async function () {
     var err = await getImportError('plain-name');
+    console.log(err);
     assert.equal(err.indexOf('Error: Unable to resolve specifier \'plain-name\' from'), 0);
   });
 

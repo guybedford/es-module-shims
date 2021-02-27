@@ -1,4 +1,17 @@
-import { baseUrl as pageBaseUrl, resolveImportMap, createBlob, resolveUrl, resolveAndComposeImportMap, hasDocument, resolveIfNotPlainOrUrl, dynamicImport, resolvedPromise } from './common.js';
+import {
+  baseUrl as pageBaseUrl,
+  resolveImportMap,
+  createBlob,
+  resolveAndComposeImportMap,
+  hasDocument,
+  resolveIfNotPlainOrUrl,
+  resolvedPromise,
+  dynamicImport,
+  supportsDynamicImport,
+  supportsImportMeta,
+  supportsImportMaps,
+  featureDetectionPromise
+} from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 
 let id = 0;
@@ -14,14 +27,21 @@ async function loadAll (load, seen) {
 
 let waitingForImportMapsInterval;
 let firstTopLevelProcess = true;
-async function topLevelLoad (url, source) {
+async function topLevelLoad (url, source, polyfill) {
+  // no need to even fetch if we have feature support
+  await featureDetectionPromise;
+  // early analysis opt-out
+  if (supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy) {
+    // dont reexec inline for polyfills -> just return null
+    return source && polyfill ? null : dynamicImport(url || createBlob(source));
+  }
   if (waitingForImportMapsInterval > 0) {
     clearTimeout(waitingForImportMapsInterval);
     waitingForImportMapsInterval = 0;
   }
   if (firstTopLevelProcess) {
     firstTopLevelProcess = false;
-    hooks.load();
+    processScripts();
   }
   await importMapPromise;
   await init;
@@ -30,6 +50,9 @@ async function topLevelLoad (url, source) {
   await loadAll(load, seen);
   lastLoad = undefined;
   resolveDeps(load, seen);
+  // inline "module-shim" must still execute even if no shim
+  if (source && !polyfill && !load.n)
+    return dynamicImport(createBlob(source));
   const module = await dynamicImport(load.b);
   // if the top-level load is a shell, run its update function
   if (load.s)
@@ -37,8 +60,8 @@ async function topLevelLoad (url, source) {
   return module;
 }
 
-async function importShim (id, parentUrl) {
-  return topLevelLoad(resolve(id, parentUrl || pageBaseUrl));
+async function importShim (id, parentUrl = pageBaseUrl) {
+  return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl));
 }
 
 self.importShim = importShim;
@@ -49,19 +72,17 @@ const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 async function importMetaResolve (id, parentUrl = this.url) {
   await importMapPromise;
-  return resolve(id, `${parentUrl}`);
+  return resolve(id, `${parentUrl}`).r || throwUnresolved(id, parentUrl);
 }
 
 self._esmsm = meta;
 
 const esmsInitOptions = self.esmsInitOptions || {};
 delete self.esmsInitOptions;
-const hooks = {
-  fetch: esmsInitOptions.fetch || (url => fetch(url)),
-  skip: esmsInitOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
-  onerror: esmsInitOptions.onerror || ((e) => { throw e; }),
-  load: processScripts
-};
+const shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
+const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
+const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
+const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
 
 let lastLoad;
 function resolveDeps (load, seen) {
@@ -69,15 +90,25 @@ function resolveDeps (load, seen) {
     return;
   seen[load.u] = 0;
 
-  for (const dep of load.d)
+  for (const dep of load.d) {
     resolveDeps(dep, seen);
+    if (dep.n)
+      load.n = true;
+  }
+
+  if (!load.n && !shimMode) {
+    load.b = lastLoad = load.u;
+    load.S = undefined;
+    return;
+  }
+
+  const [imports] = load.a;
 
   // "execution"
   const source = load.S;
-  // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
-  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';
 
-  const [imports] = load.a;
+  // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
+  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';  
 
   if (!imports.length) {
     resolvedSource += source;
@@ -86,7 +117,7 @@ function resolveDeps (load, seen) {
     // once all deps have loaded we can inline the dependency resolution blobs
     // and define this blob
     let lastIndex = 0, depIndex = 0;
-    for (const { s: start, e: end, d: dynamicImportIndex } of imports) {
+    for (const { s: start, e: end, d: dynamicImportIndex, n } of imports) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
         const depLoad = load.d[depIndex++];
@@ -162,15 +193,13 @@ function getOrCreateLoad (url, source) {
     b: undefined,
     // shellUrl
     s: undefined,
+    // needsShim
+    n: false,
   };
-
-  const depcache = importMap.depcache[url];
-  if (depcache)
-    depcache.forEach(depUrl => getOrCreateLoad(resolve(depUrl, url)));
 
   load.f = (async () => {
     if (!source) {
-      const res = await hooks.fetch(url);
+      const res = await fetchHook(url, { credentials: 'same-origin' });
       if (!res.ok)
         throw new Error(`${res.status} ${res.statusText} ${res.url}`);
       load.r = res.url;
@@ -188,15 +217,34 @@ function getOrCreateLoad (url, source) {
       load.a = [[], []];
     }
     load.S = source;
-    return load.a[0].filter(d => d.d === -1).map(d => source.slice(d.s, d.e));
+    // determine if this source needs polyfilling
+    for (const { e: end, d: dynamicImportIndex, n } of load.a[0]) {
+      if (dynamicImportIndex === -2) {
+        if (!supportsImportMeta || source.slice(end, end + 8) === '.resolve') {
+          load.n = true;
+          break;
+        }
+      }
+      else if (dynamicImportIndex !== -1) {
+        if (!supportsDynamicImport || (!supportsImportMaps || importMapSrcOrLazy) && n && resolve(n, load.r || load.u).m || !n && hasImportMap) {
+          load.n = true;
+          break;
+        }
+      }
+    }
+    return load.a[0].filter(d => d.d === -1).map(d => d.n);
   })();
 
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
-      const resolved = resolve(depId, load.r || load.u);
-      if (hooks.skip.test(resolved))
-        return { b: resolved };
-      const depLoad = getOrCreateLoad(resolved);
+      const { r, m } = resolve(depId, load.r || load.u);
+      if (!r)
+        throwUnresolved(depId, load.r || load.u);
+      if (m && (!supportsImportMaps || importMapSrcOrLazy))
+        load.n = true;
+      if (skip.test(r))
+        return { b: r };
+      const depLoad = getOrCreateLoad(r);
       await depLoad.f;
       return depLoad;
     }));
@@ -205,12 +253,14 @@ function getOrCreateLoad (url, source) {
   return load;
 }
 
-let importMap = { imports: {}, scopes: {}, depcache: {} };
+let importMap = { imports: {}, scopes: {} };
+let importMapSrcOrLazy = false;
+let hasImportMap = false;
 let importMapPromise = resolvedPromise;
 
 if (hasDocument) {
-  hooks.load();
-  waitingForImportMapsInterval = setInterval(hooks.load, 20);
+  processScripts();
+  waitingForImportMapsInterval = setInterval(processScripts, 20);
 }
 
 async function processScripts () {
@@ -218,23 +268,44 @@ async function processScripts () {
     clearTimeout(waitingForImportMapsInterval);
     waitingForImportMapsInterval = 0;
   }
-  for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]')) {
-    if (script.ep) // ep marker = script processed
-      continue;
-    script.ep = true;
-    if (script.type === 'module-shim') {
-      await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML).catch(e => hooks.onerror(e));
+  for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]'))
+    await processScript(script);
+}
+
+new MutationObserver(mutations => {
+  for (const mutation of mutations) {
+    if (mutation.type !== 'childList') continue;
+    for (const node of mutation.addedNodes) {
+      if (node.tagName === 'SCRIPT')
+        processScript(node, !firstTopLevelProcess);
     }
-    else {
-      importMapPromise = importMapPromise.then(async () =>
-        importMap = resolveAndComposeImportMap(script.src ? await (await fetch(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap)
-      );
-    }
+  }
+}).observe(document, { childList: true, subtree: true });
+
+async function processScript (script, dynamic) {
+  if (script.ep) // ep marker = script processed
+    return;
+  const shim = script.type.endsWith('shim');
+  if (!shim && shimMode || script.getAttribute('noshim') !== null)
+    return;
+  script.ep = true;
+  if (script.type.startsWith('module')) {
+    await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML, !shim).catch(onerror);
+  }
+  else {
+    importMapPromise = importMapPromise.then(async () => {
+      if (script.src || dynamic)
+        importMapSrcOrLazy = true;
+      hasImportMap = true;
+      importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+    });
   }
 }
 
 function resolve (id, parentUrl) {
-  return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl) || throwUnresolved(id, parentUrl);
+  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
+  const resolved = resolveImportMap(importMap, urlResolved || id, parentUrl);
+  return { r: resolved, m: urlResolved !== resolved };
 }
 
 function throwUnresolved (id, parentUrl) {
