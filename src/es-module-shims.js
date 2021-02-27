@@ -19,7 +19,6 @@ const registry = {};
 
 // TODO: conditionally polyfill src and dynamic importmaps
 const supportsImportMapsSrc = false;
-const supportsImportMapsDynamic = false;
 
 async function loadAll (load, seen) {
   if (load.b || seen[load.u])
@@ -153,7 +152,7 @@ function resolveDeps (load, seen) {
       }
       // dynamic import
       else {
-        if (!supportsDynamicImport || !supportsImportMaps && n && resolve(n, load.r || load.u).m || !supportsImportMapsSrc && n && resolve(n, load.r || load.u, true).sm)
+        if (!supportsDynamicImport || (!supportsImportMaps || importMapSrcOrLazy) && n && resolve(n, load.r || load.u).m)
           load.n = true;
         resolvedSource += source.slice(lastIndex, dynamicImportIndex + 6) + 'Shim(' + source.slice(start, end) + ', ' + JSON.stringify(load.r);
         lastIndex = end;
@@ -226,10 +225,10 @@ function getOrCreateLoad (url, source) {
 
   load.L = load.f.then(async deps => {
     load.d = await Promise.all(deps.map(async depId => {
-      const { r, m, sm } = resolve(depId, load.r || load.u, true);
+      const { r, m } = resolve(depId, load.r || load.u);
       if (!r)
         throwUnresolved(depId, load.r || load.u);
-      if (!supportsImportMaps && m || !supportsImportMapsSrc && sm)
+      if (m && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
       if (hooks.skip.test(r))
         return { b: r };
@@ -242,8 +241,8 @@ function getOrCreateLoad (url, source) {
   return load;
 }
 
-let importMapNoShim = { imports: {}, scopes: {} };
-let importMapShim = importMapNoShim;
+let importMap = { imports: {}, scopes: {} };
+let importMapSrcOrLazy = false;
 let importMapPromise = resolvedPromise;
 
 if (hasDocument) {
@@ -274,7 +273,7 @@ async function processScript (script, dynamic) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('shim');
-  if (!shim && noPolyfill || script.getAttribute('noshim'))
+  if (!shim && noPolyfill || script.getAttribute('noshim') !== null)
     return;
   script.ep = true;
   if (script.type.startsWith('module')) {
@@ -282,34 +281,17 @@ async function processScript (script, dynamic) {
   }
   else {
     importMapPromise = importMapPromise.then(async () => {
-      if (script.src) {
-        // if (supportsImportMapsSrc)
-        //   importMap = resolveAndComposeImportMap(await (await fetch(script.src)).json(), script.src || pageBaseUrl, importMap);
-        importMapShim = resolveAndComposeImportMap(await (await fetch(script.src)).json(), script.src || pageBaseUrl, importMapShim);
-      }
-      else {
-        const same = importMapNoShim === importMapShim;
-        importMapShim = resolveAndComposeImportMap(JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMapShim);
-        if (!dynamic || supportsImportMapsDynamic) {
-          if (same)
-            importMapNoShim = importMapShim;
-          else
-            importMapNoShim = resolveAndComposeImportMap(JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMapNoShim);
-        }
-      }
+      if (script.src || dynamic)
+        importMapSrcOrLazy = true;
+      importMap = resolveAndComposeImportMap(script.src ? await (await fetch(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
     });
   }
 }
 
-function resolve (id, parentUrl, compareNoShim) {
+function resolve (id, parentUrl) {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
-  const resolved = resolveImportMap(importMapShim, urlResolved || id, parentUrl);
-  let sm = false;
-  if (compareNoShim) {
-    const resolvedNoShim = resolveImportMap(importMapNoShim, urlResolved || id, parentUrl);
-    sm = resolvedNoShim !== resolved;
-  }
-  return { r: resolved, m: urlResolved !== resolved, sm };
+  const resolved = resolveImportMap(importMapNoShim, urlResolved || id, parentUrl);
+  return { r: resolved, m: urlResolved !== resolved };
 }
 
 function throwUnresolved (id, parentUrl) {
