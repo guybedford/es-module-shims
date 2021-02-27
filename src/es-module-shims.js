@@ -276,7 +276,7 @@ new MutationObserver(mutations => {
   for (const mutation of mutations) {
     if (mutation.type !== 'childList') continue;
     for (const node of mutation.addedNodes) {
-      if (node.tagName === 'SCRIPT')
+      if (node.tagName === 'SCRIPT' && node.type)
         processScript(node, !firstTopLevelProcess);
     }
   }
@@ -285,17 +285,18 @@ new MutationObserver(mutations => {
 async function processScript (script, dynamic) {
   if (script.ep) // ep marker = script processed
     return;
-  const shim = script.type.endsWith('shim');
+  const shim = script.type.endsWith('-shim');
+  const type = shim ? script.type.slice(0, -5) : script.type;
   if (!shim && shimMode || script.getAttribute('noshim') !== null)
     return;
   // empty inline scripts sometimes show before domready
   if (!script.src && !script.innerHTML)
     return;
   script.ep = true;
-  if (script.type.startsWith('module')) {
+  if (type === 'module') {
     await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML, !shim).catch(onerror);
   }
-  else {
+  else if (type === 'importmap') {
     importMapPromise = importMapPromise.then(async () => {
       if (script.src || dynamic)
         importMapSrcOrLazy = true;
