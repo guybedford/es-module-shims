@@ -196,8 +196,10 @@ This follows the [dynamic import map specification approach outlined in import m
 
 ### Polyfill Edge Cases
 
-In polyfill mode all sources are analyzed using the fast Wasm-based lexer. Only those sources known by the analysis
-to require syntax features not supported natively in the current browser will be re-executed, with the rest shared with the native loader directly.
+In polyfill mode, feature detections are performed for ES modules features. In browsers will full feature support no further processing is done.
+
+In browsers lacking full feature support, all sources are analyzed using the fast Wasm-based lexer. Only those sources known by the analysis
+to require syntax features not supported natively in the current browser will then be re-executed, with the rest shared with the native loader directly.
 
 For the most part this will work without issue, including avoiding refetching, ensuring exact instance sharing between the native loader
 and shims and avoiding duplicate reexecution in the majority of cases.
