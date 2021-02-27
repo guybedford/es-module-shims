@@ -55,6 +55,7 @@ export const featureDetectionPromise = Promise.all([
   dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true),
   supportsDynamicImport && new Promise(resolve => {
     self._$s = v => {
+      document.body.removeChild(iframe);
       if (v) supportsImportMaps = true;
       delete self._$s;
       resolve();
