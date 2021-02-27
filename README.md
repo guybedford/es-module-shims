@@ -1,6 +1,6 @@
 ## ES Module Shims
 
-[90% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
+[93% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
 
 But modules features like Import Maps will take a while to be supported in browsers.
 
