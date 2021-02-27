@@ -288,6 +288,9 @@ async function processScript (script, dynamic) {
   const shim = script.type.endsWith('shim');
   if (!shim && shimMode || script.getAttribute('noshim') !== null)
     return;
+  // empty inline scripts sometimes show before domready
+  if (!script.src && !script.innerHTML)
+    return;
   script.ep = true;
   if (script.type.startsWith('module')) {
     await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML, !shim).catch(onerror);
