@@ -111,14 +111,11 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 
 ### Import Maps
 
-In order to import bare package specifiers like `import "lodash"` we need [import maps](https://github.com/domenic/import-maps), which are still an experimental specification.
+Import maps allow for importing "bare specifiers" in JavaScript modules, which prior to import maps throw in all browsers with native modules support.
 
 Using this polyfill we can write:
 
 ```html
-<!doctype html>
-<!-- either use "defer" or load this polyfill after the scripts below-->
-<script defer src="es-module-shims.js"></script>
 <script type="importmap-shim">
 {
   "imports": {
@@ -137,7 +134,7 @@ Using this polyfill we can write:
 </script>
 ```
 
-All modules are still loaded with the native browser module loader, just as Blob URLs, meaning there is minimal overhead to using a polyfill approach like this.
+All modules are still loaded with the native browser module loader, but with their specifiers rewritten then executed as Blob URLs, so there is a relatively minimal overhead to using a polyfill approach like this.
 
 ### Dynamic Import
 
@@ -199,20 +196,55 @@ This follows the [dynamic import map specification approach outlined in import m
 
 ### Polyfill Edge Cases
 
+In polyfill mode all sources are analyzed using the fast Wasm-based lexer. Only those sources known by the analysis
+to require syntax features not supported natively in the current browser will be re-executed, with the rest shared with the native loader directly.
+
+For the most part this will work without issue, including avoiding refetching, ensuring exact instance sharing between the native loader
+and shims and avoiding duplicate reexecution in the majority of cases.
+
+There are still some edge cases where this analysis decision gets tricky and can result in duplicate execution / module instances though,
+specifically when dealing with import maps and dynamic imports.
+
 Consider the following example:
 
 ```html
-<script type="module" no-polyfill>
-  if (false) import('bare-specifier');
+<script type="module">
+  console.log('Executing');
+  const dynamic = 'bare-specifier';
+  import(dynamic).then(x => {
+    console.log('Ok');
+  }, err => {
+    console.log('Fail');
+  });
 </script>
 ```
 
-In the above case, ES Module Shims sees the `import('bare-specifier')` and assumes this code requires import maps so will
-re-execute it, but the browser would already have executed it correctly so there would be a double execution in polyfill mode.
+The native browser loader will execute the above module fine, but fail on the lazy dynamic import.
 
-The "no-polyfill" attribute informs ES Module Shims not to process this script tag in polyfill mode at all.
+ES Module Shims will still automatically polyfill the module because it can see that it the dynamic import
+might need import map support.
 
-Alternatively [shim mode](#shim-mode) could be used instead.
+As a result, in polyfill mode we get the console output:
+
+```
+Executing
+Executing
+Fail
+Ok
+```
+
+The double execution being a result of the polyfill approach for this edge case.
+
+To avoid double execution in cases like this, adding the `"noshim"` attribute to the script tag will
+ensure that ES Module Shims skips processing this script entirely:
+
+```html
+<script type="module" noshim>
+  // ...
+</script>
+```
+
+Alternatively [shim mode](#shim-mode) can be used instead.
 
 ### Init Options
 
@@ -256,7 +288,7 @@ This can be configured by providing a URL regular expression for the `skip` opti
 ```js
 <script>
   globalThis.esmsInitOptions = {
-    skip: /^https:\/\/cdn\.com/ // defaults to `/^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//`
+    skip: /^https:\/\/cdn\.com/ // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
   }
 </script>
 <script defer src="es-module-shims.js"></script>
@@ -351,7 +383,7 @@ If you work on something here (or even just wrap the examples above into a separ
 
 * Sources are fetched, import specifiers are rewritten to reference exact URLs, and then executed as BlobURLs through the whole module graph.
 * CSP is not supported as we're using fetch and modular evaluation.
-* The [tokenizer](https://github.com/guybedford/es-module-lexer) handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
+* The [lexer](https://github.com/guybedford/es-module-lexer) handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
 * When executing a circular reference A -> B -> A, a shell module technique is used to "shim" the circular reference into an acyclic graph. As a result, live bindings for the circular parent A are not supported, and instead the bindings are captured immediately after the execution of A.
 
 ## Inspiration

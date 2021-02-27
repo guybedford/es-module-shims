@@ -77,7 +77,7 @@ const esmsInitOptions = self.esmsInitOptions || {};
 delete self.esmsInitOptions;
 const shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
 const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
-const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
+const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
 
 let lastLoad;
@@ -145,7 +145,7 @@ function resolveDeps (load, seen) {
       }
       // dynamic import
       else {
-        if (!supportsDynamicImport || (!supportsImportMaps || importMapSrcOrLazy) && n && resolve(n, load.r || load.u).m)
+        if (!supportsDynamicImport || (!supportsImportMaps || importMapSrcOrLazy) && n && resolve(n, load.r || load.u).m || !n && hasImportMap)
           load.n = true;
         resolvedSource += source.slice(lastIndex, dynamicImportIndex + 6) + 'Shim(' + source.slice(start, end) + ', ' + JSON.stringify(load.r);
         lastIndex = end;
@@ -236,6 +236,7 @@ function getOrCreateLoad (url, source) {
 
 let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
+let hasImportMap = false;
 let importMapPromise = resolvedPromise;
 
 if (hasDocument) {
@@ -266,7 +267,7 @@ async function processScript (script, dynamic) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('shim');
-  if (!shim && shimMode || script.getAttribute('no-polyfill') !== null)
+  if (!shim && shimMode || script.getAttribute('noshim') !== null)
     return;
   script.ep = true;
   if (script.type.startsWith('module')) {
@@ -276,6 +277,7 @@ async function processScript (script, dynamic) {
     importMapPromise = importMapPromise.then(async () => {
       if (script.src || dynamic)
         importMapSrcOrLazy = true;
+      hasImportMap = true;
       importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
     });
   }
