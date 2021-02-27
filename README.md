@@ -30,10 +30,10 @@ For example, from CDN:
 
 ```html
 <!-- UNPKG -->
-<script defer src="https://unpkg.com/es-module-shims@0.10.0/dist/es-module-shims.js"></script>
+<script defer src="https://unpkg.com/es-module-shims@0.10.1/dist/es-module-shims.js"></script>
 
 <!-- JSPM.IO -->
-<script defer src="https://ga.jspm.io/npm:es-module-shims@0.10.0/dist/es-module-shims.js"></script>
+<script defer src="https://ga.jspm.io/npm:es-module-shims@0.10.1/dist/es-module-shims.js"></script>
 ```
 
 Then there are two ways to use ES Module Shims:

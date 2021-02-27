@@ -1,3 +1,6 @@
+ES Module Shims 0.10.1 (2021/02/27)
+* Various bug fixes for polyfill mode
+
 ES Module Shims 0.10.0 (2021/02/27)
 * Feature: Comprehensive polyfill mode (https://github.com/guybedford/es-module-shims/pull/113)
 
