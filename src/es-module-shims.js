@@ -30,8 +30,11 @@ let firstTopLevelProcess = true;
 async function topLevelLoad (url, source, polyfill) {
   // no need to even fetch if we have feature support
   await featureDetectionPromise;
-  if (supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy)
+  // early analysis opt-out
+  if (supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy) {
+    // dont reexec inline for polyfills -> just return null
     return source && polyfill ? null : dynamicImport(url || createBlob(source));
+  }
   if (waitingForImportMapsInterval > 0) {
     clearTimeout(waitingForImportMapsInterval);
     waitingForImportMapsInterval = 0;
@@ -47,8 +50,9 @@ async function topLevelLoad (url, source, polyfill) {
   await loadAll(load, seen);
   lastLoad = undefined;
   resolveDeps(load, seen);
-  if (polyfill && !load.n)
-    return source ? null : dynamicImport(url || createBlob(source));
+  // inline "module-shim" must still execute even if no shim
+  if (source && !polyfill && !load.n)
+    return dynamicImport(createBlob(source));
   const module = await dynamicImport(load.b);
   // if the top-level load is a shell, run its update function
   if (load.s)
@@ -92,12 +96,19 @@ function resolveDeps (load, seen) {
       load.n = true;
   }
 
-  // "execution"
-  const source = load.S;
-  // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
-  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';
+  if (!load.n && !shimMode) {
+    load.b = lastLoad = load.u;
+    load.S = undefined;
+    return;
+  }
 
   const [imports] = load.a;
+
+  // "execution"
+  const source = load.S;
+
+  // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
+  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';  
 
   if (!imports.length) {
     resolvedSource += source;
@@ -137,16 +148,12 @@ function resolveDeps (load, seen) {
       }
       // import.meta
       else if (dynamicImportIndex === -2) {
-        if (!supportsImportMeta || source.slice(end, end + 8) === '.resolve')
-          load.n = true;
         meta[load.r] = { url: load.r, resolve: importMetaResolve };
         resolvedSource += source.slice(lastIndex, start) + 'self._esmsm[' + JSON.stringify(load.r) + ']';
         lastIndex = end;
       }
       // dynamic import
       else {
-        if (!supportsDynamicImport || (!supportsImportMaps || importMapSrcOrLazy) && n && resolve(n, load.r || load.u).m || !n && hasImportMap)
-          load.n = true;
         resolvedSource += source.slice(lastIndex, dynamicImportIndex + 6) + 'Shim(' + source.slice(start, end) + ', ' + JSON.stringify(load.r);
         lastIndex = end;
       }
@@ -158,10 +165,7 @@ function resolveDeps (load, seen) {
   if (resolvedSource.indexOf('//# sourceURL=') === -1)
     resolvedSource += '\n//# sourceURL=' + load.r;
 
-  if (load.n || !load.r || shimMode) // load.r = not inline
-    load.b = lastLoad = createBlob(resolvedSource);
-  else
-    load.b = lastLoad = load.u;
+  load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
 }
 
@@ -213,6 +217,21 @@ function getOrCreateLoad (url, source) {
       load.a = [[], []];
     }
     load.S = source;
+    // determine if this source needs polyfilling
+    for (const { e: end, d: dynamicImportIndex, n } of load.a[0]) {
+      if (dynamicImportIndex === -2) {
+        if (!supportsImportMeta || source.slice(end, end + 8) === '.resolve') {
+          load.n = true;
+          break;
+        }
+      }
+      else if (dynamicImportIndex !== -1) {
+        if (!supportsDynamicImport || (!supportsImportMaps || importMapSrcOrLazy) && n && resolve(n, load.r || load.u).m || !n && hasImportMap) {
+          load.n = true;
+          break;
+        }
+      }
+    }
     return load.a[0].filter(d => d.d === -1).map(d => d.n);
   })();
 
