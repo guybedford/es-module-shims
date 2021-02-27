@@ -17,9 +17,6 @@ import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 let id = 0;
 const registry = {};
 
-// TODO: conditionally polyfill src and dynamic importmaps
-const supportsImportMapsSrc = false;
-
 async function loadAll (load, seen) {
   if (load.b || seen[load.u])
     return;
@@ -33,7 +30,7 @@ let firstTopLevelProcess = true;
 async function topLevelLoad (url, source, polyfill) {
   // no need to even fetch if we have feature support
   await featureDetectionPromise;
-  if (supportsDynamicImport && supportsImportMeta && supportsImportMaps && importMapShim === importMapNoShim)
+  if (supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy)
     return source && polyfill ? null : dynamicImport(url || createBlob(source));
   if (waitingForImportMapsInterval > 0) {
     clearTimeout(waitingForImportMapsInterval);
@@ -290,7 +287,7 @@ async function processScript (script, dynamic) {
 
 function resolve (id, parentUrl) {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
-  const resolved = resolveImportMap(importMapNoShim, urlResolved || id, parentUrl);
+  const resolved = resolveImportMap(importMap, urlResolved || id, parentUrl);
   return { r: resolved, m: urlResolved !== resolved };
 }
 
