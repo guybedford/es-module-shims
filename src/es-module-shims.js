@@ -38,7 +38,7 @@ async function topLevelLoad (url, source, polyfill) {
   }
   if (firstTopLevelProcess) {
     firstTopLevelProcess = false;
-    hooks.load();
+    processScripts();
   }
   await importMapPromise;
   await init;
@@ -75,14 +75,10 @@ self._esmsm = meta;
 
 const esmsInitOptions = self.esmsInitOptions || {};
 delete self.esmsInitOptions;
-const hooks = {
-  fetch: esmsInitOptions.fetch || (url => fetch(url)),
-  skip: esmsInitOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
-  onerror: esmsInitOptions.onerror || ((e) => { throw e; }),
-  load: processScripts
-};
-
-const noPolyfill = !!esmsInitOptions.fetch;
+const shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
+const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
+const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//;
+const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
 
 let lastLoad;
 function resolveDeps (load, seen) {
@@ -162,7 +158,7 @@ function resolveDeps (load, seen) {
   if (resolvedSource.indexOf('//# sourceURL=') === -1)
     resolvedSource += '\n//# sourceURL=' + load.r;
 
-  if (load.n || !load.r || noPolyfill) // load.r = not inline
+  if (load.n || !load.r || shimMode) // load.r = not inline
     load.b = lastLoad = createBlob(resolvedSource);
   else
     load.b = lastLoad = load.u;
@@ -199,7 +195,7 @@ function getOrCreateLoad (url, source) {
 
   load.f = (async () => {
     if (!source) {
-      const res = await hooks.fetch(url, { credentials: 'same-origin' });
+      const res = await fetchHook(url, { credentials: 'same-origin' });
       if (!res.ok)
         throw new Error(`${res.status} ${res.statusText} ${res.url}`);
       load.r = res.url;
@@ -227,7 +223,7 @@ function getOrCreateLoad (url, source) {
         throwUnresolved(depId, load.r || load.u);
       if (m && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
-      if (hooks.skip.test(r))
+      if (skip.test(r))
         return { b: r };
       const depLoad = getOrCreateLoad(r);
       await depLoad.f;
@@ -243,8 +239,8 @@ let importMapSrcOrLazy = false;
 let importMapPromise = resolvedPromise;
 
 if (hasDocument) {
-  hooks.load();
-  waitingForImportMapsInterval = setInterval(hooks.load, 20);
+  processScripts();
+  waitingForImportMapsInterval = setInterval(processScripts, 20);
 }
 
 async function processScripts () {
@@ -270,17 +266,17 @@ async function processScript (script, dynamic) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('shim');
-  if (!shim && noPolyfill || script.getAttribute('noshim') !== null)
+  if (!shim && shimMode || script.getAttribute('no-polyfill') !== null)
     return;
   script.ep = true;
   if (script.type.startsWith('module')) {
-    await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML, !shim).catch(e => hooks.onerror(e));
+    await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML, !shim).catch(onerror);
   }
   else {
     importMapPromise = importMapPromise.then(async () => {
       if (script.src || dynamic)
         importMapSrcOrLazy = true;
-      importMap = resolveAndComposeImportMap(script.src ? await (await fetch(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+      importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
     });
   }
 }

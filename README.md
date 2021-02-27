@@ -22,65 +22,59 @@ Because we are still using the native module loader the edge cases work out comp
 
 Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is very fast, although in complex cases of hundreds of modules it can be a few hundred milliseconds slower than using SystemJS or native ES modules. See the [SystemJS performance comparison](https://github.com/systemjs/systemjs#performance) for a full performance breakdown in a complex loading scenario.
 
-### Polyfill Mode
+### Usage
 
-To use ES Module Shims as a polyfill for import maps, just include the script on the page of any modules application:
+Include ES Module Shims with a `defer` attribute or as a module itself.
 
-```js
-<script src="dist/es-module-shims.js" defer></script>
-```
-
-Then go ahead and use import maps and other new modules features.
-
-In Chrome 89+ with import maps support, ES Module Shims won't do anything at all apart from feature detections.
-
-In browsers that don't support import maps, resolution of bare specifiers like `import 'lib'` will throw an error. ES Module Shims will
-run its fast source analysis, determine this is the case, and then reexecute the modules with the rewritten resolutions.
-
-There will still be a browser console error in these browsers since we cannot turn off the native module loader, but the application
-will execute correctly.
-
-#### "noshim" Attribute
-
-There are some rare cases where the polyfill might execute modules twice. In these cases the `"noshim"` attribute can be used to avoid this:
+For example, from CDN:
 
 ```html
-<script type="module" noshim>
-  if (false) import('bare-specifier');
-</script>
+<!-- UNPKG -->
+<script type="module" src="https://unpkg.com/es-module-shims@0.10.0/dist/es-module-shims.js"></script>
+
+<!-- JSPM.IO -->
+<script type="module" src="https://ga.jspm.io/npm:es-module-shims@0.10.0/dist/es-module-shims.js"></script>
 ```
 
-Without this attribute, ES Module Shims sees the `import('bare-specifier')` nd assumes browsers without import maps support require the polyfill,
-but the module will have already executed.
+Then there are two ways to use ES Module Shims:
 
-### ES Module Shims Only Scripts
+#### Polyfill Mode
 
-To ensure ES Module Shims definitely executes modules and entirely separately from native modules, use the importmap-shim and module-shim tags:
+Just write your HTML modules like you would in the latest Chrome:
 
 ```html
 <script type="importmap">
 {
   "imports": {
-    "x": "./x".js"
-  }  
+    "x": "./x.js"
+  }
 }
 </script>
-<script type="importmap-shim">
-{
-  "imports": {
-    "x": "./x-shim".js"
-  }  
-}
-</script>
-<script type="module-shim">
-  import 'x';
-  console.log("Executed by ES Module Shims Only");
-</script>
-<script type="module" noshim>
-  import 'x';
-  console.log("Executed by the Native Loader Only");
+<script type="module">
+import 'x';
 </script>
 ```
+
+and ES Module Shims will make it work in [all browsers with any ES Module Support](#browser-support).
+
+Note that you will typically see a console error like:
+
+```
+Uncaught TypeError: Failed to resolve module specifier "x". Relative references must start with either "/", "./", or "../".
+  at <anonymous>:1:15
+```
+
+This is because the polyfill cannot disable the native loader - instead it will only execute modules that are known to fail while avoiding duplicate fetches or executions.
+
+#### Shim Mode
+
+Shim mode is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly
+setting the [`shimMode` init option](#shim-mode-option).
+
+In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES
+Module Shims instead.
+
+This can useful in some [polyfill mode edge cases](#polyfill-edge-cases) where it's not clear whether or not a given module will execute in the native browser loader or not.
 
 ### Browser Support
 
@@ -188,8 +182,6 @@ This implementation is as provided experimentally in Node.js - https://nodejs.or
 
 ### Dynamic Import Map Updates
 
-> Stability: No current browser standard
-
 Support is provided for dynamic import map updates via Mutation Observers.
 
 This allows extending the import map via:
@@ -201,11 +193,26 @@ document.body.appendChild(Object.assign(document.createElement('script'), {
 }));
 ```
 
-Dynamic import map extensions after the first module load are not supported by the native module loader.
-
-ES Module Shims will carefully polyfill these map cases specifically.
+Dynamic import map extensions after the first module load are not supported by the native module loader so ES Module Shims will carefully polyfill these map cases specifically.
 
 This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
+
+### Polyfill Edge Cases
+
+Consider the following example:
+
+```html
+<script type="module" no-polyfill>
+  if (false) import('bare-specifier');
+</script>
+```
+
+In the above case, ES Module Shims sees the `import('bare-specifier')` and assumes this code requires import maps so will
+re-execute it, but the browser would already have executed it correctly so there would be a double execution in polyfill mode.
+
+The "no-polyfill" attribute informs ES Module Shims not to process this script tag in polyfill mode at all.
+
+Alternatively [shim mode](#shim-mode) could be used instead.
 
 ### Init Options
 
@@ -223,6 +230,21 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 ```
 
 See below for a detailed description of each of these options.
+
+#### Shim Mode Option
+
+[Shim Mode](#shim-mode) can be overridden using the `shimMode` option:
+
+```js
+<script>
+  globalThis.esmsInitOptions = {
+    shimMode: true
+  }
+</script>
+```
+
+For example, if lazy loading `<script type="module-shim">` scripts shim mode would not be enabled by default,
+or if wanting to disable shim mode and have `"module-shim"` and `"module"` tags both load in an application together.
 
 #### Skip Processing
 
@@ -258,6 +280,8 @@ You can provide a function to handle errors during the module loading process by
 #### Fetch Hook
 
 This is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
+
+When using the fetch hook, [shim mode](#shim-mode) is enabled by default.
 
 The ES Module Shims fetch hook can be used to implement transform plugins.
 
