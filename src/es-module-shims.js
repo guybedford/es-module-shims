@@ -118,7 +118,7 @@ function resolveDeps (load, seen) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
         const depLoad = load.d[depIndex++];
-        let blobUrl = depLoad.b;
+        let blobUrl = depLoad.b.replace(/'/g, '\\\'');
         if (!blobUrl) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {

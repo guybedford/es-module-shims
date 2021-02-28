@@ -278,8 +278,32 @@ See below for a detailed description of each of these options.
 </script>
 ```
 
-For example, if lazy loading `<script type="module-shim">` scripts shim mode would not be enabled by default,
-or if wanting to disable shim mode and have `"module-shim"` and `"module"` tags both load in an application together.
+For example, if lazy loading `<script type="module-shim">` scripts shim mode would not be enabled by default.
+
+Conversely, setting `shimMode: false` allows for branching workflows between the native loader and ES module shims:
+
+```js
+<script>globalThis.esmsInitOptions = { shimMode: false }</script>
+<script type="importmap">
+{
+  "imports": {
+    "app": "data:text/javascript,console.log('running in native loader')",
+    "shared": "data:text/javascript,console.log('shared map')"
+  }
+}
+</script>
+<script type="importmap-shim">
+{
+  "imports": {
+    "app": "data:text/javascript,console.log('running polyfill')"
+  }
+}
+</script>
+<script type="module">
+import 'app';
+import 'shared';
+</script>
+```
 
 #### Skip Processing
 
