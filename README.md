@@ -46,25 +46,25 @@ Just write your HTML modules like you would in the latest Chrome:
 <script type="importmap">
 {
   "imports": {
-    "x": "./x.js"
+    "app": "./src/app.js"
   }
 }
 </script>
-<script type="module">
-import 'x';
-</script>
+<script type="module">import 'app'</script>
 ```
 
 and ES Module Shims will make it work in [all browsers with any ES Module Support](#browser-support).
 
-Note that you will typically see a console error like:
+Note that you will typically see a console error in browsers without import maps support like:
 
 ```
-Uncaught TypeError: Failed to resolve module specifier "x". Relative references must start with either "/", "./", or "../".
+Uncaught TypeError: Failed to resolve module specifier "app". Relative references must start with either "/", "./", or "../".
   at <anonymous>:1:15
 ```
 
-This is because the polyfill cannot disable the native loader - instead it will only execute modules that are known to fail while avoiding duplicate fetches or executions.
+This execution failure is wanted - it avoids the polyfill causing double execution. The first import being a bare specifier in the pattern above is important to ensure this.
+
+This is because the polyfill cannot disable the native loader - instead it can only execute modules that would otherwise fail instantiation while avoiding duplicate fetches or executions.
 
 #### Shim Mode
 
@@ -198,7 +198,7 @@ This follows the [dynamic import map specification approach outlined in import m
 
 In polyfill mode, feature detections are performed for ES modules features. In browsers will full feature support no further processing is done.
 
-In browsers lacking full feature support, all sources are analyzed using the fast Wasm-based lexer. Only those sources known by the analysis
+In browsers lacking import maps support, all sources are analyzed using the fast Wasm-based lexer. Only those sources known by the analysis
 to require syntax features not supported natively in the current browser will then be re-executed, with the rest shared with the native loader directly.
 
 For the most part this will work without issue, including avoiding refetching, ensuring exact instance sharing between the native loader
@@ -237,8 +237,9 @@ Ok
 
 The double execution being a result of the polyfill approach for this edge case.
 
-To avoid double execution in cases like this, adding the `"noshim"` attribute to the script tag will
-ensure that ES Module Shims skips processing this script entirely:
+This is why it is advisable to always ensure modules use bare specifiers to fail early and avoid double execution.
+
+Adding the `"noshim"` attribute to the script tag will also ensure that ES Module Shims skips processing this script entirely:
 
 ```html
 <script type="module" noshim>

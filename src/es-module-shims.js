@@ -90,11 +90,8 @@ function resolveDeps (load, seen) {
     return;
   seen[load.u] = 0;
 
-  for (const dep of load.d) {
+  for (const dep of load.d)
     resolveDeps(dep, seen);
-    if (dep.n)
-      load.n = true;
-  }
 
   if (!load.n && !shimMode) {
     load.b = lastLoad = load.u;
@@ -218,7 +215,7 @@ function getOrCreateLoad (url, source) {
     }
     load.S = source;
     // determine if this source needs polyfilling
-    for (const { e: end, d: dynamicImportIndex, n } of load.a[0]) {
+    for (const { e: end, d: dynamicImportIndex } of load.a[0]) {
       if (dynamicImportIndex === -2) {
         if (!supportsImportMeta || source.slice(end, end + 8) === '.resolve') {
           load.n = true;
@@ -226,17 +223,16 @@ function getOrCreateLoad (url, source) {
         }
       }
       else if (dynamicImportIndex !== -1) {
-        if (!supportsDynamicImport || (!supportsImportMaps || importMapSrcOrLazy) && n && resolve(n, load.r || load.u).m || !n && hasImportMap) {
+        if (!supportsDynamicImport || !supportsImportMaps && hasImportMap || importMapSrcOrLazy) {
           load.n = true;
           break;
         }
       }
     }
-    return load.a[0].filter(d => d.d === -1).map(d => d.n);
   })();
 
-  load.L = load.f.then(async deps => {
-    load.d = await Promise.all(deps.map(async depId => {
+  load.L = load.f.then(async () => {    
+    load.d = await Promise.all(load.a[0].filter(d => d.d === -1).map(d => d.n).map(async depId => {
       const { r, m } = resolve(depId, load.r || load.u);
       if (!r)
         throwUnresolved(depId, load.r || load.u);
@@ -248,6 +244,8 @@ function getOrCreateLoad (url, source) {
       await depLoad.f;
       return depLoad;
     }));
+    if (!load.n)
+      load.n = load.d.some(dep => dep.n);
   });
 
   return load;
