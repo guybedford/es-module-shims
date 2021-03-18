@@ -33,7 +33,7 @@ async function topLevelLoad (url, source, polyfill) {
   // early analysis opt-out
   if (supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy) {
     // dont reexec inline for polyfills -> just return null
-    return source && polyfill ? null : dynamicImport(url || createBlob(source));
+    return source && polyfill ? null : dynamicImport(source ? createBlob(source) : url);
   }
   if (waitingForImportMapsInterval > 0) {
     clearTimeout(waitingForImportMapsInterval);
