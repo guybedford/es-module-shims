@@ -174,9 +174,9 @@ export function resolveUrl (relUrl, parentUrl) {
   return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (relUrl.indexOf(':') !== -1 ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
-function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap, scopeUrl) {
+function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap) {
   for (let p in packages) {
-    const resolvedLhs = resolveIfNotPlainOrUrl(p, scopeUrl || baseUrl) || p;
+    const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
     let target = packages[p];
     if (typeof target !== 'string') 
       continue;
@@ -198,7 +198,7 @@ export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
   if (json.scopes)
     for (let s in json.scopes) {
       const resolvedScope = resolveUrl(s, baseUrl);
-      resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap, resolvedScope);
+      resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap);
     }
 
   return outMap;
