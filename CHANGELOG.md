@@ -1,3 +1,6 @@
+ES Module Shims 0.10.3 (2021/03/22)
+* Fix shim mode execution bug (https://github.com/guybedford/es-module-shims/issues/117)
+
 ES Module Shims 0.10.2 (2021/03/18)
 * Fix inline module-shim execution in non-polyfill mode (https://github.com/guybedford/es-module-shims/issues/115)
 * Bug fix for scope key resolution to be relative to baseURL not scopeURL (https://github.com/guybedford/es-module-shims/pull/116)
