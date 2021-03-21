@@ -30,11 +30,6 @@ let firstTopLevelProcess = true;
 async function topLevelLoad (url, source, polyfill) {
   // no need to even fetch if we have feature support
   await featureDetectionPromise;
-  // early analysis opt-out
-  if (supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy) {
-    // dont reexec inline for polyfills -> just return null
-    return source && polyfill ? null : dynamicImport(source ? createBlob(source) : url);
-  }
   if (waitingForImportMapsInterval > 0) {
     clearTimeout(waitingForImportMapsInterval);
     waitingForImportMapsInterval = 0;
@@ -44,6 +39,11 @@ async function topLevelLoad (url, source, polyfill) {
     processScripts();
   }
   await importMapPromise;
+  // early analysis opt-out
+  if (polyfill && supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy) {
+    // dont reexec inline for polyfills -> just return null
+    return source && polyfill ? null : dynamicImport(source ? createBlob(source) : url);
+  }
   await init;
   const load = getOrCreateLoad(url, source);
   const seen = {};
