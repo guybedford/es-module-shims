@@ -1,3 +1,6 @@
+ES Module Shims 0.10.4 (2021/04/11)
+* Fix cycle handling regression (https://github.com/guybedford/es-module-shims/issues/119)
+
 ES Module Shims 0.10.3 (2021/03/22)
 * Fix shim mode execution bug (https://github.com/guybedford/es-module-shims/issues/117)
 
