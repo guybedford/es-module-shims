@@ -1,7 +1,7 @@
 <!doctype html>
 <link rel="stylesheet" type="text/css" href="../node_modules/mocha/mocha.css"/>
 <script src="../node_modules/mocha/mocha.js"></script>
-<script type="importmap">
+<script type="importmap-shim">
 {
   "imports": {
     "test": "/test/fixtures/es-modules/es6-file.js",
@@ -33,7 +33,7 @@
 </script>
 <script>
   globalThis.esmsInitOptions = {
-    shimMode: false,
+    shimMode: true,
     onerror: e => window.e = e
   };
 </script>

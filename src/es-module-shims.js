@@ -84,6 +84,10 @@ const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
 
+function urlJsString (url) {
+  return `'${url.replace(/'/g, "\\'")}'`;
+}
+
 let lastLoad;
 function resolveDeps (load, seen) {
   if (load.b || !seen[load.u])
@@ -118,7 +122,7 @@ function resolveDeps (load, seen) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
         const depLoad = load.d[depIndex++];
-        let blobUrl = depLoad.b.replace(/'/g, '\\\'');
+        let blobUrl = depLoad.b;
         if (!blobUrl) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
@@ -135,23 +139,23 @@ function resolveDeps (load, seen) {
         }
         // circular shell execution
         else if (depLoad.s) {
-          resolvedSource += source.slice(lastIndex, start - 1) + '/*' + source.slice(start - 1, end + 1) + '*/' + source.slice(start - 1, start) + blobUrl + source[end] + `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
+          resolvedSource += `${source.slice(lastIndex, start - 1)}/*${source.slice(start - 1, end + 1)}*/${urlJsString(blobUrl)};import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
           lastIndex = end + 1;
           depLoad.s = undefined;
           continue;
         }
-        resolvedSource += source.slice(lastIndex, start - 1) + '/*' + source.slice(start - 1, end + 1) + '*/' + source.slice(start - 1, start) + blobUrl;
-        lastIndex = end;
+        resolvedSource += `${source.slice(lastIndex, start - 1)}/*${source.slice(start - 1, end + 1)}*/${urlJsString(blobUrl)}`;
+        lastIndex = end + 1;
       }
       // import.meta
       else if (dynamicImportIndex === -2) {
         meta[load.r] = { url: load.r, resolve: importMetaResolve };
-        resolvedSource += source.slice(lastIndex, start) + 'self._esmsm[' + JSON.stringify(load.r) + ']';
+        resolvedSource += `${source.slice(lastIndex, start)}self._esmsm[${urlJsString(load.r)}]`;
         lastIndex = end;
       }
       // dynamic import
       else {
-        resolvedSource += source.slice(lastIndex, dynamicImportIndex + 6) + 'Shim(' + source.slice(start, end) + ', ' + JSON.stringify(load.r);
+        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, end)}, ${urlJsString(load.r)}`;
         lastIndex = end;
       }
     }
