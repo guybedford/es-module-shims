@@ -83,6 +83,9 @@ const shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions
 const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
+if (process.env.ES_MODULE_SHIMS_TEST) {
+  self._esmsr = registry;
+}
 
 function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;
@@ -163,8 +166,19 @@ function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  if (resolvedSource.indexOf('//# sourceURL=') === -1)
+  let hasSourceMappingURL = false
+  resolvedSource = resolvedSource.replace(/\/\/# sourceMappingURL=(.*)\s*$/, (match, url) => {
+    hasSourceMappingURL = true
+    return match.replace(url, new URL(url, load.r))
+  });
+  let hasSourceURL = false
+  resolvedSource = resolvedSource.replace(/\/\/# sourceURL=(.*)\s*$/, (match, url) => {
+    hasSourceURL = true
+    return match.replace(url, new URL(url, load.r))
+  });
+  if (!hasSourceMappingURL && !hasSourceURL) {
     resolvedSource += '\n//# sourceURL=' + load.r;
+  }
 
   load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
