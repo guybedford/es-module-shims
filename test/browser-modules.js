@@ -304,5 +304,5 @@ suite('Source maps', () => {
 
     // Shouldn't insert `//# sourceURL=` if `//# sourceMappingURL=` is present.
     assert(!blobContent.includes('//# sourceURL='))
-  })
+  });
 });
