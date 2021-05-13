@@ -264,7 +264,7 @@ suite('Source maps', () => {
     const moduleBlobURL = globalThis._esmsr[moduleURL].b
     const blobContent = await fetch(moduleBlobURL).then(r => r.text())
     assert(blobContent.includes(`//# sourceURL=${moduleURL}`))
-  })
+  });
 
   test('should replace relative paths in `//# sourceURL=` directive with absolute URL', async () => {
     const moduleURL = new URL('./fixtures/es-modules/with-relative-source-url.js', location.href).href;
