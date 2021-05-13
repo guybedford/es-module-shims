@@ -290,7 +290,7 @@ suite('Source maps', () => {
 
     // Shouldn't insert `//# sourceURL=` if `//# sourceMappingURL=` is present.
     assert(!blobContent.includes('//# sourceURL='))
-  })
+  });
 
   test('should keep original absolute URL in `//# sourceMappingURL=` directive', async () => {
     const moduleURL = new URL('./fixtures/es-modules/with-absolute-source-mapping-url.js', location.href).href;
