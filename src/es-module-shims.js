@@ -16,6 +16,9 @@ import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 
 let id = 0;
 const registry = {};
+if (globalThis.ES_MODULE_SHIMS_TEST) {
+  self._esmsr = registry;
+}
 
 async function loadAll (load, seen) {
   if (load.b || seen[load.u])
@@ -163,8 +166,17 @@ function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  if (resolvedSource.indexOf('//# sourceURL=') === -1)
+  resolvedSource = resolvedSource.replace(/\/\/# sourceMappingURL=(.*)\s*$/, (match, url) => {
+    return match.replace(url, new URL(url, load.r));
+  });
+  let hasSourceURL = false
+  resolvedSource = resolvedSource.replace(/\/\/# sourceURL=(.*)\s*$/, (match, url) => {
+    hasSourceURL = true;
+    return match.replace(url, new URL(url, load.r));
+  });
+  if (!hasSourceURL) {
     resolvedSource += '\n//# sourceURL=' + load.r;
+  }
 
   load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
