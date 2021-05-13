@@ -275,7 +275,7 @@ suite('Source maps', () => {
     assert(blobContent.endsWith(`//# sourceURL=${sourceURL}`));
     // Should not touch any other occurrences of `//# sourceURL=` in the code.
     assert(blobContent.includes('//# sourceURL=i-should-not-be-affected.no'));
-  })
+  });
 
   test('should replace relative paths in `//# sourceMappingURL=` directive with absolute URL', async () => {
     const moduleURL = new URL('./fixtures/es-modules/with-relative-source-mapping-url.js', location.href).href;
