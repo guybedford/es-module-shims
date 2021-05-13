@@ -52,7 +52,7 @@ const terserOptions = {
 
 export default [
     config(true),
-    config( false),
+    config(false),
 ].filter(Boolean);
 
 function config(isMin) {
