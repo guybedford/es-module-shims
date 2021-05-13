@@ -69,7 +69,7 @@ function config(isMin) {
         },
         plugins: [
             replace({
-                'process.env.ES_MODULE_SHIMS_TEST': process.env.test ? 'true' : 'false',
+                'globalThis.ES_MODULE_SHIMS_TEST': process.env.test ? 'true' : 'false',
                 preventAssignment: true
             }),
             isMin && terser(terserOptions)

@@ -16,6 +16,9 @@ import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 
 let id = 0;
 const registry = {};
+if (globalThis.ES_MODULE_SHIMS_TEST) {
+  self._esmsr = registry;
+}
 
 async function loadAll (load, seen) {
   if (load.b || seen[load.u])
@@ -83,9 +86,6 @@ const shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions
 const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
-if (process.env.ES_MODULE_SHIMS_TEST) {
-  self._esmsr = registry;
-}
 
 function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;
@@ -166,17 +166,15 @@ function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  let hasSourceMappingURL = false
   resolvedSource = resolvedSource.replace(/\/\/# sourceMappingURL=(.*)\s*$/, (match, url) => {
-    hasSourceMappingURL = true
-    return match.replace(url, new URL(url, load.r))
+    return match.replace(url, new URL(url, load.r));
   });
   let hasSourceURL = false
   resolvedSource = resolvedSource.replace(/\/\/# sourceURL=(.*)\s*$/, (match, url) => {
-    hasSourceURL = true
-    return match.replace(url, new URL(url, load.r))
+    hasSourceURL = true;
+    return match.replace(url, new URL(url, load.r));
   });
-  if (!hasSourceMappingURL && !hasSourceURL) {
+  if (!hasSourceURL) {
     resolvedSource += '\n//# sourceURL=' + load.r;
   }
 
