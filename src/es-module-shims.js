@@ -64,9 +64,7 @@ async function topLevelLoad (url, source, polyfill) {
 }
 
 async function importShim (id, parentUrl = pageBaseUrl) {
-  // Give dynamically inserted import maps a chance to be processed
-  // if `importShim()` was called synchronously after the insertion.
-  await new Promise(resolve => setTimeout(resolve, 0))
+  await featureDetectionPromise;
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
   return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl));
