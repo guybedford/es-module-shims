@@ -64,6 +64,9 @@ async function topLevelLoad (url, source, polyfill) {
 }
 
 async function importShim (id, parentUrl = pageBaseUrl) {
+  await featureDetectionPromise;
+  // Make sure all the "in-flight" import maps are loaded and applied.
+  await importMapPromise;
   return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl));
 }
 

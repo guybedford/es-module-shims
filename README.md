@@ -55,6 +55,9 @@ Just write your HTML modules like you would in the latest Chrome:
 
 and ES Module Shims will make it work in [all browsers with any ES Module Support](#browser-support).
 
+NOTE: `script[type="importmap"]` and `script[type="importmap-shim"]` should be placed before
+any `script[type="module"]` or `script[type="module-shim"]` in the html. 
+
 Note that you will typically see a console error in browsers without import maps support like:
 
 ```
