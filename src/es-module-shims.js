@@ -64,6 +64,9 @@ async function topLevelLoad (url, source, polyfill) {
 }
 
 async function importShim (id, parentUrl = pageBaseUrl) {
+  console.log('importShim before await', id)
+  await importMapPromise;
+  console.log('importShim after await', id)
   return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl));
 }
 
@@ -291,6 +294,7 @@ new MutationObserver(mutations => {
     if (mutation.type !== 'childList') continue;
     for (const node of mutation.addedNodes) {
       if (node.tagName === 'SCRIPT' && node.type)
+        console.log('MutationObserver', node.innerHTML)
         processScript(node, !firstTopLevelProcess);
     }
   }
@@ -316,11 +320,13 @@ async function processScript (script, dynamic) {
         importMapSrcOrLazy = true;
       hasImportMap = true;
       importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+      console.log('Processed', script.innerHTML)
     });
   }
 }
 
 function resolve (id, parentUrl) {
+  console.log("resolve", id)
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
   const resolved = resolveImportMap(importMap, urlResolved || id, parentUrl);
   return { r: resolved, m: urlResolved !== resolved };
