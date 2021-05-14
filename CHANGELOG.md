@@ -1,3 +1,7 @@
+ES Module Shims 0.10.5 (2021/05/14)
+* Fix immediately added dynamic import maps (https://github.com/guybedford/es-module-shims/pull/123, @vovacodes)
+* Handle relative sourceURL and sourceMappingURL (https://github.com/guybedford/es-module-shims/pull/122, @vovacodes)
+
 ES Module Shims 0.10.4 (2021/04/11)
 * Fix cycle handling regression (https://github.com/guybedford/es-module-shims/issues/119)
 
