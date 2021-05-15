@@ -54,13 +54,32 @@ async function topLevelLoad (url, source, polyfill) {
   lastLoad = undefined;
   resolveDeps(load, seen);
   // inline "module-shim" must still execute even if no shim
-  if (source && !polyfill && !load.n)
-    return dynamicImport(createBlob(source));
+  if (source && !polyfill && !load.n) {
+    const module = dynamicImport(createBlob(source));
+    revokeObjectURLs(Object.keys(seen));
+    return module;
+  }
   const module = await dynamicImport(load.b);
   // if the top-level load is a shell, run its update function
-  if (load.s)
+  if (load.s) {
     (await dynamicImport(load.s)).u$_(module);
+  }
+  revokeObjectURLs(Object.keys(seen));
   return module;
+}
+
+function revokeObjectURLs(registryKeys) {
+  function cleanup() {
+    for (const key of registryKeys) {
+      const blobURL = registry[key]?.b;
+      URL.revokeObjectURL(blobURL);
+    }
+  }
+  if (self.requestIdleCallback) {
+    self.requestIdleCallback(cleanup)
+  } else {
+    setTimeout(cleanup, 0)
+  }
 }
 
 async function importShim (id, parentUrl = pageBaseUrl) {
