@@ -77,8 +77,8 @@ function revokeObjectURLs(registryKeys) {
     const batchStartIndex = batch * 100;
     if (batchStartIndex > keysLength) return
     for (const key of registryKeys.slice(batchStartIndex, batchStartIndex + 100)) {
-      const blobURL = registry[key]?.b;
-      URL.revokeObjectURL(blobURL);
+      const load = registry[key];
+      if (load) URL.revokeObjectURL(load.b);
     }
     batch++;
     schedule(cleanup);

@@ -262,7 +262,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
     fetch: (url => fetch(url)),
     skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
     onerror: ((e) => { throw e; }),
-    revokeBlobURLs: true,
+    revokeBlobURLs: false,
   }
 </script>
 <script async src="es-module-shims.js"></script>
