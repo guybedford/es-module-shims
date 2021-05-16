@@ -1,0 +1,24 @@
+<!doctype html>
+<link rel="stylesheet" type="text/css" href="../node_modules/mocha/mocha.css"/>
+<script src="../node_modules/mocha/mocha.js"></script>
+<script type="importmap-shim">
+{
+  "imports": {
+    "es-modules/": "/test/fixtures/es-modules/"
+  }
+}
+</script>
+<script>
+  globalThis.esmsInitOptions = {
+    shimMode: true,
+    revokeBlobURLs: true
+  };
+  globalThis.ES_MODULE_SHIMS_TEST = true;
+</script>
+<script type="module" src="../src/es-module-shims.js"></script>
+<script type="module" noshim>
+  import { runMochaTests } from "./runMochaTests.js";
+  runMochaTests(['test-revoke-blob-urls'])
+</script>
+
+<div id="mocha"></div>

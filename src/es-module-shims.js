@@ -54,13 +54,35 @@ async function topLevelLoad (url, source, polyfill) {
   lastLoad = undefined;
   resolveDeps(load, seen);
   // inline "module-shim" must still execute even if no shim
-  if (source && !polyfill && !load.n)
-    return dynamicImport(createBlob(source));
+  if (source && !polyfill && !load.n) {
+    const module = dynamicImport(createBlob(source));
+    if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
+    return module;
+  }
   const module = await dynamicImport(load.b);
   // if the top-level load is a shell, run its update function
-  if (load.s)
+  if (load.s) {
     (await dynamicImport(load.s)).u$_(module);
+  }
+  if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
   return module;
+}
+
+function revokeObjectURLs(registryKeys) {
+  let batch = 0;
+  const keysLength = registryKeys.length;
+  const schedule = self.requestIdleCallback ? self.requestIdleCallback : self.requestAnimationFrame
+  schedule(cleanup);
+  function cleanup() {
+    const batchStartIndex = batch * 100;
+    if (batchStartIndex > keysLength) return
+    for (const key of registryKeys.slice(batchStartIndex, batchStartIndex + 100)) {
+      const load = registry[key];
+      if (load) URL.revokeObjectURL(load.b);
+    }
+    batch++;
+    schedule(cleanup);
+  }
 }
 
 async function importShim (id, parentUrl = pageBaseUrl) {
@@ -89,6 +111,7 @@ const shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions
 const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
+const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
 
 function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;
