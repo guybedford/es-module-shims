@@ -69,16 +69,19 @@ async function topLevelLoad (url, source, polyfill) {
 }
 
 function revokeObjectURLs(registryKeys) {
+  let batch = 0;
+  const keysLength = registryKeys.length;
+  const schedule = self.requestIdleCallback ? self.requestIdleCallback : self.requestAnimationFrame
+  schedule(cleanup);
   function cleanup() {
-    for (const key of registryKeys) {
+    const batchStartIndex = batch * 100;
+    if (batchStartIndex > keysLength) return
+    for (const key of registryKeys.slice(batchStartIndex, batchStartIndex + 100)) {
       const blobURL = registry[key]?.b;
       URL.revokeObjectURL(blobURL);
     }
-  }
-  if (self.requestIdleCallback) {
-    self.requestIdleCallback(cleanup)
-  } else {
-    setTimeout(cleanup, 0)
+    batch++;
+    schedule(cleanup);
   }
 }
 
