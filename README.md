@@ -262,6 +262,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
     fetch: (url => fetch(url)),
     skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
     onerror: ((e) => { throw e; }),
+    revokeBlobURLs: true,
   }
 </script>
 <script async src="es-module-shims.js"></script>
@@ -399,6 +400,29 @@ globalThis.esmsInitOptions = {
   }
 }
 ```
+
+#### Revoke Blob URLs
+
+When polyfilling the missing features `es-module-shims` would create in-memory blobs using `URL.createObjectURL()` for each processed module.
+In most cases, memory footprint of these blobs is negligible so there is no need to call `URL.revokeObjectURL()`
+for them, and we don't do that by default.
+
+That said, in some scenarios, e.g. when evaluating some continuously changing modules without a page reload, like in a web-based code editor,
+you might want to reduce the growth of memory usage by revoking those blob URLs after they were already `import`ed.
+
+You can do that by enabling the `revokeBlobURLs` init option:
+
+```js
+<script>
+  globalThis.esmsInitOptions = {
+    revokeBlobURLs: true
+  }
+</script>
+<script type="module" src="es-module-shims.js"></script>
+```
+
+NOTE: revoking object URLs is not entirely free, while we are trying to be smart about it and make sure it doesn't
+cause janks, we recommend enabling this option only if you have done the measurements and identified that you really need it.
 
 ##### Plugins
 
