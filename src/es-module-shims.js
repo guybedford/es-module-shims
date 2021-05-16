@@ -56,7 +56,7 @@ async function topLevelLoad (url, source, polyfill) {
   // inline "module-shim" must still execute even if no shim
   if (source && !polyfill && !load.n) {
     const module = dynamicImport(createBlob(source));
-    revokeObjectURLs(Object.keys(seen));
+    if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
   }
   const module = await dynamicImport(load.b);
@@ -64,7 +64,7 @@ async function topLevelLoad (url, source, polyfill) {
   if (load.s) {
     (await dynamicImport(load.s)).u$_(module);
   }
-  revokeObjectURLs(Object.keys(seen));
+  if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
   return module;
 }
 
@@ -111,6 +111,7 @@ const shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions
 const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
+const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
 
 function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;

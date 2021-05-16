@@ -1,4 +1,7 @@
 const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
+
+self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
+
 suite('Basic loading tests', () => {
   test('Load counter', function () {
     assert.equal(count, 2);

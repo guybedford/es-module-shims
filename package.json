@@ -9,7 +9,8 @@
     "prepublishOnly": "npm run build",
     "test": "node test/server.mjs",
     "test:watch": "cross-env WATCH_MODE=true node test/server.mjs",
-    "test:perf": "cross-env TEST_NAME=perf node test/server.mjs"
+    "test:perf": "cross-env TEST_NAME=perf node test/server.mjs",
+    "test:revoke-blob-urls": "cross-env TEST_NAME=test-revoke-blob-urls node test/server.mjs"
   },
   "types": "index.d.ts",
   "type": "module",
