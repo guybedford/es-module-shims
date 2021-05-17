@@ -15,7 +15,8 @@
   "types": "index.d.ts",
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "index.d.ts"
   ],
   "author": "Guy Bedford",
   "license": "MIT",
