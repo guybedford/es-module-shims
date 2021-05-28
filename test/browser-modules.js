@@ -74,6 +74,10 @@ suite('Basic loading tests', () => {
     assert.equal(dynamicModule.default, 'bareDynamicImport');
   });
 
+  test('should support dynamic import in an inline script', async function () {
+    assert.equal(window.inlineScriptDynamicImportResult.default, 'bareDynamicImport');
+  });
+
   test('Should import a module via a full url, with scheme', async function () {
     const url = window.location.href.replace('/test.html', '/fixtures/es-modules/no-imports.js');
     assert.equal(url.slice(0, 4), 'http');
