@@ -16,7 +16,7 @@ import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 
 let id = 0;
 const registry = {};
-if (globalThis.ES_MODULE_SHIMS_TEST) {
+if (globalThis.ESMS_DEBUG) {
   self._esmsr = registry;
 }
 
@@ -25,12 +25,14 @@ async function loadAll (load, seen) {
     return;
   seen[load.u] = 1;
   await load.L;
-  return Promise.all(load.d.map(dep => loadAll(dep, seen)));
+  await Promise.all(load.d.map(dep => loadAll(dep, seen)));
+  if (!load.n)
+    load.n = load.d.some(dep => dep.n);
 }
 
 let waitingForImportMapsInterval;
 let firstTopLevelProcess = true;
-async function topLevelLoad (url, source, polyfill) {
+async function topLevelLoad (url, source, nativelyLoaded) {
   // no need to even fetch if we have feature support
   await featureDetectionPromise;
   if (waitingForImportMapsInterval > 0) {
@@ -43,9 +45,9 @@ async function topLevelLoad (url, source, polyfill) {
   }
   await importMapPromise;
   // early analysis opt-out
-  if (polyfill && supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy) {
+  if (nativelyLoaded && supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy) {
     // dont reexec inline for polyfills -> just return null
-    return source && polyfill ? null : dynamicImport(source ? createBlob(source) : url);
+    return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
   }
   await init;
   const load = getOrCreateLoad(url, source);
@@ -53,8 +55,7 @@ async function topLevelLoad (url, source, polyfill) {
   await loadAll(load, seen);
   lastLoad = undefined;
   resolveDeps(load, seen);
-  // inline "module-shim" must still execute even if no shim
-  if (source && !polyfill && !load.n) {
+  if (source && !nativelyLoaded && !shimMode && !load.n) {
     const module = dynamicImport(createBlob(source));
     if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
@@ -85,11 +86,11 @@ function revokeObjectURLs(registryKeys) {
   }
 }
 
-async function importShim (id, parentUrl = pageBaseUrl) {
+async function importShim (id, parentUrl = pageBaseUrl, polyfill = false) {
   await featureDetectionPromise;
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
-  return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl));
+  return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl), polyfill);
 }
 
 self.importShim = importShim;
@@ -107,7 +108,7 @@ self._esmsm = meta;
 
 const esmsInitOptions = self.esmsInitOptions || {};
 delete self.esmsInitOptions;
-const shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
+let shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
 const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
@@ -126,7 +127,9 @@ function resolveDeps (load, seen) {
   for (const dep of load.d)
     resolveDeps(dep, seen);
 
-  if (!load.n && !shimMode) {
+  // use direct native execution when possible
+  // load.n is therefore conservative
+  if (!shimMode && !load.n) {
     load.b = lastLoad = load.u;
     load.S = undefined;
     return;
@@ -147,7 +150,7 @@ function resolveDeps (load, seen) {
     // once all deps have loaded we can inline the dependency resolution blobs
     // and define this blob
     let lastIndex = 0, depIndex = 0;
-    for (const { s: start, e: end, d: dynamicImportIndex, n } of imports) {
+    for (const { s: start, e: end, d: dynamicImportIndex } of imports) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
         const depLoad = load.d[depIndex++];
@@ -233,7 +236,7 @@ function getOrCreateLoad (url, source) {
     // shellUrl
     s: undefined,
     // needsShim
-    n: false,
+    n: false
   };
 
   load.f = (async () => {
@@ -256,38 +259,23 @@ function getOrCreateLoad (url, source) {
       load.a = [[], []];
     }
     load.S = source;
-    // determine if this source needs polyfilling
-    for (const { e: end, d: dynamicImportIndex } of load.a[0]) {
-      if (dynamicImportIndex === -2) {
-        if (!supportsImportMeta || source.slice(end, end + 8) === '.resolve') {
-          load.n = true;
-          break;
-        }
-      }
-      else if (dynamicImportIndex !== -1) {
-        if (!supportsDynamicImport || !supportsImportMaps && hasImportMap || importMapSrcOrLazy) {
-          load.n = true;
-          break;
-        }
-      }
-    }
+    return load;
   })();
 
-  load.L = load.f.then(async () => {    
-    load.d = await Promise.all(load.a[0].filter(d => d.d === -1).map(d => d.n).map(async depId => {
-      const { r, m } = resolve(depId, load.r || load.u);
-      if (!r)
-        throwUnresolved(depId, load.r || load.u);
+  load.L = load.f.then(async () => {
+    load.d = await Promise.all(load.a[0].map(({ n, d }) => {
+      if (d >= 0 && !supportsDynamicImport || d === 2 && (!supportsImportMeta || source.slice(end, end + 8) === '.resolve'))
+        load.n = true;
+      if (!n) return;
+      const { r, m } = resolve(n, load.r || load.u);
       if (m && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
-      if (skip.test(r))
-        return { b: r };
-      const depLoad = getOrCreateLoad(r);
-      await depLoad.f;
-      return depLoad;
-    }));
-    if (!load.n)
-      load.n = load.d.some(dep => dep.n);
+      if (d !== -1) return;
+      if (!r)
+        throwUnresolved(n, load.r || load.u);
+      if (skip.test(r)) return { b: r };
+      return getOrCreateLoad(r).f;
+    }).filter(l => l));
   });
 
   return load;
@@ -295,7 +283,6 @@ function getOrCreateLoad (url, source) {
 
 let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
-let hasImportMap = false;
 let importMapPromise = resolvedPromise;
 
 if (hasDocument) {
@@ -326,6 +313,7 @@ async function processScript (script, dynamic) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('-shim');
+  if (shim) shimMode = true;
   const type = shim ? script.type.slice(0, -5) : script.type;
   if (!shim && shimMode || script.getAttribute('noshim') !== null)
     return;
@@ -340,7 +328,6 @@ async function processScript (script, dynamic) {
     importMapPromise = importMapPromise.then(async () => {
       if (script.src || dynamic)
         importMapSrcOrLazy = true;
-      hasImportMap = true;
       importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
     });
   }

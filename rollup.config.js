@@ -67,12 +67,12 @@ function config(isMin) {
             sourcemap: isMin,
             banner: `/* ES Module Shims ${version} */`
         },
-        plugins: [
+        plugins: isMin ? [
             replace({
-                'globalThis.ES_MODULE_SHIMS_TEST': process.env.test ? 'true' : 'false',
+                'globalThis.ESMS_DEBUG': 'false',
                 preventAssignment: true
             }),
-            isMin && terser(terserOptions)
-        ]
+            terser(terserOptions)
+        ] : []
     };
 }

@@ -75,6 +75,7 @@ suite('Basic loading tests', () => {
   });
 
   test('should support dynamic import in an inline script', async function () {
+    await new Promise(resolve => setTimeout(resolve, 50));
     assert.equal(window.inlineScriptDynamicImportResult.default, 'bareDynamicImport');
   });
 
