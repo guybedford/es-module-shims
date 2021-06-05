@@ -1,3 +1,9 @@
+ES Module Shims 0.10.6 (2021/06/05)
+* Support for revoking blob URLs (https://github.com/guybedford/es-module-shims/pull/124, @vovacodes)
+* Include typescript types in published package (https://github.com/guybedford/es-module-shims/pull/125, @vovacodes)
+* Fix support for dynamic import in inline scripts (https://github.com/guybedford/es-module-shims/pull/128)
+* Polyfill bug fixes (https://github.com/guybedford/es-module-shims/pull/130)
+
 ES Module Shims 0.10.5 (2021/05/14)
 * Fix immediately added dynamic import maps (https://github.com/guybedford/es-module-shims/pull/123, @vovacodes)
 * Handle relative sourceURL and sourceMappingURL (https://github.com/guybedford/es-module-shims/pull/122, @vovacodes)
