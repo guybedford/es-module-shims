@@ -1,3 +1,6 @@
+ES Module Shims 0.10.7 (2021/06/10)
+* Fix import map feature detection in Safari (https://github.com/guybedford/es-module-shims/pull/131, @heypiotr)
+
 ES Module Shims 0.10.6 (2021/06/05)
 * Support for revoking blob URLs (https://github.com/guybedford/es-module-shims/pull/124, @vovacodes)
 * Include typescript types in published package (https://github.com/guybedford/es-module-shims/pull/125, @vovacodes)

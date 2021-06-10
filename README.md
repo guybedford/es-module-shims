@@ -30,10 +30,10 @@ For example, from CDN:
 
 ```html
 <!-- UNPKG -->
-<script async src="https://unpkg.com/es-module-shims@0.10.1/dist/es-module-shims.js"></script>
+<script async src="https://unpkg.com/es-module-shims@0.10.7/dist/es-module-shims.js"></script>
 
 <!-- JSPM.IO -->
-<script async src="https://ga.jspm.io/npm:es-module-shims@0.10.1/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@0.10.7/dist/es-module-shims.js"></script>
 ```
 
 Then there are two ways to use ES Module Shims:
