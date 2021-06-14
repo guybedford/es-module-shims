@@ -86,11 +86,11 @@ function revokeObjectURLs(registryKeys) {
   }
 }
 
-async function importShim (id, parentUrl = pageBaseUrl, polyfill = false) {
+async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   await featureDetectionPromise;
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
-  return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl), polyfill);
+  return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl));
 }
 
 self.importShim = importShim;
@@ -150,7 +150,7 @@ function resolveDeps (load, seen) {
     // once all deps have loaded we can inline the dependency resolution blobs
     // and define this blob
     let lastIndex = 0, depIndex = 0;
-    for (const { s: start, e: end, d: dynamicImportIndex } of imports) {
+    for (const { s: start, se: end, d: dynamicImportIndex } of imports) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
         const depLoad = load.d[depIndex++];
@@ -211,6 +211,11 @@ function resolveDeps (load, seen) {
   load.S = undefined;
 }
 
+const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
+const jsonContentType = /^application\/json(;|$)/;
+const cssContentType = /^text\/css(;|$)/;
+const wasmContentType = /^application\/wasm(;|$)/;
+
 function getOrCreateLoad (url, source) {
   let load = registry[url];
   if (load)
@@ -246,8 +251,14 @@ function getOrCreateLoad (url, source) {
         throw new Error(`${res.status} ${res.statusText} ${res.url}`);
       load.r = res.url;
       const contentType = res.headers.get('content-type');
-      if (contentType.match(/^(text|application)\/(x-)?javascript(;|$)/))
+      if (jsContentType.test(contentType))
         source = await res.text();
+      else if (jsonContentType.test(contentType))
+        source = `export default ${await res.text()}`;
+      else if (cssContentType.test(contentType))
+        throw new Error('CSS modules not yet supported');
+      else if (wasmContentType.test(contentType))
+        throw new Error('WASM modules not yet supported');
       else
         throw new Error(`Unknown Content-Type "${contentType}"`);
     }
