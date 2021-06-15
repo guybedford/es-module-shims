@@ -15,6 +15,7 @@ export const hasDocument = typeof document !== 'undefined';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsDynamicImport = false;
+export let supportsJsonModules = false;
 export let supportsJsonAssertions = false;
 export let dynamicImport;
 try {
