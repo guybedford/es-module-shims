@@ -167,7 +167,7 @@ importShim('/path/to/module.js').then(x => console.log(x));
 
 > Stability: WhatWG Standard, Single Browser Implementer
 
-JSON Modules are supported only when using import assertions in Chrome:
+JSON Modules are currently supported in Chrome when using them via an import assertion:
 
 ```html
 <script type="module">
