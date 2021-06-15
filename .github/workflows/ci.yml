@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        firefox: ['84.0']
+        firefox: ['89.0']
     name: Test
     steps:
       - uses: actions/checkout@v2
