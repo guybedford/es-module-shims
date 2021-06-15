@@ -9,8 +9,9 @@ _It turns out that we can actually polyfill new modules features on top of these
 This includes support for:
 
 * [Import Maps](https://github.com/wicg/import-maps) support.
-* `import.meta` and `import.meta.url`.
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
+* `import.meta` and `import.meta.url`.
+* JSON modules with import assertions.
 
 In addition a custom [fetch hook](#fetch-hook) can be implemented allowing for streaming in-browser transform workflows to support custom module types.
 
@@ -93,6 +94,7 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | [import.meta.resolve](#resolve)    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      |
 | [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [JSON Modules](#json-modules)      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 
 * 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
 * 2: _Module worker support cannot be implemented without dynamic import support in web workers._
@@ -107,12 +109,15 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | [import.meta.resolve](#resolve)    | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
 | [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  | :x:                                  |
 | [Import Maps](#import-maps)        | :heavy_check_mark: 89+               | :x:                                  | :x:                                  | :x:                                  |
+| [JSON Modules](#json-modules)      | :heavy_check_mark: 91+               | :x:                                  | :x:                                  | :x:                                  |
 
 * 1: _Edge executes parallel dependencies in non-deterministic order. ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
 * ~: _Indicates the exact first version support has not yet been determined (PR's welcome!)._
 * ❕<sup>1</sup>: On module redirects, Safari returns the request URL in `import.meta.url` instead of the response URL as per the spec.
 
 ### Import Maps
+
+> Stability: WhatWG Standard, Single Browser Implementer
 
 Import maps allow for importing "bare specifiers" in JavaScript modules, which prior to import maps throw in all browsers with native modules support.
 
@@ -157,6 +162,24 @@ importShim('/path/to/module.js').then(x => console.log(x));
 > Stability: Stable browser standard
 
 `import.meta.url` provides the full URL of the current module within the context of the module execution.
+
+### JSON Modules
+
+> Stability: WhatWG Standard, Single Browser Implementer
+
+JSON Modules are supported only when using import assertions in Chrome:
+
+```html
+<script type="module">
+import json from 'https://site.com/data.json' assert { type: 'json' };
+</script>
+```
+
+In addition JSON modules need to be served with a valid JSON content type.
+
+ES Module Shims will fully feature detect and shim or polyfill support as necessary for this feature in other browsers.
+
+Checks for assertion failures are not currently included.
 
 ### Resolve
 
