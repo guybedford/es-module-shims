@@ -11,21 +11,24 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        firefox: ['84.0']
-    name: Firefox ${{ matrix.firefox }} sample
+        firefox: ['60.0', '84.0', '89.0']
+    name: Browser Tests
     steps:
       - uses: actions/checkout@v2
-      - name: Use Node.js ${{ matrix.node }}
+      - name: Setup Node.js ${{ matrix.node }}
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
-      - name: Setup firefox
+      - name: Setup Firefox ${{ matrix.firefox }}
         uses: browser-actions/setup-firefox@latest
         with:
           firefox-version: ${{ matrix.firefox }}
       - name: npm install
         run: npm install
-      - name: npm build
-        run: npm build
-      - name: npm test
-        run: npm test
+      - name: npm run build
+        run: npm run build
+      - name: npm run test
+        run: npm run test
+        env:
+          CI_BROWSER: /opt/hostedtoolcache/firefox/${{ matrix.firefox }}/x64/firefox
+          CI_BROWSER_FLAGS: -headless
