@@ -49,8 +49,9 @@ http.createServer(async function (req, res) {
     }
     return;
   }
-  else if (req.url === '/error') {
-    console.log(kleur.red('Test failures found.'));
+  else if (req.url.startsWith('/error?')) {
+    const cnt = req.url.slice(7);
+    console.log(kleur.red(cnt + ' test failures found.'));
     if (shouldExit) {
       failTimeout = setTimeout(() => process.exit(1), 30000);
     }
