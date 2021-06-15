@@ -16,7 +16,7 @@ import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 
 let id = 0;
 const registry = {};
-if (globalThis.ESMS_DEBUG) {
+if (self.ESMS_DEBUG) {
   self._esmsr = registry;
 }
 

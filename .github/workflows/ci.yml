@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         firefox: ['60.0', '84.0', '89.0']
-    name: Test
+    name: Browser Tests
     steps:
       - uses: actions/checkout@v2
       - name: Setup Node.js ${{ matrix.node }}
