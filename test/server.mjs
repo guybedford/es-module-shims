@@ -5,6 +5,7 @@ import path from "path";
 import {fileURLToPath, pathToFileURL} from "url";
 import open from "open";
 import kleur from 'kleur';
+import { spawn } from 'child_process';
 
 const port = 8080;
 
@@ -102,10 +103,9 @@ http.createServer(async function (req, res) {
   res.end();
 }).listen(port);
 
-console.log(`Test server listening on http://localhost:${port}\n`);
-const openOptions = process.env.CI_BROWSER ? { app: [process.env.CI_BROWSER] } : {};
-const browser = open(`http://localhost:${port}/test/${testName}.html`, openOptions);
-browser.catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+if (process.env.CI_BROWSER) {
+  spawn(process.env.CI_BROWSER, [`http://localhost:${port}/test/${testName}.html`]);
+}
+else {
+  open(`http://localhost:${port}/test/${testName}.html`);
+}
