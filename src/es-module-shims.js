@@ -11,7 +11,6 @@ import {
   supportsImportMeta,
   supportsImportMaps,
   featureDetectionPromise,
-  supportsJsonAssertions,
   supportsJsonAssertions
 } from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';

@@ -15,7 +15,6 @@ export const hasDocument = typeof document !== 'undefined';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsDynamicImport = false;
-export let supportsJsonModules = false;
 export let supportsJsonAssertions = false;
 export let dynamicImport;
 try {
@@ -25,7 +24,7 @@ try {
 catch (e) {
   if (hasDocument) {
     let err;
-    window.addEventListener('error', e => err = e.error);
+    self.addEventListener('error', e => err = e.error);
     dynamicImport = blobUrl => {
       const topLevelBlobUrl = createBlob(
         `import*as m from'${blobUrl}';self._esmsi=m;`
@@ -38,8 +37,8 @@ catch (e) {
         s.addEventListener('load', () => {
           document.head.removeChild(s);
           if (self._esmsi) {
-            resolve(window._esmsi, baseUrl);
-            window._esmsi = null;
+            resolve(self._esmsi, baseUrl);
+            self._esmsi = null;
           }
           else {
             reject(err);
