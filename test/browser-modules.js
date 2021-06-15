@@ -274,7 +274,7 @@ suite('Source maps', () => {
   test('should include `//# sourceURL=` directive if one is not present in original module', async () => {
     const moduleURL = new URL("./fixtures/es-modules/without-source-url.js", location.href).href;
     await importShim(moduleURL);
-    const moduleBlobURL = globalThis._esmsr[moduleURL].b
+    const moduleBlobURL = window._esmsr[moduleURL].b
     const blobContent = await fetch(moduleBlobURL).then(r => r.text())
     assert(blobContent.includes(`//# sourceURL=${moduleURL}`))
   });
@@ -282,7 +282,7 @@ suite('Source maps', () => {
   test('should replace relative paths in `//# sourceURL=` directive with absolute URL', async () => {
     const moduleURL = new URL('./fixtures/es-modules/with-relative-source-url.js', location.href).href;
     await importShim(moduleURL);
-    const moduleBlobURL = globalThis._esmsr[moduleURL].b;
+    const moduleBlobURL = window._esmsr[moduleURL].b;
     const blobContent = await fetch(moduleBlobURL).then(r => r.text());
     const sourceURL = new URL('module.ts', moduleURL).href;
     assert(blobContent.endsWith(`//# sourceURL=${sourceURL}`));
@@ -293,7 +293,7 @@ suite('Source maps', () => {
   test('should replace relative paths in `//# sourceMappingURL=` directive with absolute URL and add `//# sourceURL=`', async () => {
     const moduleURL = new URL('./fixtures/es-modules/with-relative-source-mapping-url.js', location.href).href;
     await importShim(moduleURL);
-    const moduleBlobURL = globalThis._esmsr[moduleURL].b;
+    const moduleBlobURL = window._esmsr[moduleURL].b;
     const blobContent = await fetch(moduleBlobURL).then(r => r.text());
     const sourceMappingURL = new URL('./with-relative-source-mapping-url.js.map', moduleURL).href;
     assert(blobContent.endsWith(
@@ -307,7 +307,7 @@ suite('Source maps', () => {
   test('should keep original absolute URL in `//# sourceMappingURL=` directive and add `//# sourceURL=`', async () => {
     const moduleURL = new URL('./fixtures/es-modules/with-absolute-source-mapping-url.js', location.href).href;
     await importShim(moduleURL);
-    const moduleBlobURL = globalThis._esmsr[moduleURL].b;
+    const moduleBlobURL = window._esmsr[moduleURL].b;
     const blobContent = await fetch(moduleBlobURL).then(r => r.text());
     assert(blobContent.endsWith(
         `//# sourceMappingURL=https://example.com/module.js.map\n//# sourceURL=${moduleURL}`

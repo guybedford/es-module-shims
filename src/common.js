@@ -25,10 +25,10 @@ try {
 catch (e) {
   if (hasDocument) {
     let err;
-    self.addEventListener('error', e => err = e.error);
+    window.addEventListener('error', e => err = e.error);
     dynamicImport = blobUrl => {
       const topLevelBlobUrl = createBlob(
-        `import*as m from'${blobUrl}';self._esmsm=m`
+        `import*as m from'${blobUrl}';self._esmsi=m;`
       );
       const s = document.createElement('script');
       s.type = 'module';
@@ -37,9 +37,9 @@ catch (e) {
       return new Promise((resolve, reject) => {
         s.addEventListener('load', () => {
           document.head.removeChild(s);
-          if ('_esmsm' in self) {
-            resolve(self._esmsm, baseUrl);
-            delete self._esmsm;
+          if (self._esmsi) {
+            resolve(window._esmsi, baseUrl);
+            window._esmsi = null;
           }
           else {
             reject(err);
@@ -54,8 +54,8 @@ export let supportsImportMeta = false;
 export let supportsImportMaps = false;
 
 export const featureDetectionPromise = Promise.all([
-  dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true),
-  dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true),
+  dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true, () => {}),
+  dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, () => {}),
   supportsDynamicImport && hasDocument && new Promise(resolve => {
     self._$s = v => {
       document.body.removeChild(iframe);
