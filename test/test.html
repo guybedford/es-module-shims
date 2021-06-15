@@ -29,7 +29,9 @@
   console.log(test);
 </script>
 <script type="module-shim">
-  window.inlineScriptDynamicImportResult = await import("bare-dynamic-import");
+  import("bare-dynamic-import").then(m => {
+    window.inlineScriptDynamicImportResult = m;
+  })
 </script>
 <script type="module-shim">
   syntax-error();
