@@ -10,7 +10,8 @@ import {
   supportsDynamicImport,
   supportsImportMeta,
   supportsImportMaps,
-  featureDetectionPromise
+  featureDetectionPromise,
+  supportsJsonAssertions
 } from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 
@@ -251,16 +252,23 @@ function getOrCreateLoad (url, source) {
         throw new Error(`${res.status} ${res.statusText} ${res.url}`);
       load.r = res.url;
       const contentType = res.headers.get('content-type');
-      if (jsContentType.test(contentType))
+      if (jsContentType.test(contentType)) {
         source = await res.text();
-      else if (jsonContentType.test(contentType))
+      }
+      else if (jsonContentType.test(contentType)) {
+        if (!supportsJsonAssertions)
+          load.n = true;
         source = `export default ${await res.text()}`;
-      else if (cssContentType.test(contentType))
+      }
+      else if (cssContentType.test(contentType)) {
         throw new Error('CSS modules not yet supported');
-      else if (wasmContentType.test(contentType))
+      }
+      else if (wasmContentType.test(contentType)) {
         throw new Error('WASM modules not yet supported');
-      else
+      }
+      else {
         throw new Error(`Unknown Content-Type "${contentType}"`);
+      }
     }
     try {
       load.a = parse(source, load.u);

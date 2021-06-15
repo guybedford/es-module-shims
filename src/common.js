@@ -15,6 +15,7 @@ export const hasDocument = typeof document !== 'undefined';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsDynamicImport = false;
+export let supportsJsonAssertions = false;
 export let dynamicImport;
 try {
   dynamicImport = (0, eval)('u=>import(u)');
@@ -52,6 +53,7 @@ export let supportsImportMeta = false;
 export let supportsImportMaps = false;
 
 export const featureDetectionPromise = Promise.all([
+  dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true),
   dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true),
   supportsDynamicImport && hasDocument && new Promise(resolve => {
     self._$s = v => {
