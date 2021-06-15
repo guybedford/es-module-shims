@@ -31,7 +31,7 @@ function setBrowserTimeout () {
         clearTimeout(browserTimeout);
     browserTimeout = setTimeout(() => {
         console.log('No browser requests made to server for 10s, closing.');
-        process.exit(failTimeout || process.env.CI ? 1 : 0);
+        process.exit(failTimeout || process.env.CI_BROWSER ? 1 : 0);
     }, 10000);
 }
 
@@ -103,5 +103,5 @@ http.createServer(async function (req, res) {
 }).listen(port);
 
 console.log(`Test server listening on http://localhost:${port}\n`);
-const openOptions = process.env.CI ? { app: ['firefox'] } : {};
+const openOptions = process.env.CI_BROWSER ? { app: [process.env.CI_BROWSER] } : {};
 open(`http://localhost:${port}/test/${testName}.html`, openOptions);

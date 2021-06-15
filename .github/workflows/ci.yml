@@ -30,4 +30,4 @@ jobs:
       - name: npm test
         run: npm test
         env:
-          CI: true
+          CI_BROWSER: /opt/hostedtoolcache/firefox/84.0/x64/firefox
