@@ -187,7 +187,7 @@ function resolveDeps (load, seen) {
       }
       // dynamic import
       else {
-        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}him(${source.slice(start, end)}, ${load.r && urlJsString(load.r)}`;
+        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, end)}, ${load.r && urlJsString(load.r)}`;
         lastIndex = end;
       }
     }
