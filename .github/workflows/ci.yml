@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ $default-branch ]
+  pull_request:
+    branches: [ $default-branch ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        firefox: ['84.0']
+    name: Firefox ${{ matrix.firefox }} sample
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Setup firefox
+        uses: browser-actions/setup-firefox@latest
+        with:
+          firefox-version: ${{ matrix.firefox }}
+      - name: npm install
+        run: npm install
+      - name: npm build
+        run: npm build
+      - name: npm test
+        run: npm test
