@@ -11,7 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        firefox: ['60.0', '84.0', '89.0']
+        firefox: [
+          '60.0', # modules support
+          '67.0', # import(), import.meta
+          '89.0'  # top-level await
+        ]
     name: Firefox Browser Tests
     steps:
       - uses: actions/checkout@v2
