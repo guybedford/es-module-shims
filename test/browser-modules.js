@@ -65,6 +65,11 @@ suite('Basic loading tests', () => {
     assert.equal(m.name, new URL('./fixtures/es-modules/moduleName.js', baseURL).href);
   });
 
+  test('should support import assertions', async function () {
+    var m = await importShim('./fixtures/json-assertion.js');
+    assert.equal(m.m, 'module');
+  });
+
   test('should support dynamic import', async function () {
     var m = await importShim('./fixtures/es-modules/dynamic-import.js');
     var dynamicModule = await m.doImport();

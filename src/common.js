@@ -15,6 +15,7 @@ export const hasDocument = typeof document !== 'undefined';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsDynamicImport = false;
+export let supportsJsonAssertions = false;
 export let dynamicImport;
 try {
   dynamicImport = (0, eval)('u=>import(u)');
@@ -23,7 +24,7 @@ try {
 catch (e) {
   if (hasDocument) {
     let err;
-    window.addEventListener('error', e => err = e.error);
+    self.addEventListener('error', e => err = e.error);
     dynamicImport = blobUrl => {
       const topLevelBlobUrl = createBlob(
         `import*as m from'${blobUrl}';self._esmsi=m;`
@@ -36,8 +37,8 @@ catch (e) {
         s.addEventListener('load', () => {
           document.head.removeChild(s);
           if (self._esmsi) {
-            resolve(window._esmsi, baseUrl);
-            window._esmsi = null;
+            resolve(self._esmsi, baseUrl);
+            self._esmsi = null;
           }
           else {
             reject(err);
@@ -52,6 +53,7 @@ export let supportsImportMeta = false;
 export let supportsImportMaps = false;
 
 export const featureDetectionPromise = Promise.all([
+  dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true, () => {}),
   dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, () => {}),
   supportsDynamicImport && hasDocument && new Promise(resolve => {
     self._$s = v => {
