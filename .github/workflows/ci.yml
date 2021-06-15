@@ -30,4 +30,5 @@ jobs:
       - name: npm run test
         run: npm run test
         env:
-          CI_BROWSER: /opt/hostedtoolcache/firefox/84.0/x64/firefox -headless
+          CI_BROWSER: /opt/hostedtoolcache/firefox/84.0/x64/firefox
+          CI_BROWSER_FLAGS: -headless
