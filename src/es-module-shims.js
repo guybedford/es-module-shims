@@ -172,13 +172,13 @@ function resolveDeps (load, seen) {
         }
         // circular shell execution
         else if (depLoad.s) {
-          resolvedSource += `${source.slice(lastIndex, start - 1)}/*${source.slice(start - 1, end + 1)}*/${urlJsString(blobUrl)};import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
-          lastIndex = end + 1;
+          resolvedSource += `${source.slice(lastIndex, start - 1)}/*${source.slice(start - 1, end)}*/${urlJsString(blobUrl)};import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
+          lastIndex = end;
           depLoad.s = undefined;
           continue;
         }
-        resolvedSource += `${source.slice(lastIndex, start - 1)}/*${source.slice(start - 1, end + 1)}*/${urlJsString(blobUrl)}`;
-        lastIndex = end + 1;
+        resolvedSource += `${source.slice(lastIndex, start - 1)}/*${source.slice(start - 1, end)}*/${urlJsString(blobUrl)}`;
+        lastIndex = end;
       }
       // import.meta
       else if (dynamicImportIndex === -2) {
