@@ -1,3 +1,6 @@
+ES Module Shims 0.11.1 (2021/06/17)
+* Fixup replacement offset regression (https://github.com/guybedford/es-module-shims/pull/140)
+
 ES Module Shims 0.11.0 (2021/06/15)
 * Support for JSON modules and import assertions (https://github.com/guybedford/es-module-shims/commit/2d7eb193986d51733fa6394ad699ee70e5060a13)
 * Fix dynamic import bug in Firefox <67 (https://github.com/guybedford/es-module-shims/commit/3f3d71fc3dd76ba1a965ae00285823672f34c138)
