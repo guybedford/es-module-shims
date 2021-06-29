@@ -176,7 +176,7 @@ Preloading of modules can be achieved by including a `<link rel="modulepreload" 
 
 This tag also supports the `"integrity"`, `"crossorigin"` and `"referrerpolicy"` attributes as supported on module scripts.
 
-This tag just iniates a fetch request in the browser and thus works equally as a preload polyfill in both shimmed and unshimmed modes.
+This tag just initiates a fetch request in the browser and thus works equally as a preload polyfill in both shimmed and unshimmed modes, with integrity validation support.
 
 Unlike the browser specification, the modulepreload polyfill does not request dependency modules by default, in order to avoid unnecessary
 code analysis in the polyfill scenarios. **It is recommended to preload deep imports anyway so that this feature shouldn't be necessary.**
