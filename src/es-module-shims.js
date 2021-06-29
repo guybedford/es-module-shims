@@ -327,7 +327,7 @@ new MutationObserver(mutations => {
     for (const node of mutation.addedNodes) {
       if (node.tagName === 'SCRIPT' && node.type)
         processScript(node, !firstTopLevelProcess);
-      else if (node.tagName === 'LINK' && node.rel)
+      else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
         processPreload(node);
     }
   }
