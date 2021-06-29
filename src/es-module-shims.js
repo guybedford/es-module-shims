@@ -33,7 +33,7 @@ async function loadAll (load, seen) {
 
 let waitingForImportMapsInterval;
 let firstTopLevelProcess = true;
-async function topLevelLoad (url, source, nativelyLoaded) {
+async function topLevelLoad (url, fetchOpts, source, nativelyLoaded) {
   // no need to even fetch if we have feature support
   await featureDetectionPromise;
   if (waitingForImportMapsInterval > 0) {
@@ -51,7 +51,7 @@ async function topLevelLoad (url, source, nativelyLoaded) {
     return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
   }
   await init;
-  const load = getOrCreateLoad(url, source);
+  const load = getOrCreateLoad(url, fetchOpts, source);
   const seen = {};
   await loadAll(load, seen);
   lastLoad = undefined;
@@ -91,7 +91,7 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   await featureDetectionPromise;
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
-  return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl));
+  return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
 
 self.importShim = importShim;
@@ -110,7 +110,7 @@ self._esmsm = meta;
 const esmsInitOptions = self.esmsInitOptions || {};
 delete self.esmsInitOptions;
 let shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
-const fetchHook = esmsInitOptions.fetch || (url => fetch(url));
+const fetchHook = esmsInitOptions.fetch || ((url, opts) => fetch(url, opts));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
 const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
@@ -217,7 +217,9 @@ const jsonContentType = /^application\/json(;|$)/;
 const cssContentType = /^text\/css(;|$)/;
 const wasmContentType = /^application\/wasm(;|$)/;
 
-function getOrCreateLoad (url, source) {
+const fetchOptsMap = new Map();
+
+function getOrCreateLoad (url, fetchOpts, source) {
   let load = registry[url];
   if (load)
     return load;
@@ -247,7 +249,8 @@ function getOrCreateLoad (url, source) {
 
   load.f = (async () => {
     if (!source) {
-      const res = await fetchHook(url, { credentials: 'same-origin' });
+      // preload fetch options override fetch options (race)
+      const res = await fetchHook(url, fetchOptsMap.get(url) || fetchOpts);
       if (!res.ok)
         throw new Error(`${res.status} ${res.statusText} ${res.url}`);
       load.r = res.url;
@@ -275,6 +278,7 @@ function getOrCreateLoad (url, source) {
   })();
 
   load.L = load.f.then(async () => {
+    let childFetchOpts = fetchOpts;
     load.d = await Promise.all(load.a[0].map(({ n, d, a }) => {
       if (d >= 0 && !supportsDynamicImport ||
           d === 2 && (!supportsImportMeta || source.slice(end, end + 8) === '.resolve') ||
@@ -288,7 +292,9 @@ function getOrCreateLoad (url, source) {
       if (!r)
         throwUnresolved(n, load.r || load.u);
       if (skip.test(r)) return { b: r };
-      return getOrCreateLoad(r).f;
+      if (childFetchOpts.integrity)
+        childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
+      return getOrCreateLoad(r, childFetchOpts).f;
     }).filter(l => l));
   });
 
@@ -309,6 +315,8 @@ async function processScripts () {
     clearTimeout(waitingForImportMapsInterval);
     waitingForImportMapsInterval = 0;
   }
+  for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
+    processPreload(link);
   for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]'))
     await processScript(script);
 }
@@ -319,9 +327,26 @@ new MutationObserver(mutations => {
     for (const node of mutation.addedNodes) {
       if (node.tagName === 'SCRIPT' && node.type)
         processScript(node, !firstTopLevelProcess);
+      else if (node.tagName === 'LINK' && node.rel)
+        processPreload(node);
     }
   }
 }).observe(document, { childList: true, subtree: true });
+
+function getFetchOpts (script) {
+  const fetchOpts = {};
+  if (script.integrity)
+    fetchOpts.integrity = script.integrity;
+  if (script.referrerpolicy)
+    fetchOpts.referrerPolicy = script.referrerpolicy;
+  if (script.crossorigin === 'use-credentials')
+    fetchOpts.credentials = 'include';
+  else if (script.crossorigin === 'anonymous')
+    fetchOpts.credentials = 'omit';
+  else
+    fetchOpts.credentials = 'same-origin';
+  return fetchOpts;
+}
 
 async function processScript (script, dynamic) {
   if (script.ep) // ep marker = script processed
@@ -336,7 +361,7 @@ async function processScript (script, dynamic) {
     return;
   script.ep = true;
   if (type === 'module') {
-    await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, !script.src && script.innerHTML, !shim).catch(onerror);
+    await topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shim).catch(onerror);
   }
   else if (type === 'importmap') {
     importMapPromise = importMapPromise.then(async () => {
@@ -345,6 +370,17 @@ async function processScript (script, dynamic) {
       importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
     });
   }
+}
+
+function processPreload (link) {
+  if (link.ep) // ep marker = processed
+    return;
+  link.ep = true;
+  // prepopulate the load record
+  const fetchOpts = getFetchOpts(link);
+  // save preloaded fetch options for later load  
+  fetchOptsMap.set(link.href, fetchOpts);
+  fetch(link.href, fetchOpts);
 }
 
 function resolve (id, parentUrl) {
