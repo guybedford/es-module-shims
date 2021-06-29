@@ -1,3 +1,6 @@
+ES Module SHims 0.12.1 (2021/06/29)
+* Fixup dynamic injection of modulepreload (f231485)
+
 ES Module Shims 0.12.0 (2021/06/29)
 * Support modulepreload polyfilling (https://github.com/guybedford/es-module-shims/pull/141)
 
