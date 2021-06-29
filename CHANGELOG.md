@@ -1,3 +1,6 @@
+ES Module Shims 0.12.0 (2021/06/29)
+* Support modulepreload polyfilling (https://github.com/guybedford/es-module-shims/pull/141)
+
 ES Module Shims 0.11.1 (2021/06/17)
 * Fixup replacement offset regression (https://github.com/guybedford/es-module-shims/pull/140)
 
