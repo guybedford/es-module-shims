@@ -7,6 +7,7 @@ import {
   resolveIfNotPlainOrUrl,
   resolvedPromise,
   dynamicImport,
+  supportsModulePreload,
   supportsDynamicImport,
   supportsImportMeta,
   supportsImportMaps,
@@ -315,8 +316,10 @@ async function processScripts () {
     clearTimeout(waitingForImportMapsInterval);
     waitingForImportMapsInterval = 0;
   }
-  for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
-    processPreload(link);
+  if (!supportsModulePreload) {
+    for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
+      processPreload(link);
+  }
   for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]'))
     await processScript(script);
 }
@@ -327,7 +330,7 @@ new MutationObserver(mutations => {
     for (const node of mutation.addedNodes) {
       if (node.tagName === 'SCRIPT' && node.type)
         processScript(node, !firstTopLevelProcess);
-      else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
+      else if (!supportsModulePreload && node.tagName === 'LINK' && node.rel === 'modulepreload')
         processPreload(node);
     }
   }
