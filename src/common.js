@@ -13,6 +13,7 @@ export function createBlob (source, type = 'text/javascript') {
 
 export const hasDocument = typeof document !== 'undefined';
 
+export const supportsModulePreload = document.createElement('link').relList.supports('modulepreload');
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsDynamicImport = false;
 export let supportsJsonAssertions = false;
