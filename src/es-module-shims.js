@@ -329,6 +329,14 @@ new MutationObserver(mutations => {
         processScript(node, !firstTopLevelProcess);
       else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
         processPreload(node);
+      else if (node.querySelectorAll) {
+        for (const script of node.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]')) {
+          processScript(script, !firstTopLevelProcess);
+        }
+        for (const link of node.querySelectorAll('link[rel=modulepreload]')) {
+          processPreload(link);
+        }
+      }
     }
   }
 }).observe(document, { childList: true, subtree: true });
