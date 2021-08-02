@@ -91,7 +91,8 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   await featureDetectionPromise;
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
-  return topLevelLoad(resolve(id, parentUrl).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
+  const resolved = await resolveHook(id, parentUrl);
+  return topLevelLoad(resolved.r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
 
 self.importShim = importShim;
@@ -102,7 +103,8 @@ const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 async function importMetaResolve (id, parentUrl = this.url) {
   await importMapPromise;
-  return resolve(id, `${parentUrl}`).r || throwUnresolved(id, parentUrl);
+  const resolved = await resolveHook(id, `${parentUrl}`);
+  return resolved.r || throwUnresolved(id, parentUrl);
 }
 
 self._esmsm = meta;
@@ -142,7 +144,7 @@ function resolveDeps (load, seen) {
   const source = load.S;
 
   // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
-  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';  
+  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';
 
   if (!imports.length) {
     resolvedSource += source;
@@ -279,13 +281,13 @@ function getOrCreateLoad (url, fetchOpts, source) {
 
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
-    load.d = await Promise.all(load.a[0].map(({ n, d, a }) => {
+    load.d = await Promise.all(load.a[0].map(async ({ n, d, a }) => {
       if (d >= 0 && !supportsDynamicImport ||
           d === 2 && (!supportsImportMeta || source.slice(end, end + 8) === '.resolve') ||
           a && !supportsJsonAssertions)
         load.n = true;
       if (!n) return;
-      const { r, m } = resolve(n, load.r || load.u);
+      const { r, m } = await resolveHook(n, load.r || load.u);
       if (m && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
       if (d !== -1) return;
@@ -386,12 +388,31 @@ function processPreload (link) {
   link.ep = true;
   // prepopulate the load record
   const fetchOpts = getFetchOpts(link);
-  // save preloaded fetch options for later load  
+  // save preloaded fetch options for later load
   fetchOptsMap.set(link.href, fetchOpts);
   fetch(link.href, fetchOpts);
 }
 
-function resolve (id, parentUrl) {
+
+async function resolveHook(id, parentUrl) {
+  if (esmsInitOptions.resolve) {
+    const resolved = await esmsInitOptions.resolve(id, parentUrl, defaultResolver);
+
+    if (!resolved) {
+      return defaultResolver(id, parentUrl);
+    }
+
+    if (typeof resolved === 'string') {
+      return { r: resolved }
+    }
+
+    return resolved;
+  }
+
+  return defaultResolver(id, parentUrl);
+}
+
+function defaultResolver (id, parentUrl) {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
   const resolved = resolveImportMap(importMap, urlResolved || id, parentUrl);
   return { r: resolved, m: urlResolved !== resolved };
