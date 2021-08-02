@@ -297,7 +297,8 @@ function getOrCreateLoad (url, fetchOpts, source) {
       if (childFetchOpts.integrity)
         childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
       return getOrCreateLoad(r, childFetchOpts).f;
-    }).filter(l => l));
+    }));
+    load.d = load.d.filter(l => l);
   });
 
   return load;
