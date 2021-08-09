@@ -91,7 +91,7 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   await featureDetectionPromise;
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
-  const resolved = await resolveHook(id, parentUrl);
+  const resolved = await resolve(id, parentUrl);
   return topLevelLoad(resolved.r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
 
@@ -103,7 +103,7 @@ const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 async function importMetaResolve (id, parentUrl = this.url) {
   await importMapPromise;
-  const resolved = await resolveHook(id, `${parentUrl}`);
+  const resolved = await resolve(id, `${parentUrl}`);
   return resolved.r || throwUnresolved(id, parentUrl);
 }
 
@@ -287,7 +287,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
           a && !supportsJsonAssertions)
         load.n = true;
       if (!n) return;
-      const { r, m } = await resolveHook(n, load.r || load.u);
+      const { r, m } = await resolve(n, load.r || load.u);
       if (m && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
       if (d !== -1) return;
@@ -395,26 +395,17 @@ function processPreload (link) {
 }
 
 
-async function resolveHook(id, parentUrl) {
+async function resolve(id, parentUrl) {
+  let urlResolved;
+
   if (esmsInitOptions.resolve) {
-    const resolved = await esmsInitOptions.resolve(id, parentUrl, defaultResolver);
-
-    if (!resolved) {
-      return defaultResolver(id, parentUrl);
-    }
-
-    if (typeof resolved === 'string') {
-      return { r: resolved }
-    }
-
-    return resolved;
+    urlResolved = await esmsInitOptions.resolve(id, parentUrl, resolveIfNotPlainOrUrl);
   }
 
-  return defaultResolver(id, parentUrl);
-}
+  if (!urlResolved) {
+    urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
+  }
 
-function defaultResolver (id, parentUrl) {
-  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
   const resolved = resolveImportMap(importMap, urlResolved || id, parentUrl);
   return { r: resolved, m: urlResolved !== resolved };
 }
