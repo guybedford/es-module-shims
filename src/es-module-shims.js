@@ -281,7 +281,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
 
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
-    load.d = await Promise.all(load.a[0].map(async ({ n, d, a }) => {
+    load.d = (await Promise.all(load.a[0].map(async ({ n, d, a }) => {
       if (d >= 0 && !supportsDynamicImport ||
           d === 2 && (!supportsImportMeta || source.slice(end, end + 8) === '.resolve') ||
           a && !supportsJsonAssertions)
@@ -297,8 +297,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
       if (childFetchOpts.integrity)
         childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
       return getOrCreateLoad(r, childFetchOpts).f;
-    }));
-    load.d = load.d.filter(l => l);
+    }))).filter(l => l);
   });
 
   return load;
@@ -396,17 +395,16 @@ function processPreload (link) {
 
 
 async function resolve(id, parentUrl) {
-  let urlResolved;
+  let urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);;
 
+  let resolved;
   if (esmsInitOptions.resolve) {
-    urlResolved = await esmsInitOptions.resolve(id, parentUrl, resolveIfNotPlainOrUrl);
+    resolved = await esmsInitOptions.resolve(id, parentUrl, resolveIfNotPlainOrUrl);
+  }
+  else {
+    resolved = resolveImportMap(importMap, urlResolved || id, parentUrl);
   }
 
-  if (!urlResolved) {
-    urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
-  }
-
-  const resolved = resolveImportMap(importMap, urlResolved || id, parentUrl);
   return { r: resolved, m: urlResolved !== resolved };
 }
 
