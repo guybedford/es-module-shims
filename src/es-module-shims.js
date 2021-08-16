@@ -393,11 +393,11 @@ function processPreload (link) {
   fetch(link.href, fetchOpts);
 }
 
-function defaultResolve(id, parentUrl) {
+async function defaultResolve (id, parentUrl) {
   return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl);
 }
 
-async function resolve(id, parentUrl) {
+async function resolve (id, parentUrl) {
   let urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
 
   let resolved;

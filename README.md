@@ -297,7 +297,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 
 ```html
 <script>
-  globalThis.esmsInitOptions = {
+  window.esmsInitOptions = {
     fetch: (url => fetch(url)),
     skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
     onerror: ((e) => { throw e; }),
@@ -315,7 +315,7 @@ See below for a detailed description of each of these options.
 
 ```js
 <script>
-  globalThis.esmsInitOptions = {
+  window.esmsInitOptions = {
     shimMode: true
   }
 </script>
@@ -326,7 +326,7 @@ For example, if lazy loading `<script type="module-shim">` scripts shim mode wou
 Conversely, setting `shimMode: false` allows for branching workflows between the native loader and ES module shims:
 
 ```js
-<script>globalThis.esmsInitOptions = { shimMode: false }</script>
+<script>window.esmsInitOptions = { shimMode: false }</script>
 <script type="importmap">
 {
   "imports": {
@@ -357,7 +357,7 @@ This can be configured by providing a URL regular expression for the `skip` opti
 
 ```js
 <script>
-  globalThis.esmsInitOptions = {
+  window.esmsInitOptions = {
     skip: /^https:\/\/cdn\.com/ // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
   }
 </script>
@@ -372,11 +372,29 @@ You can provide a function to handle errors during the module loading process by
 
 ```js
 <script>
-  globalThis.esmsInitOptions = {
+  window.esmsInitOptions = {
     onerror: error => console.log(error) // defaults to `((e) => { throw e; })`
   }
 </script>
 <script async src="es-module-shims.js"></script>
+```
+
+#### Resolve Hook
+
+The resolve hook allows full customization of the resolver, while still having access to the original resolve function.
+
+```js
+<script>
+  window.esmsInitOptions = {
+    resolve: async function (id, parentUrl, defaultResolve) {
+      if (id === 'custom' && parentUrl.startsWith('https://custom.com/'))
+        return 'https://custom.com/custom.js';
+
+      // Default resolve will handle the typical URL and import map resolution
+      return defaultResolve(id, parentUrl);
+    }
+  }
+</script>
 ```
 
 #### Fetch Hook
@@ -391,7 +409,7 @@ For example:
 
 ```js
 <script>
-  globalThis.esmsInitOptions = {
+  window.esmsInitOptions = {
     fetch: async function (url) {
       const response = await fetch(url);
       if (response.url.endsWith('.ts')) {
@@ -412,7 +430,7 @@ the above is all that is needed to implement custom plugins.
 Streaming support is also provided, for example here is a hook with streaming support for JSON:
 
 ```js
-globalThis.esmsInitOptions = {
+window.esmsInitOptions = {
   fetch: async function (url) {
     const response = await fetch(url);
     if (!response.ok)
@@ -453,7 +471,7 @@ You can do that by enabling the `revokeBlobURLs` init option:
 
 ```js
 <script>
-  globalThis.esmsInitOptions = {
+  window.esmsInitOptions = {
     revokeBlobURLs: true
   }
 </script>
