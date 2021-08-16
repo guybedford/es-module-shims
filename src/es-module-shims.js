@@ -398,7 +398,7 @@ function defaultResolve(id, parentUrl) {
 }
 
 async function resolve(id, parentUrl) {
-  let urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);;
+  let urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
 
   let resolved;
   if (esmsInitOptions.resolve) {
