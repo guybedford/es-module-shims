@@ -39,10 +39,14 @@
 </script>
 <script>
   window.resolveHook = (id, parentUrl, defaultResolve) => defaultResolve(id, parentUrl);
+  window.fetchHook = url => fetch(url);
   window.esmsInitOptions = {
     shimMode: true,
     resolve (id, parentUrl, defaultResolve) {
       return window.resolveHook(id, parentUrl, defaultResolve);
+    },
+    fetch (url) {
+      return window.fetchHook(url);
     },
     onerror: e => window.e = e,
   };
@@ -52,7 +56,7 @@
 <script type="module" src="../src/es-module-shims.js"></script>
 <script type="module" noshim>
   import { runMochaTests } from "./runMochaTests.js";
-  runMochaTests(['browser-modules', 'resolve-hook'])
+  runMochaTests(['browser-modules', 'fetch-hook', 'resolve-hook'])
 </script>
 
 <div id="mocha"></div>
