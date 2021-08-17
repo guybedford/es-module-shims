@@ -219,7 +219,22 @@ const jsonContentType = /^application\/json(;|$)/;
 const cssContentType = /^text\/css(;|$)/;
 const wasmContentType = /^application\/wasm(;|$)/;
 
-const fetchOptsMap = new Map();
+async function doFetch (url, fetchOpts) {
+  const res = await fetchHook(url, fetchOpts);
+  if (!res.ok)
+    throw new Error(`${res.status} ${res.statusText} ${res.url}`);
+  const contentType = res.headers.get('content-type');
+  if (jsContentType.test(contentType))
+    return { r: res.url, s: await res.text() };
+  else if (jsonContentType.test(contentType))
+    return { r: res.url, s: `export default ${await res.text()}` };
+  else if (cssContentType.test(contentType))
+    throw new Error('CSS modules not yet supported');
+  else if (wasmContentType.test(contentType))
+    throw new Error('WASM modules not yet supported');
+  else
+    throw new Error(`Unknown Content-Type "${contentType}"`);
+}
 
 function getOrCreateLoad (url, fetchOpts, source) {
   let load = registry[url];
@@ -252,21 +267,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
   load.f = (async () => {
     if (!source) {
       // preload fetch options override fetch options (race)
-      const res = await fetchHook(url, fetchOptsMap.get(url) || fetchOpts);
-      if (!res.ok)
-        throw new Error(`${res.status} ${res.statusText} ${res.url}`);
-      load.r = res.url;
-      const contentType = res.headers.get('content-type');
-      if (jsContentType.test(contentType))
-        source = await res.text();
-      else if (jsonContentType.test(contentType))
-        source = `export default ${await res.text()}`;
-      else if (cssContentType.test(contentType))
-        throw new Error('CSS modules not yet supported');
-      else if (wasmContentType.test(contentType))
-        throw new Error('WASM modules not yet supported');
-      else
-        throw new Error(`Unknown Content-Type "${contentType}"`);
+      ({ r: load.r, s: source } = await (fetchCache[url] || doFetch(url, fetchOpts)));
     }
     try {
       load.a = parse(source, load.u);
@@ -382,15 +383,12 @@ async function processScript (script, dynamic) {
   }
 }
 
+const fetchCache = {};
 function processPreload (link) {
   if (link.ep) // ep marker = processed
     return;
   link.ep = true;
-  // prepopulate the load record
-  const fetchOpts = getFetchOpts(link);
-  // save preloaded fetch options for later load
-  fetchOptsMap.set(link.href, fetchOpts);
-  fetch(link.href, fetchOpts);
+  fetchCache[link.href] = doFetch(link.href, getFetchOpts(link));
 }
 
 async function defaultResolve (id, parentUrl) {
