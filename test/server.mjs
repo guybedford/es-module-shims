@@ -51,7 +51,7 @@ http.createServer(async function (req, res) {
     if (shouldExit) {
       if (spawnPs)
         spawnPs.kill('SIGKILL');
-      setTimeout(() => process.exit(), 1000);
+      setTimeout(() => process.exit(), 500);
     }
     return;
   }
