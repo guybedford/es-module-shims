@@ -7,10 +7,14 @@
     "build": "rollup -c",
     "footprint": "npm run build && cat dist/es-module-shims.min.js | gzip -9f | wc -c",
     "prepublishOnly": "npm run build",
-    "test": "node test/server.mjs",
+    "test": "npm run test:test && npm run test:test-base-href && npm run test:test-noshim && npm run test:test-preload-case && npm run test:test-revoke-blob-urls",
+    "test:test": "node test/server.mjs",
+    "test:test-base-href": "cross-env TEST_NAME=test-base-href node test/server.mjs",
+    "test:test-noshim": "cross-env TEST_NAME=test-noshim node test/server.mjs",
+    "test:test-preload-case": "cross-env TEST_NAME=test-preload-case node test/server.mjs",
+    "test:test-revoke-blob-urls": "cross-env TEST_NAME=test-revoke-blob-urls node test/server.mjs",
     "test:watch": "cross-env WATCH_MODE=true node test/server.mjs",
-    "test:perf": "cross-env TEST_NAME=perf node test/server.mjs",
-    "test:revoke-blob-urls": "cross-env TEST_NAME=test-revoke-blob-urls node test/server.mjs"
+    "test:perf": "cross-env TEST_NAME=perf node test/server.mjs"
   },
   "types": "index.d.ts",
   "type": "module",

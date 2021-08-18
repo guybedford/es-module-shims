@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script async src="/dist/es-module-shims.min.js"></script>
   <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.esm.browser.js">
+  <script async src="/src/es-module-shims.min.js"></script>
   <script type="importmap">
     { "imports": { "vue": "https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.esm.browser.js" } }
   </script>
   <script type="module">
     import Vue from 'vue'
-    new Vue({ el: '#app-4', data: { todos: [ { text: 'Learn JavaScript' }, { text: 'Learn Vue' }, { text: 'Build something awesome' } ] } })
+    new Vue({ el: '#app-4', data: { todos: [ { text: 'Learn JavaScript' }, { text: 'Learn Vue' }, { text: 'Build something awesome' } ] } });
+
+    fetch('/done');
   </script>
 </head>
 <body>

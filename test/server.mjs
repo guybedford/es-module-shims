@@ -20,8 +20,8 @@ const mimes = {
   '.wasm': 'application/wasm'
 };
 
-const shouldExit = process.env.WATCH_MODE !== 'true'
-const testName = process.env.TEST_NAME ?? 'test'
+const shouldExit = process.env.WATCH_MODE !== 'true';
+const testName = process.env.TEST_NAME ?? 'test';
 
 let failTimeout, browserTimeout;
 

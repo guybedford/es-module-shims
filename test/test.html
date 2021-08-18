@@ -7,7 +7,8 @@
   "imports": {
     "test": "/test/fixtures/es-modules/es6-file.js",
     "test/": "/test/fixtures/",
-    "bare-dynamic-import": "/test/fixtures/es-modules/bare-dynamic-import.js"
+    "bare-dynamic-import": "/test/fixtures/es-modules/bare-dynamic-import.js",
+    "react": "https://ga.jspm.io/npm:react@17.0.2/dev.index.js"
   },
   "scopes": {
     "/": {
@@ -15,6 +16,9 @@
     },
     "/test/fixtures/es-modules/import-relative-path.js": {
       "./fixtures/es-modules/relative-path": "./fixtures/es-modules/es6-dep.js"
+    },
+    "https://ga.jspm.io/": {
+      "object-assign": "https://ga.jspm.io/npm:object-assign@4.1.1/index.js"
     }
   }
 }
