@@ -31,6 +31,10 @@ async function loadAll (load, seen) {
     load.n = load.d.some(dep => dep.n);
 }
 
+let importMap = { imports: {}, scopes: {} };
+let importMapSrcOrLazy = false;
+let importMapPromise = resolvedPromise;
+
 let waitingForImportMapsInterval;
 let firstTopLevelProcess = true;
 async function topLevelLoad (url, fetchOpts, source, nativelyLoaded) {
@@ -304,15 +308,6 @@ function getOrCreateLoad (url, fetchOpts, source) {
   return load;
 }
 
-let importMap = { imports: {}, scopes: {} };
-let importMapSrcOrLazy = false;
-let importMapPromise = resolvedPromise;
-
-if (hasDocument) {
-  processScripts();
-  waitingForImportMapsInterval = setInterval(processScripts, 20);
-}
-
 async function processScripts () {
   if (waitingForImportMapsInterval > 0 && document.readyState !== 'loading') {
     clearTimeout(waitingForImportMapsInterval);
@@ -323,26 +318,6 @@ async function processScripts () {
   for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]'))
     await processScript(script);
 }
-
-new MutationObserver(mutations => {
-  for (const mutation of mutations) {
-    if (mutation.type !== 'childList') continue;
-    for (const node of mutation.addedNodes) {
-      if (node.tagName === 'SCRIPT' && node.type)
-        processScript(node, !firstTopLevelProcess);
-      else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
-        processPreload(node);
-      else if (node.querySelectorAll) {
-        for (const script of node.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]')) {
-          processScript(script, !firstTopLevelProcess);
-        }
-        for (const link of node.querySelectorAll('link[rel=modulepreload]')) {
-          processPreload(link);
-        }
-      }
-    }
-  }
-}).observe(document, { childList: true, subtree: true });
 
 function getFetchOpts (script) {
   const fetchOpts = {};
@@ -391,6 +366,26 @@ function processPreload (link) {
   fetchCache[link.href] = doFetch(link.href, getFetchOpts(link));
 }
 
+new MutationObserver(mutations => {
+  for (const mutation of mutations) {
+    if (mutation.type !== 'childList') continue;
+    for (const node of mutation.addedNodes) {
+      if (node.tagName === 'SCRIPT' && node.type)
+        processScript(node, !firstTopLevelProcess);
+      else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
+        processPreload(node);
+      else if (node.querySelectorAll) {
+        for (const script of node.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]')) {
+          processScript(script, !firstTopLevelProcess);
+        }
+        for (const link of node.querySelectorAll('link[rel=modulepreload]')) {
+          processPreload(link);
+        }
+      }
+    }
+  }
+}).observe(document, { childList: true, subtree: true });
+
 async function defaultResolve (id, parentUrl) {
   return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl);
 }
@@ -411,4 +406,9 @@ async function resolve (id, parentUrl) {
 
 function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
+}
+
+if (hasDocument) {
+  processScripts();
+  waitingForImportMapsInterval = setInterval(processScripts, 20);
 }

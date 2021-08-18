@@ -1,0 +1,31 @@
+<!doctype html>
+<script>globalThis.esmsInitOptions = { shimMode: false }</script>
+<script type="importmap">
+{
+  "imports": {
+    "app": "data:text/javascript,window.native=true;window.shared=0;",
+    "shared": "data:text/javascript,window.shared++;"
+  }
+}
+</script>
+<script type="importmap-shim">
+{
+  "imports": {
+    "app": "data:text/javascript,window.polyfill=true"
+  }
+}
+</script>
+<script type="module">
+import 'app';
+import 'shared';
+
+if (!window.native)
+  throw new Error('Expected native exec');
+if (window.shared !== 1)
+  throw new Error('Expected shared execution once');
+if (window.polyfill)
+  throw new Error('Did not expect polyfill execution');
+
+fetch('/done');
+</script>
+<script type="module" src="/src/es-module-shims.js" async></script>
