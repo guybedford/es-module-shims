@@ -1,3 +1,6 @@
+ES Module Shims 0.12.4 (2021/08/18)
+* Fix eager modulepreload preloading bug from 0.12.3 (https://github.com/guybedford/es-module-shims/pull/152)
+
 ES Module Shims 0.12.3 (2021/08/17)
 * Support resolve hook (https://github.com/guybedford/es-module-shims/pull/146, @zhoukekestar)
 * Internal preload cache to avoid double network requests (https://github.com/guybedford/es-module-shims/pull/149)
