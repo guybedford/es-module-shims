@@ -1,8 +1,8 @@
-ES Module Shims 0.12.3
+ES Module Shims 0.12.3 (2021/08/17)
 * Support resolve hook (https://github.com/guybedford/es-module-shims/pull/146, @zhoukekestar)
 * Internal preload cache to avoid double network requests (https://github.com/guybedford/es-module-shims/pull/149)
 
-ES Module Shims 0.12.2
+ES Module Shims 0.12.2 (2021/07/23)
 * Support processing nested tags in mutaton observer (https://github.com/guybedford/es-module-shims/pull/144, @dbackeus)
 
 ES Module SHims 0.12.1 (2021/06/29)
