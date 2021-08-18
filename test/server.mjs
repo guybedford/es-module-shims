@@ -23,6 +23,11 @@ const mimes = {
 const shouldExit = process.env.WATCH_MODE !== 'true';
 const testName = process.env.TEST_NAME ?? 'test';
 
+// Dont run Chrome tests on Firefox
+let skip = false;
+if (testName.startsWith('test-chrome') && process.env.CI_BROWSER && !process.env.CI_BROWSER.includes('chrome'))
+  skip = true;
+
 let failTimeout, browserTimeout;
 
 function setBrowserTimeout () {
@@ -38,6 +43,7 @@ function setBrowserTimeout () {
 
 setBrowserTimeout();
 
+if (!skip)
 http.createServer(async function (req, res) {
   setBrowserTimeout();
   if (req.url.startsWith('/done')) {
@@ -104,6 +110,7 @@ http.createServer(async function (req, res) {
   res.end();
 }).listen(port);
 
+if (!skip)
 if (process.env.CI_BROWSER) {
   spawn(process.env.CI_BROWSER, [...process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [], `http://localhost:${port}/test/${testName}.html`]);
 }
