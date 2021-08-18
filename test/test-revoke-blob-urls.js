@@ -14,7 +14,7 @@ test('should revoke blob URLs if `esmsInitOptions.revokeBlobURLs` is set to `tru
     ]).catch(() => fail('blob URLs should be revoked in a non-blocking way, AFTER the import is resolved'));
 
     // Give the scheduled cleanup a chance to be completed.
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     await Promise.all([
         fetch(moduleBlobURL),
