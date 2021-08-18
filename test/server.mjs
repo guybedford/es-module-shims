@@ -50,8 +50,8 @@ http.createServer(async function (req, res) {
     if (message) console.log(message);
     if (shouldExit) {
       if (spawnPs)
-        spawnPs.kill();
-      process.exit();
+        spawnPs.kill('SIGKILL');
+      setTimeout(() => process.exit(), 1000);
     }
     return;
   }
