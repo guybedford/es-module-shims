@@ -109,6 +109,7 @@ http.createServer(async function (req, res) {
 }).listen(port);
 
 if (process.env.CI_BROWSER) {
+  console.log('Spawning browser: ' + process.env.CI_BROWSER);
   spawn(process.env.CI_BROWSER, [...process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [], `http://localhost:${port}/test/${testName}.html`]);
 }
 else {
