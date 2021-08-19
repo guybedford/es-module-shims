@@ -208,7 +208,7 @@ CSS Modules are currently supported in Chrome when using them via an import asse
 
 ```html
 <script type="module">
-import json from 'https://site.com/sheet.css' assert { type: 'css' };
+import sheet from 'https://site.com/sheet.css' assert { type: 'css' };
 </script>
 ```
 
