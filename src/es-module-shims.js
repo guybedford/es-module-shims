@@ -6,11 +6,13 @@ import {
   hasDocument,
   resolveIfNotPlainOrUrl,
   resolvedPromise,
+  resolveUrl,
   dynamicImport,
   supportsDynamicImport,
   supportsImportMeta,
   supportsImportMaps,
   featureDetectionPromise,
+  supportsCssAssertions,
   supportsJsonAssertions
 } from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
@@ -50,7 +52,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded) {
   }
   await importMapPromise;
   // early analysis opt-out
-  if (nativelyLoaded && supportsDynamicImport && supportsImportMeta && supportsImportMaps && !importMapSrcOrLazy) {
+  if (nativelyLoaded && supportsDynamicImport && supportsImportMeta && supportsImportMaps && supportsJsonAssertions && supportsCssAssertions && !importMapSrcOrLazy) {
     // dont reexec inline for polyfills -> just return null
     return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
   }
@@ -223,17 +225,21 @@ const jsonContentType = /^application\/json(;|$)/;
 const cssContentType = /^text\/css(;|$)/;
 const wasmContentType = /^application\/wasm(;|$)/;
 
+const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\])+))\s*\)/g;
+
 async function doFetch (url, fetchOpts) {
   const res = await fetchHook(url, fetchOpts);
   if (!res.ok)
     throw new Error(`${res.status} ${res.statusText} ${res.url}`);
   const contentType = res.headers.get('content-type');
   if (jsContentType.test(contentType))
-    return { r: res.url, s: await res.text() };
+    return { r: res.url, s: await res.text(), t: 'js' };
   else if (jsonContentType.test(contentType))
-    return { r: res.url, s: `export default ${await res.text()}` };
+    return { r: res.url, s: `export default ${await res.text()}`, t: 'json' };
   else if (cssContentType.test(contentType))
-    throw new Error('CSS modules not yet supported');
+    return { r: res.url, s: `var s=new CSSStyleSheet();s.replaceSync(${
+      JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes, relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
+    });export default s;`, t: 'css' };
   else if (wasmContentType.test(contentType))
     throw new Error('WASM modules not yet supported');
   else
@@ -265,13 +271,18 @@ function getOrCreateLoad (url, fetchOpts, source) {
     // shellUrl
     s: undefined,
     // needsShim
-    n: false
+    n: false,
+    // type
+    t: null
   };
 
   load.f = (async () => {
     if (!source) {
       // preload fetch options override fetch options (race)
-      ({ r: load.r, s: source } = await (fetchCache[url] || doFetch(url, fetchOpts)));
+      let t;
+      ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts)));
+      if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
+        load.n = true;
     }
     try {
       load.a = parse(source, load.u);
@@ -288,8 +299,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
     let childFetchOpts = fetchOpts;
     load.d = (await Promise.all(load.a[0].map(async ({ n, d, a }) => {
       if (d >= 0 && !supportsDynamicImport ||
-          d === 2 && (!supportsImportMeta || source.slice(end, end + 8) === '.resolve') ||
-          a && !supportsJsonAssertions)
+          d === 2 && (!supportsImportMeta || source.slice(end, end + 8) === '.resolve'))
         load.n = true;
       if (!n) return;
       const { r, m } = await resolve(n, load.r || load.u);

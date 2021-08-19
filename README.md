@@ -96,10 +96,12 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | [modulepreload](#modulepreload)    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [JSON Modules](#json-modules)      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [CSS Modules](#css-modules)        | :heavy_check_mark:<sup>3</sup>       | :heavy_check_mark:<sup>3</sup>       | :heavy_check_mark:<sup>3</sup>       | :heavy_check_mark:<sup>3</sup>       |
 | [import.meta.resolve](#resolve)    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 
 * 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
 * 2: _Module worker support cannot be implemented without dynamic import support in web workers._
+* 3: _CSS module support requires a separate [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme)._
 
 #### Current browser compatibility of modules features without ES module shims:
 
@@ -112,6 +114,7 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | [modulepreload](#modulepreload)    | :heavy_check_mark: 66+               | :x:                                  | :x:                                  | :x:                                  |
 | [Import Maps](#import-maps)        | :heavy_check_mark: 89+               | :x:                                  | :x:                                  | :x:                                  |
 | [JSON Modules](#json-modules)      | :heavy_check_mark: 91+               | :x:                                  | :x:                                  | :x:                                  |
+| [CSS Modules](#css-modules)        | :heavy_check_mark: 95+               | :x:                                  | :x:                                  | :x:                                  |
 | [import.meta.resolve](#resolve)    | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
 
 * 1: _Edge executes parallel dependencies in non-deterministic order. ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
@@ -192,6 +195,32 @@ import json from 'https://site.com/data.json' assert { type: 'json' };
 ```
 
 In addition JSON modules need to be served with a valid JSON content type.
+
+ES Module Shims will fully feature detect and shim or polyfill support as necessary for this feature in other browsers.
+
+Checks for assertion failures are not currently included.
+
+### CSS Modules
+
+> Stability: WhatWG Standard, Single Browser Implementer
+
+CSS Modules are currently supported in Chrome when using them via an import assertion:
+
+```html
+<script type="module">
+import json from 'https://site.com/sheet.css' assert { type: 'css' };
+</script>
+```
+
+To support the polyfill or shim of this feature, the [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme) must be separately included in browsers not supporting [Constructable Stylesheets](https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleSheet/CSSStyleSheet) eg via:
+
+```html
+<script async src="https://unpkg.com/construct-style-sheets-polyfill@3.0.0/dist/adoptedStyleSheets.js"></script>
+```
+
+For more information see the [web.dev article](https://web.dev/css-module-scripts/).
+
+In addition CSS modules need to be served with a valid CSS content type.
 
 ES Module Shims will fully feature detect and shim or polyfill support as necessary for this feature in other browsers.
 

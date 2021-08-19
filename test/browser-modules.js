@@ -70,6 +70,11 @@ suite('Basic loading tests', () => {
     assert.equal(m.m, 'module');
   });
 
+  test('should support css imports', async function () {
+    var m = await importShim('./fixtures/css-assertion.js');
+    assert.equal(m.default.rules[0].selectorText, 'body');
+  });
+
   test('should support dynamic import', async function () {
     var m = await importShim('./fixtures/es-modules/dynamic-import.js');
     var dynamicModule = await m.doImport();
