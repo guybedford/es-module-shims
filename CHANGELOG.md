@@ -1,3 +1,6 @@
+ES Module Shims 0.12.5 (2021/08/19)
+* Support CSS module scripts (https://github.com/guybedford/es-module-shims/pull/154)
+
 ES Module Shims 0.12.4 (2021/08/18)
 * Fix eager modulepreload preloading bug from 0.12.3 (https://github.com/guybedford/es-module-shims/pull/152)
 
