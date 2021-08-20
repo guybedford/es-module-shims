@@ -61,4 +61,6 @@ jobs:
         run: npm run build
       - name: npm run test
         run: CI_BROWSER=$(which chrome) npm run test
+        env:
+          CI_BROWSER_FLAGS: --headless --disable-gpu
     
