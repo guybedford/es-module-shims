@@ -7,7 +7,7 @@ on:
     branches: main
 
 jobs:
-  test:
+  test-firefox:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -36,3 +36,35 @@ jobs:
         env:
           CI_BROWSER: /opt/hostedtoolcache/firefox/${{ matrix.firefox }}/x64/firefox
           CI_BROWSER_FLAGS: -headless
+
+  test-chrome:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        chrome: [
+          '695079', # September 2019
+          '846616', # Jan 2021
+          '913920', # August 2021
+        ]
+    name: Chrome Browser Tests
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Setup Chrome ${{ matrix.chrome }}
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: ${{ matrix.chrome }}
+      - name: Set Chrome Path
+        run: $env:CI_BROWSER=$(where chrome)
+      - name: npm install
+        run: npm install
+      - name: npm run build
+        run: npm run build
+      - name: npm run test
+        run: npm run test
+        env:
+          CI_BROWSER_FLAGS: --headless --screenshot
+    
