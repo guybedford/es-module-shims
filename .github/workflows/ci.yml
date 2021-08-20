@@ -55,12 +55,10 @@ jobs:
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: ${{ matrix.chrome }}
-      - name: Chrome Version
-        run: export set CI_BROWSER=$(which chrome)
       - name: npm install
         run: npm install
       - name: npm run build
         run: npm run build
       - name: npm run test
-        run: npm run test
+        run: CI_BROWSER=$(which chrome) npm run test
     
