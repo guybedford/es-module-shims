@@ -62,7 +62,7 @@ jobs:
       - name: npm run build
         run: npm run build
       - name: npm run test
-        run: set /P CI_BROWSER=< browser.txt npm run test
+        run: set /P CI_BROWSER=< browser.txt && npm run test
         env:
           CI_BROWSER_FLAGS: --headless --screenshot
     
