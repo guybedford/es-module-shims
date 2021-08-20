@@ -64,5 +64,5 @@ jobs:
       - name: npm run test
         run: npm run test
         env:
-          CI_BROWSER: $(which chrome)
+          CI_BROWSER: chrome
     
