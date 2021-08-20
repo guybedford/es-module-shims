@@ -42,7 +42,9 @@ jobs:
     strategy:
       matrix:
         chrome: [
-          'stable'
+          '695079', # September 2019
+          '846616', # Jan 2021
+          '913920', # August 2021
         ]
     name: Chrome Browser Tests
     steps:
