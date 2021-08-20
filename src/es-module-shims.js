@@ -62,7 +62,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded) {
   await loadAll(load, seen);
   lastLoad = undefined;
   resolveDeps(load, seen);
-  if (source && !nativelyLoaded && !shimMode && !load.n) {
+  if (source && !shimMode && !load.n) {
     const module = dynamicImport(createBlob(source));
     if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
