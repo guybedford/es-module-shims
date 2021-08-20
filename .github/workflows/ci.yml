@@ -55,12 +55,14 @@ jobs:
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: ${{ matrix.chrome }}
+      - name: Save Chrome Path
+        run: where chrome > browser.txt
       - name: npm install
         run: npm install
       - name: npm run build
         run: npm run build
       - name: npm run test
-        run: CI_BROWSER=$(which chrome) npm run test
+        run: set /P CI_BROWSER=< browser.txt npm run test
         env:
           CI_BROWSER_FLAGS: --headless --screenshot
     
