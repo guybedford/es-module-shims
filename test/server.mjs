@@ -113,9 +113,9 @@ http.createServer(async function (req, res) {
 let spawnPs;
 if (process.env.CI_BROWSER) {
   const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
-  console.log('Spawning browser: ' + process.env.CI_BROWSER + args.join(' '));
+  console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
   spawnPs = spawn(process.env.CI_BROWSER, [...args, `http://localhost:${port}/test/${testName}.html`]);
 }
 else {
-  open(`http://localhost:${port}/test/${testName}.html`, { app: { name: 'chrome' } });
+  open(`http://localhost:${port}/test/${testName}.html`, { app: { name: open.apps.chrome } });
 }
