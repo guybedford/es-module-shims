@@ -56,7 +56,7 @@ jobs:
         with:
           chrome-version: ${{ matrix.chrome }}
       - name: Chrome Version
-        run: chrome --version
+        run: which chrome
       - name: npm install
         run: npm install
       - name: npm run build
