@@ -38,7 +38,7 @@ jobs:
           CI_BROWSER_FLAGS: -headless
 
   test-chrome:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       matrix:
         chrome: [
