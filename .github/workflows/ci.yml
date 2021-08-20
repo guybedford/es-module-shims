@@ -41,7 +41,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        chrome: []
+        chrome: [
+          'stable'
+        ]
     name: Chrome Browser Tests
     steps:
       - uses: actions/checkout@v2
@@ -53,6 +55,8 @@ jobs:
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: ${{ matrix.chrome }}
+      - name: Chrome Version
+        run: chrome --version
       - name: npm install
         run: npm install
       - name: npm run build
