@@ -55,10 +55,8 @@ jobs:
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: ${{ matrix.chrome }}
-      - name: Save Chrome Path
-        run: where chrome > browser.txt
-      - name: Set Chrome Path to Env Var
-        run: set /P CI_BROWSER=< browser.txt
+      - name: Set Chrome Path
+        run: $env:CI_BROWSER=$(where chrome)
       - name: npm install
         run: npm install
       - name: npm run build
