@@ -33,6 +33,7 @@ async function loadAll (load, seen) {
     load.n = load.d.some(dep => dep.n);
 }
 
+
 let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
 let importMapPromise = resolvedPromise;
