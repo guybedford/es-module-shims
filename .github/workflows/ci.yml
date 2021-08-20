@@ -56,9 +56,9 @@ jobs:
         with:
           chrome-version: ${{ matrix.chrome }}
       - name: Save Chrome Path
-        run: >
-          where chrome > browser.txt
-          set /P CI_BROWSER=< browser.txt
+        run: where chrome > browser.txt
+      - name: Set Chrome Path to Env Var
+        run: set /P CI_BROWSER=< browser.txt
       - name: npm install
         run: npm install
       - name: npm run build
