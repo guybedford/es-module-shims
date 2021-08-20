@@ -116,5 +116,5 @@ if (process.env.CI_BROWSER) {
   spawnPs = spawn(process.env.CI_BROWSER, [...process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [], `http://localhost:${port}/test/${testName}.html`]);
 }
 else {
-  open(`http://localhost:${port}/test/${testName}.html`);
+  open(`http://localhost:${port}/test/${testName}.html`, { app: { name: 'chrome' } });
 }
