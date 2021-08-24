@@ -411,6 +411,8 @@ function processPreload (link) {
   if (link.ep) // ep marker = processed
     return;
   link.ep = true;
+  if (fetchCache[link.href])
+    return;
   fetchCache[link.href] = doFetch(link.href, getFetchOpts(link));
 }
 
