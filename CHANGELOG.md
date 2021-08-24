@@ -1,3 +1,6 @@
+ES Module Shims 0.12.7 (2021/08/23)
+* Support re-triggering DOM load events for static script executions (https://github.com/guybedford/es-module-shims/pull/162)
+
 ES Module Shims 0.12.6 (2021/08/20)
 * Fix regression where inline scripts in polyfill mode on supported browsers would throw an unnecessary error (https://github.com/guybedford/es-module-shims/pull/159)
 
