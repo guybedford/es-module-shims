@@ -1,3 +1,6 @@
+ES Module Shims 0.12.8 (2021/08/24)
+* Fix preload deduping for re-injection of preloads (https://github.com/guybedford/es-module-shims/pull/164)
+
 ES Module Shims 0.12.7 (2021/08/23)
 * Support re-triggering DOM load events for static script executions (https://github.com/guybedford/es-module-shims/pull/162)
 
