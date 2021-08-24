@@ -377,6 +377,27 @@ import 'shared';
 </script>
 ```
 
+#### No Load Event Retriggers
+
+Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
+
+In order to ensure libraries that rely on these event still behave correctly, ES Module Shims will double trigger these events when
+there are script executions that would normally have executed before the document ready state transition to completion.
+
+These events are carefully only triggered when there definitely were modules that would have missed attachment but there is still the risk that this can result in double attachments when mixing modules and scripts where the scripts might get two events firing.
+
+In such a case, this double event firing can be disabled with the `noLoadEventRetriggers` option:
+
+```js
+<script>
+  window.esmsInitOptions = {
+    // do not re-trigger the onreadystatechange and DOMContentLoaded DOM events
+    noLoadEventRetriggers: true
+  }
+</script>
+<script async src="es-module-shims.js"></script>
+```
+
 #### Skip Processing
 
 When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly

@@ -25,22 +25,35 @@
 }
 </script>
 <script>
+  window.order = [];
   let count = 1
 </script>
 <script type="module">
   count++;
+  order.push(1);
 </script>
-<script type="module">
+<script type="module-shim">
   import test from "test";
-  console.log(test);
+  order.push(2);
 </script>
 <script type="module-shim">
   import("bare-dynamic-import").then(m => {
     window.inlineScriptDynamicImportResult = m;
-  })
+  });
+  order.push(3);
 </script>
 <script type="module-shim">
+  order.push(4);
   syntax-error();
+</script>
+<script type="module-shim">
+  order.push(5);
+  document.addEventListener('readystatechange', () => {
+    window.readyStateOrder = order;
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    window.domContentLoadedOrder = order;
+  });
 </script>
 <script>
   window.resolveHook = (id, parentUrl, defaultResolve) => defaultResolve(id, parentUrl);
