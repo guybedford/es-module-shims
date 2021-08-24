@@ -64,15 +64,21 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
   if (source && !shimMode && !load.n) {
-    if (lastStaticLoadPromise)
+    if (lastStaticLoadPromise) {
       didExecForReadyPromise = true;
+      if (domContentLoaded)
+        didExecForDomContentLoaded = true;
+    }
     const module = dynamicImport(createBlob(source));
     if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
   }
   const module = await dynamicImport(load.b);
-  if (lastStaticLoadPromise && (!nativelyLoaded || load.b !== load.u))
+  if (lastStaticLoadPromise && (!nativelyLoaded || load.b !== load.u)) {
     didExecForReadyPromise = true;
+    if (domContentLoaded)
+      didExecForDomContentLoaded = true;
+  }
   // if the top-level load is a shell, run its update function
   if (load.s) {
     (await dynamicImport(load.s)).u$_(module);
@@ -129,7 +135,7 @@ const fetchHook = esmsInitOptions.fetch || ((url, opts) => fetch(url, opts));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
 const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
-const noReadyStateChange = esmsInitOptions.noReadyStateChange;
+const noLoadEventRetriggers = esmsInitOptions.noLoadEventRetriggers;
 
 function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;
@@ -352,13 +358,20 @@ function getFetchOpts (script) {
   return fetchOpts;
 }
 
-let readyCnt = 0;
+let staticLoadCnt = 0;
 let didExecForReadyPromise = false;
+let didExecForDomContentLoaded = false;
 let lastStaticLoadPromise = Promise.resolve();
-function readyCheck () {
-  readyCnt--;
-  if (readyCnt === 0 && didExecForReadyPromise && !noReadyStateChange && document.readyState === 'complete')
-    document.dispatchEvent(new Event('readystatechange'));
+let domContentLoaded = false;
+document.addEventListener('DOMContentLoaded', () => domContentLoaded = true);
+function staticLoadCheck () {
+  staticLoadCnt--;
+  if (staticLoadCnt === 0 && !noLoadEventRetriggers) {
+    if (didExecForDomContentLoaded)
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+    if (didExecForReadyPromise && document.readyState === 'complete')
+      document.dispatchEvent(new Event('readystatechange'));
+  }
 }
 
 function processScript (script, dynamic) {
@@ -376,12 +389,12 @@ function processScript (script, dynamic) {
   script.ep = true;
   if (type === 'module') {
     const isReadyScript = document.readyState !== 'complete';
-    if (isReadyScript) readyCnt++;
+    if (isReadyScript) staticLoadCnt++;
     const p = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise);
     p.catch(onerror);
     if (isReadyScript) {
-      lastStaticLoadPromise = p.catch(readyCheck);
-      p.then(readyCheck);
+      lastStaticLoadPromise = p.catch(staticLoadCheck);
+      p.then(staticLoadCheck);
     }
   }
   else if (type === 'importmap') {

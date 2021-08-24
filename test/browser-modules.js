@@ -3,7 +3,14 @@ const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
 suite('Basic loading tests', () => {
-  test('Static load order and ready state', async function () {
+  test('Static load order and domcontentloaded and ready state', async function () {
+    await new Promise(resolve => {
+      if (window.domContentLoadedOrder)
+        resolve();
+      document.addEventListener('DOMContentLoaded', resolve);
+    });
+    assert.ok(window.domContentLoadedOrder);
+    assert.equal(window.domContentLoadedOrder.join(','), '1,2,3,4,5');
     await new Promise(resolve => {
       if (window.readyStateOrder)
         resolve();

@@ -377,22 +377,22 @@ import 'shared';
 </script>
 ```
 
-#### No Ready State Change
+#### No Load Event Retriggers
 
-Because of the extra processing done by ES Module Shims it is possible for module scripts to execute after the DOM ready event, which can cause missed attachment of `document.addEventListener('readystatechange')` when not also checking `document.readyState` statically.
+Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
 
-In order to ensure libraries that rely on this event still behave correctly, ES Module Shims will double trigger the ready state change event when
+In order to ensure libraries that rely on these event still behave correctly, ES Module Shims will double trigger these events when
 there are script executions that would normally have executed before the document ready state transition to completion.
 
-The event is carefully only triggered when there definitely were modules that would have missed it but there is still the risk that this can result in double attachments for some rare examples mixing modules and scripts where the scripts might get two events firing.
+These events are carefully only triggered when there definitely were modules that would have missed attachment but there is still the risk that this can result in double attachments when mixing modules and scripts where the scripts might get two events firing.
 
-In such a case, this double readystatechange event firing can be disabled with the `noReadyStateChange` option:
+In such a case, this double event firing can be disabled with the `noLoadEventRetriggers` option:
 
 ```js
 <script>
   window.esmsInitOptions = {
-    // do not re-trigger the onreadystatechange DOM event
-    noReadyStateChange: true
+    // do not re-trigger the onreadystatechange and DOMContentLoaded DOM events
+    noLoadEventRetriggers: true
   }
 </script>
 <script async src="es-module-shims.js"></script>

@@ -51,6 +51,9 @@
   document.addEventListener('readystatechange', () => {
     window.readyStateOrder = order;
   });
+  document.addEventListener('DOMContentLoaded', () => {
+    window.domContentLoadedOrder = order;
+  });
 </script>
 <script>
   window.resolveHook = (id, parentUrl, defaultResolve) => defaultResolve(id, parentUrl);
