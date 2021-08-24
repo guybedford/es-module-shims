@@ -3,6 +3,16 @@ const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
 suite('Basic loading tests', () => {
+  test('Static load order and ready state', async function () {
+    await new Promise(resolve => {
+      if (window.readyStateOrder)
+        resolve();
+      document.addEventListener('readystatechange', resolve);
+    });
+    assert.ok(window.readyStateOrder);
+    assert.equal(window.readyStateOrder.join(','), '1,2,3,4,5');
+  });
+
   test('Load counter', function () {
     assert.equal(count, 2);
   });

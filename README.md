@@ -377,6 +377,27 @@ import 'shared';
 </script>
 ```
 
+#### No Ready State Change
+
+Because of the extra processing done by ES Module Shims it is possible for module scripts to execute after the DOM ready event, which can cause missed attachment of `document.addEventListener('readystatechange')` when not also checking `document.readyState` statically.
+
+In order to ensure libraries that rely on this event still behave correctly, ES Module Shims will double trigger the ready state change event when
+there are script executions that would normally have executed before the document ready state transition to completion.
+
+The event is carefully only triggered when there definitely were modules that would have missed it but there is still the risk that this can result in double attachments for some rare examples mixing modules and scripts where the scripts might get two events firing.
+
+In such a case, this double readystatechange event firing can be disabled with the `noReadyStateChange` option:
+
+```js
+<script>
+  window.esmsInitOptions = {
+    // do not re-trigger the onreadystatechange DOM event
+    noReadyStateChange: true
+  }
+</script>
+<script async src="es-module-shims.js"></script>
+```
+
 #### Skip Processing
 
 When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
