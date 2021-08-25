@@ -66,8 +66,8 @@ export const featureDetectionPromise = Promise.all([
     };
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
-    iframe.srcdoc = `<script type=importmap>{"imports":{"x":"data:text/javascript,"}}<${''}/script><script>import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`, 'text/html';
     document.body.appendChild(iframe);
+    iframe.contentWindow.document.write(`<script type=importmap>{"imports":{"x":"data:text/javascript,"}}<${''}/script><script>import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`);
   })
 ]);
 
