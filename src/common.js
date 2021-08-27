@@ -19,7 +19,8 @@ export let supportsJsonAssertions = false;
 export let supportsCssAssertions = false;
 export let dynamicImport;
 try {
-  dynamicImport = (0, eval)('u=>import(u)');
+  dynamicImport = u=>import(u);
+  dynamicImport(createBlob(''))
   supportsDynamicImport = true;
 }
 catch (e) {
@@ -183,7 +184,7 @@ function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap) {
   for (let p in packages) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
     let target = packages[p];
-    if (typeof target !== 'string') 
+    if (typeof target !== 'string')
       continue;
     const mapped = resolveImportMap(parentMap, resolveIfNotPlainOrUrl(target, baseUrl) || target, baseUrl);
     if (mapped) {
