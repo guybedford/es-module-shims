@@ -54,7 +54,8 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   // early analysis opt-out
   if (nativelyLoaded && supportsDynamicImport && supportsImportMeta && supportsImportMaps && supportsJsonAssertions && supportsCssAssertions && !importMapSrcOrLazy) {
     // dont reexec inline for polyfills -> just return null (since no module id for executed inline module scripts)
-    return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
+    const n = source && nativelyLoaded;
+    return { m: n ? null : await dynamicImport(source ? createBlob(source) : url), n };
   }
   await init;
   const load = getOrCreateLoad(url, fetchOpts, source);
@@ -69,30 +70,27 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
       if (domContentLoaded)
         didExecForDomContentLoaded = true;
     }
-    const module = dynamicImport(createBlob(source));
+    const m = await dynamicImport(createBlob(source));
     if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
-    return module;
+    return { m, n: false };
   }
-  const module = await dynamicImport(load.b);
+  const m = await dynamicImport(load.b);
   if (lastStaticLoadPromise && (!nativelyLoaded || load.b !== load.u)) {
     didExecForReadyPromise = true;
     if (domContentLoaded)
       didExecForDomContentLoaded = true;
   }
   // if the top-level load is a shell, run its update function
-  if (load.s) {
+  if (load.s)
     (await dynamicImport(load.s)).u$_(module);
-  }
   if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
-  // when tla is supported, this should return the tla promise as an actual handle
-  // so readystate can still correspond to the sync subgraph exec completions
-  return module;
+  return { m, n: true };
 }
 
 function revokeObjectURLs(registryKeys) {
   let batch = 0;
   const keysLength = registryKeys.length;
-  const schedule = self.requestIdleCallback ? self.requestIdleCallback : self.requestAnimationFrame
+  const schedule = self.requestIdleCallback ? self.requestIdleCallback : self.requestAnimationFrame;
   schedule(cleanup);
   function cleanup() {
     const batchStartIndex = batch * 100;
@@ -111,7 +109,7 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
   const resolved = await resolve(id, parentUrl);
-  return topLevelLoad(resolved.r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
+  return (await topLevelLoad(resolved.r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' })).m;
 }
 
 self.importShim = importShim;
@@ -182,14 +180,14 @@ function resolveDeps (load, seen) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
-                depLoad.a[1].map(
-                  name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
-                ).join(',')
-              }}${
-                depLoad.a[1].map(name =>
-                  name === 'default' ? `let $_default;export{$_default as default}` : `export let ${name}`
-                ).join(';')
-              }\n//# sourceURL=${depLoad.r}?cycle`);
+              depLoad.a[1].map(
+                name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
+              ).join(',')
+            }}${
+              depLoad.a[1].map(name =>
+                name === 'default' ? `let $_default;export{$_default as default}` : `export let ${name}`
+              ).join(';')
+            }\n//# sourceURL=${depLoad.r}?cycle`);
           }
         }
         // circular shell execution
@@ -390,12 +388,18 @@ function processScript (script, dynamic) {
   if (type === 'module') {
     const isReadyScript = document.readyState !== 'complete';
     if (isReadyScript) staticLoadCnt++;
-    const p = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise);
-    p.catch(onerror);
-    if (isReadyScript) {
-      lastStaticLoadPromise = p.catch(staticLoadCheck);
-      p.then(staticLoadCheck);
-    }
+    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(({ n }) => {
+      staticLoadCheck();
+      if (!shimMode && !n)
+        return;
+      script.dispatchEvent(new Event('load'));
+    }, e => {
+      staticLoadCheck();
+      script.dispatchEvent(new Event('error'));
+      onerror(e);
+    });
+    if (isReadyScript)
+      lastStaticLoadPromise = loadPromise;
   }
   else if (type === 'importmap') {
     importMapPromise = importMapPromise.then(async () => {
