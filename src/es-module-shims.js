@@ -297,8 +297,12 @@ function getOrCreateLoad (url, fetchOpts, source) {
       // preload fetch options override fetch options (race)
       let t;
       ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts)));
-      if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
-        load.n = true;
+      if (t) {
+        if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled)
+          throw new Error(`Feature ${t}-modules must be enabled via: window.esmsInitOptions = { enable: ['${t}-modules'] }`);
+        if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
+          load.n = true;
+      }
     }
     try {
       load.a = parse(source, load.u);
