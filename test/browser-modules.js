@@ -4,6 +4,7 @@ self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
 suite('Basic loading tests', () => {
   test('Static load order and domcontentloaded and ready state', async function () {
+    window.onerror = () => {};
     await new Promise(resolve => {
       if (window.domContentLoadedOrder)
         resolve();
@@ -89,7 +90,7 @@ suite('Basic loading tests', () => {
 
   test('should support css imports', async function () {
     var m = await importShim('./fixtures/css-assertion.js');
-    assert.equal(m.default.rules[0].selectorText, 'body');
+    assert.equal(m.default.cssRules[0].selectorText, 'body');
   });
 
   test('should support dynamic import', async function () {
@@ -104,6 +105,16 @@ suite('Basic loading tests', () => {
   test('should support dynamic import in an inline script', async function () {
     await new Promise(resolve => setTimeout(resolve, 50));
     assert.equal(window.inlineScriptDynamicImportResult.default, 'bareDynamicImport');
+  });
+
+  test('should support dynamic import with an import map', async function () {
+    await new Promise(resolve => document.head.appendChild(Object.assign(document.createElement('script'), {
+      type: 'module-shim',
+      src: './fixtures/es-modules/importer1.js',
+      onload: resolve
+    })));
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(window.global1, true);
   });
 
   test('Should import a module via a full url, with scheme', async function () {
@@ -270,7 +281,6 @@ suite('Errors', function () {
 
   test('should give a plain name error', async function () {
     var err = await getImportError('plain-name');
-    console.log(err);
     assert.equal(err.indexOf('Error: Unable to resolve specifier \'plain-name\' from'), 0);
   });
 

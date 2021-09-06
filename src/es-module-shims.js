@@ -69,7 +69,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
       if (domContentLoaded)
         didExecForDomContentLoaded = true;
     }
-    const module = dynamicImport(createBlob(source));
+    const module = await dynamicImport(createBlob(source));
     if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
   }
@@ -80,9 +80,8 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
       didExecForDomContentLoaded = true;
   }
   // if the top-level load is a shell, run its update function
-  if (load.s) {
+  if (load.s)
     (await dynamicImport(load.s)).u$_(module);
-  }
   if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
   // when tla is supported, this should return the tla promise as an actual handle
   // so readystate can still correspond to the sync subgraph exec completions
@@ -92,7 +91,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
 function revokeObjectURLs(registryKeys) {
   let batch = 0;
   const keysLength = registryKeys.length;
-  const schedule = self.requestIdleCallback ? self.requestIdleCallback : self.requestAnimationFrame
+  const schedule = self.requestIdleCallback ? self.requestIdleCallback : self.requestAnimationFrame;
   schedule(cleanup);
   function cleanup() {
     const batchStartIndex = batch * 100;
@@ -182,14 +181,14 @@ function resolveDeps (load, seen) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
-                depLoad.a[1].map(
-                  name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
-                ).join(',')
-              }}${
-                depLoad.a[1].map(name =>
-                  name === 'default' ? `let $_default;export{$_default as default}` : `export let ${name}`
-                ).join(';')
-              }\n//# sourceURL=${depLoad.r}?cycle`);
+              depLoad.a[1].map(
+                name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
+              ).join(',')
+            }}${
+              depLoad.a[1].map(name =>
+                name === 'default' ? `let $_default;export{$_default as default}` : `export let ${name}`
+              ).join(';')
+            }\n//# sourceURL=${depLoad.r}?cycle`);
           }
         }
         // circular shell execution
@@ -390,12 +389,14 @@ function processScript (script, dynamic) {
   if (type === 'module') {
     const isReadyScript = document.readyState !== 'complete';
     if (isReadyScript) staticLoadCnt++;
-    const p = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise);
-    p.catch(onerror);
-    if (isReadyScript) {
-      lastStaticLoadPromise = p.catch(staticLoadCheck);
-      p.then(staticLoadCheck);
-    }
+    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(() => {
+      script.dispatchEvent(new Event('load'));
+    }, e => {
+      script.dispatchEvent(new Event('load'));
+      onerror(e);
+    });
+    if (isReadyScript)
+      lastStaticLoadPromise = loadPromise.then(staticLoadCheck);
   }
   else if (type === 'importmap') {
     importMapPromise = importMapPromise.then(async () => {

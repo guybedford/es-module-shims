@@ -71,6 +71,9 @@ This execution failure is wanted - it avoids the polyfill causing double executi
 
 This is because the polyfill cannot disable the native loader - instead it can only execute modules that would otherwise fail instantiation while avoiding duplicate fetches or executions.
 
+In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion,
+fired for both success and failure completions, and always twice (once by the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
+
 #### Shim Mode
 
 Shim mode is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly
@@ -80,6 +83,8 @@ In shim mode, normal module scripts and import maps are entirely ignored and onl
 Module Shims instead.
 
 This can useful in some [polyfill mode edge cases](#polyfill-edge-cases) where it's not clear whether or not a given module will execute in the native browser loader or not.
+
+DOM `'load'` events are triggered for `"module-shim"` scripts just like native modules, firing for both erroring or successful completion.
 
 ### Browser Support
 
