@@ -389,17 +389,14 @@ function processScript (script, dynamic) {
     const isReadyScript = document.readyState !== 'complete';
     if (isReadyScript) staticLoadCnt++;
     const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(({ n }) => {
-      staticLoadCheck();
-      if (!shimMode && !n)
-        return;
-      script.dispatchEvent(new Event('load'));
+      if (shimMode || n)
+        script.dispatchEvent(new Event('load'));
     }, e => {
-      staticLoadCheck();
-      script.dispatchEvent(new Event('error'));
+      script.dispatchEvent(new Event('load'));
       onerror(e);
     });
     if (isReadyScript)
-      lastStaticLoadPromise = loadPromise;
+      lastStaticLoadPromise = loadPromise.then(staticLoadCheck);
   }
   else if (type === 'importmap') {
     importMapPromise = importMapPromise.then(async () => {
