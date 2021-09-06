@@ -4,6 +4,7 @@ self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
 suite('Basic loading tests', () => {
   test('Static load order and domcontentloaded and ready state', async function () {
+    window.onerror = () => {};
     await new Promise(resolve => {
       if (window.domContentLoadedOrder)
         resolve();
