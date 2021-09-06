@@ -23,7 +23,7 @@ if (window.polyfill)
 window.counter = 1;
 </script>
 
-<script type="module" skip-shim="import-maps">
+<script type="module">
 window.counter += 1;
 if (window.counter !== 2)
   throw new Error('Expected previous exec');

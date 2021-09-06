@@ -70,15 +70,13 @@ This execution failure is wanted - it avoids the polyfill causing double executi
 
 This is because the polyfill cannot disable the native loader - instead it can only execute modules that would otherwise fail instantiation while avoiding duplicate fetches or executions.
 
-It is advisable to use the [polyfill mode hints](#polyfill-hints) feature to hint when the polyfill is unneeded:
+If using CSS modules or JSON modules, since these features are relatively new they require manually enabling using the initialization option:
 
 ```html
-<script type="module" skip-shim="import-maps">import 'app'</script>
+<script>window.esmsInitOptions = { enable: ['css-modules', 'json-modules'] }</script>
 ```
 
-The above will then result in the script being entirely ignored by the polyfill when import maps are natively supported.
-
-See the [Polyfill Mode Details](#polyfill-mode-details) section for more information about how the polyfill works.
+See the [Polyfill Mode Details](#polyfill-mode-details) section for more information about how the polyfill works and what options are available.
 
 ### Shim Mode
 
@@ -280,11 +278,19 @@ This follows the [dynamic import map specification approach outlined in import m
 
 ## Polyfill Mode Details
 
-In polyfill mode, feature detections are performed for ES modules features. In browsers will full feature support no further processing is done.
+In polyfill mode, feature detections are performed for ES modules features. In browsers with full feature support no further processing is done.
 
-This analyses is very fast using the Wasm-based lexer, and only those sources known by the analysis to require syntax features not natively supported in the browser will then be reexecuted.
+In browsers with variable feature support, sources are analyzed using the very fast Wasm-based lexer while sharing the source network fetch cache with the native loader, and only those sources known by the analysis to require syntax features not natively supported in the browser will then be reexecuted.
 
-The guarantee here is that only a module graph that would have failed will be reexecuted. This leaves an edge case of dynamic import though. Consider the following example:
+#### Polyfill Features
+
+The current default native baseline for ES module shims polyfill mode is browsers supporting import maps.
+
+If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`enable` init option](#enable-option) to raise the native baseline to only browsers supporting these features.
+
+#### Polyfill Edge Cases
+
+The guarantee of the polyfill is that any module graph that would have failed will be reexecuted through the shim layer. This leaves an edge case of dynamic imports though. Consider the following example:
 
 ```html
 <script type="module">
@@ -298,25 +304,11 @@ The guarantee here is that only a module graph that would have failed will be re
 </script>
 ```
 
-The native browser loader will execute the above module fine, but fail on the lazy dynamic import.
+The native browser loader without import maps support will execute the above module fine, but fail on the lazy dynamic import.
 
-ES Module Shims will not reexecute the above though because it will see that the execution did complete successfully therefore it will not attempt reexecution and as a result, `"Ok"` is never logged.
+ES Module Shims will not reexecute the above in browsers without import maps support though because it will see that the execution did complete successfully therefore it will not attempt reexecution and as a result, `"Ok"` is never logged.
 
 This is why it is advisable to always ensure modules use syntax that will fail early to avoid non-execution.
-
-#### Polyfill Hints
-
-A minor performance optimization can be achieved by using polyfill hints to avoid unnecessary source analysis in browsers with native support.
-
-For example, if only needing import maps support but not CSS or JSON modules, setting a polyfill hint of `import-maps` will avoid the polyfill having to check for the use of CSS or JSON module imports.
-
-This is specified via the `skip-shim` attribute:
-
-```html
-<script type="module" src="/app.js" skip-shim="import-maps"></script>
-```
-
-The only supported value for `skip-shim` currently is `import-maps` although other values may be added in future as new modules features ship.
 
 #### Skip Polyfill
 
@@ -333,8 +325,6 @@ Adding the `"noshim"` attribute to the script tag will also ensure that ES Modul
 In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion,
 fired for both success and failure completions, and always twice (once by the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
 
-#### Polyfill
-
 ## Init Options
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
@@ -342,9 +332,11 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 ```html
 <script>
   window.esmsInitOptions = {
+    enable: ['css-modules', 'json-modules'],
     fetch: (url => fetch(url)),
     skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
     onerror: ((e) => { throw e; }),
+    noLoadEventRetriggers: false,
     revokeBlobURLs: false,
   }
 </script>
@@ -392,12 +384,25 @@ import 'shared';
 </script>
 ```
 
+### Enable Option
+
+The enable option allows enabling polyfill features which are newer and would otherwise result in unnecessary polyfilling in modern browsers that haven't yet updated.
+
+Currently this option supports just `"css-modules"` and `"json-modules"`.
+
+```js
+<script>
+  window.esmsInitOptions = {
+    enable: ['css-modules', 'json-modules']
+  };
+</script>
+```
+
 ### No Load Event Retriggers
 
 Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
 
-In order to ensure libraries that rely on these event still behave correctly, ES Module Shims will double trigger these events when
-there are script executions that would normally have executed before the document ready state transition to completion.
+In order to ensure libraries that rely on these event still behave correctly, ES Module Shims will double trigger these events when there are script executions that would normally have executed before the document ready state transition to completion.
 
 These events are carefully only triggered when there definitely were modules that would have missed attachment but there is still the risk that this can result in double attachments when mixing modules and scripts where the scripts might get two events firing.
 
@@ -415,8 +420,7 @@ In such a case, this double event firing can be disabled with the `noLoadEventRe
 
 ### Skip Processing
 
-When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
-opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
+When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
 
 This can be configured by providing a URL regular expression for the `skip` option:
 
@@ -433,7 +437,7 @@ By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev
 
 #### Error hook
 
-You can provide a function to handle errors during the module loading process by providing a `onerror` option:
+You can provide a function to handle errors during the module loading process by providing an `onerror` option:
 
 ```js
 <script>

@@ -39,7 +39,7 @@ let importMapPromise = resolvedPromise;
 
 let waitingForImportMapsInterval;
 let firstTopLevelProcess = true;
-async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, skipShim, lastStaticLoadPromise) {
+async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
   // no need to even fetch if we have feature support
   await featureDetectionPromise;
   if (waitingForImportMapsInterval > 0) {
@@ -52,7 +52,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, skipShim, l
   }
   await importMapPromise;
   // early analysis opt-out
-  if (nativelyLoaded && (skipShim === 'import-maps' && supportsImportMaps || supportsDynamicImport && supportsImportMeta && supportsImportMaps && supportsJsonAssertions && supportsCssAssertions && !importMapSrcOrLazy)) {
+  if (nativelyLoaded && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy) {
     // dont reexec inline for polyfills -> just return null (since no module id for executed inline module scripts)
     return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
   }
@@ -135,6 +135,9 @@ const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
 const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
 const noLoadEventRetriggers = esmsInitOptions.noLoadEventRetriggers;
+const enable = Array.isArray(esmsInitOptions.enable) ? esmsInitOptions.enable : [];
+const cssModulesEnabled = enable.includes('css-modules');
+const jsonModulesEnabled = enable.includes('json-modules');
 
 function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;
@@ -389,7 +392,7 @@ function processScript (script, dynamic) {
   if (type === 'module') {
     const isReadyScript = document.readyState !== 'complete';
     if (isReadyScript) staticLoadCnt++;
-    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, script.getAttribute('skip-shim'), isReadyScript && lastStaticLoadPromise).then(() => {
+    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(() => {
       script.dispatchEvent(new Event('load'));
     }, e => {
       script.dispatchEvent(new Event('load'));
