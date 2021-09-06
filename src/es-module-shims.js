@@ -39,7 +39,7 @@ let importMapPromise = resolvedPromise;
 
 let waitingForImportMapsInterval;
 let firstTopLevelProcess = true;
-async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
+async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, skipShim, lastStaticLoadPromise) {
   // no need to even fetch if we have feature support
   await featureDetectionPromise;
   if (waitingForImportMapsInterval > 0) {
@@ -52,7 +52,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   }
   await importMapPromise;
   // early analysis opt-out
-  if (nativelyLoaded && supportsDynamicImport && supportsImportMeta && supportsImportMaps && supportsJsonAssertions && supportsCssAssertions && !importMapSrcOrLazy) {
+  if (nativelyLoaded && (skipShim === 'import-maps' && supportsImportMaps || supportsDynamicImport && supportsImportMeta && supportsImportMaps && supportsJsonAssertions && supportsCssAssertions && !importMapSrcOrLazy)) {
     // dont reexec inline for polyfills -> just return null (since no module id for executed inline module scripts)
     return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
   }
@@ -389,7 +389,7 @@ function processScript (script, dynamic) {
   if (type === 'module') {
     const isReadyScript = document.readyState !== 'complete';
     if (isReadyScript) staticLoadCnt++;
-    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(() => {
+    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, script.getAttribute('skip-shim'), isReadyScript && lastStaticLoadPromise).then(() => {
       script.dispatchEvent(new Event('load'));
     }, e => {
       script.dispatchEvent(new Event('load'));
