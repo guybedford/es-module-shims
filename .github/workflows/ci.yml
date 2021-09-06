@@ -65,4 +65,4 @@ jobs:
         run: npm run test
         env:
           CI_BROWSER: C:\hostedtoolcache\windows\chromium\${{ matrix.chrome }}\x64\chrome.exe
-          CI_BROWSER_FLAGS: --headless --screenshot
+          CI_BROWSER_FLAGS: --headless --disable-gpu --screenshot
