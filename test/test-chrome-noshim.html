@@ -20,6 +20,14 @@ if (window.shared !== 1)
 if (window.polyfill)
   throw new Error('Did not expect polyfill execution');
 
+window.counter = 1;
+</script>
+
+<script type="module" skip-shim="import-maps">
+window.counter += 1;
+if (window.counter !== 2)
+  throw new Error('Expected previous exec');
+
 fetch('/done');
 </script>
 <script type="module" src="/src/es-module-shims.js" async></script>

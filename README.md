@@ -1,4 +1,4 @@
-## ES Module Shims
+# ES Module Shims
 
 [93% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
 
@@ -24,7 +24,7 @@ Because we are still using the native module loader the edge cases work out comp
 
 Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is very fast, although in complex cases of hundreds of modules it can be a few hundred milliseconds slower than using SystemJS or native ES modules. See the [SystemJS performance comparison](https://github.com/systemjs/systemjs#performance) for a full performance breakdown in a complex loading scenario.
 
-### Usage
+## Usage
 
 Include ES Module Shims with a `async` attribute on the script:
 
@@ -38,9 +38,9 @@ For example, from CDN:
 <script async src="https://ga.jspm.io/npm:es-module-shims@0.12.8/dist/es-module-shims.js"></script>
 ```
 
-Then there are two ways to use ES Module Shims:
+Then there are two ways to use ES Module Shims: Polyfill Mode and [Shim Mode](#shim-mode).
 
-#### Polyfill Mode
+### Polyfill Mode
 
 Just write your HTML modules like you would in the latest Chrome:
 
@@ -57,8 +57,7 @@ Just write your HTML modules like you would in the latest Chrome:
 
 and ES Module Shims will make it work in [all browsers with any ES Module Support](#browser-support).
 
-NOTE: `script[type="importmap"]` and `script[type="importmap-shim"]` should be placed before
-any `script[type="module"]` or `script[type="module-shim"]` in the html. 
+NOTE: `script[type="importmap"]` and `script[type="importmap-shim"]` should be placed before any `script[type="module"]` or `script[type="module-shim"]` in the html.
 
 Note that you will typically see a console error in browsers without import maps support like:
 
@@ -71,10 +70,17 @@ This execution failure is wanted - it avoids the polyfill causing double executi
 
 This is because the polyfill cannot disable the native loader - instead it can only execute modules that would otherwise fail instantiation while avoiding duplicate fetches or executions.
 
-In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion,
-fired for both success and failure completions, and always twice (once by the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
+It is advisable to use the [polyfill mode hints](#polyfill-hints) feature to hint when the polyfill is unneeded:
 
-#### Shim Mode
+```html
+<script type="module" skip-shim="import-maps">import 'app'</script>
+```
+
+The above will then result in the script being entirely ignored by the polyfill when import maps are natively supported.
+
+See the [Polyfill Mode Details](#polyfill-mode-details) section for more information about how the polyfill works.
+
+### Shim Mode
 
 Shim mode is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly
 setting the [`shimMode` init option](#shim-mode-option).
@@ -85,6 +91,8 @@ Module Shims instead.
 This can useful in some [polyfill mode edge cases](#polyfill-edge-cases) where it's not clear whether or not a given module will execute in the native browser loader or not.
 
 DOM `'load'` events are triggered for `"module-shim"` scripts just like native modules, firing for both erroring or successful completion.
+
+## Features
 
 ### Browser Support
 
@@ -270,20 +278,13 @@ Dynamic import map extensions after the first module load are not supported by t
 
 This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
 
-### Polyfill Edge Cases
+## Polyfill Mode Details
 
 In polyfill mode, feature detections are performed for ES modules features. In browsers will full feature support no further processing is done.
 
-In browsers lacking import maps support, all sources are analyzed using the fast Wasm-based lexer. Only those sources known by the analysis
-to require syntax features not supported natively in the current browser will then be re-executed, with the rest shared with the native loader directly.
+This analyses is very fast using the Wasm-based lexer, and only those sources known by the analysis to require syntax features not natively supported in the browser will then be reexecuted.
 
-For the most part this will work without issue, including avoiding refetching, ensuring exact instance sharing between the native loader
-and shims and avoiding duplicate reexecution in the majority of cases.
-
-There are still some edge cases where this analysis decision gets tricky and can result in duplicate execution / module instances though,
-specifically when dealing with import maps and dynamic imports.
-
-Consider the following example:
+The guarantee here is that only a module graph that would have failed will be reexecuted. This leaves an edge case of dynamic import though. Consider the following example:
 
 ```html
 <script type="module">
@@ -299,21 +300,25 @@ Consider the following example:
 
 The native browser loader will execute the above module fine, but fail on the lazy dynamic import.
 
-ES Module Shims will still automatically polyfill the module because it can see that it the dynamic import
-might need import map support.
+ES Module Shims will not reexecute the above though because it will see that the execution did complete successfully therefore it will not attempt reexecution and as a result, `"Ok"` is never logged.
 
-As a result, in polyfill mode we get the console output:
+This is why it is advisable to always ensure modules use syntax that will fail early to avoid non-execution.
 
+#### Polyfill Hints
+
+A minor performance optimization can be achieved by using polyfill hints to avoid unnecessary source analysis in browsers with native support.
+
+For example, if only needing import maps support but not CSS or JSON modules, setting a polyfill hint of `import-maps` will avoid the polyfill having to check for the use of CSS or JSON module imports.
+
+This is specified via the `skip-shim` attribute:
+
+```html
+<script type="module" src="/app.js" skip-shim="import-maps"></script>
 ```
-Executing
-Executing
-Fail
-Ok
-```
 
-The double execution being a result of the polyfill approach for this edge case.
+The only supported value for `skip-shim` currently is `import-maps` although other values may be added in future as new modules features ship.
 
-This is why it is advisable to always ensure modules use bare specifiers to fail early and avoid double execution.
+#### Skip Polyfill
 
 Adding the `"noshim"` attribute to the script tag will also ensure that ES Module Shims skips processing this script entirely:
 
@@ -323,9 +328,14 @@ Adding the `"noshim"` attribute to the script tag will also ensure that ES Modul
 </script>
 ```
 
-Alternatively [shim mode](#shim-mode) can be used instead.
+#### Load Events
 
-### Init Options
+In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion,
+fired for both success and failure completions, and always twice (once by the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
+
+#### Polyfill
+
+## Init Options
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
 
@@ -343,7 +353,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 
 See below for a detailed description of each of these options.
 
-#### Shim Mode Option
+### Shim Mode Option
 
 [Shim Mode](#shim-mode) can be overridden using the `shimMode` option:
 
@@ -382,7 +392,7 @@ import 'shared';
 </script>
 ```
 
-#### No Load Event Retriggers
+### No Load Event Retriggers
 
 Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
 
@@ -403,7 +413,7 @@ In such a case, this double event firing can be disabled with the `noLoadEventRe
 <script async src="es-module-shims.js"></script>
 ```
 
-#### Skip Processing
+### Skip Processing
 
 When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly
 opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
@@ -452,7 +462,7 @@ The resolve hook allows full customization of the resolver, while still having a
 </script>
 ```
 
-#### Fetch Hook
+### Fetch Hook
 
 This is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
 
@@ -513,7 +523,7 @@ window.esmsInitOptions = {
 }
 ```
 
-#### Revoke Blob URLs
+### Revoke Blob URLs
 
 When polyfilling the missing features `es-module-shims` would create in-memory blobs using `URL.createObjectURL()` for each processed module.
 In most cases, memory footprint of these blobs is negligible so there is no need to call `URL.revokeObjectURL()`
@@ -536,13 +546,6 @@ You can do that by enabling the `revokeBlobURLs` init option:
 NOTE: revoking object URLs is not entirely free, while we are trying to be smart about it and make sure it doesn't
 cause janks, we recommend enabling this option only if you have done the measurements and identified that you really need it.
 
-##### Plugins
-
-Since the Fetch Hook is very new, there are no plugin examples of it yet, but it should be easy to support various workflows
-such as TypeScript and new JS features this way.
-
-If you work on something here (or even just wrap the examples above into a separate project) please do share to link to from here!
-
 ## Implementation Details
 
 ### Import Rewriting
@@ -556,6 +559,6 @@ If you work on something here (or even just wrap the examples above into a separ
 
 Huge thanks to Rich Harris for inspiring this approach with [Shimport](https://github.com/rich-harris/shimport).
 
-### License
+## License
 
 MIT
