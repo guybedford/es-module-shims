@@ -54,8 +54,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   // early analysis opt-out
   if (nativelyLoaded && supportsDynamicImport && supportsImportMeta && supportsImportMaps && supportsJsonAssertions && supportsCssAssertions && !importMapSrcOrLazy) {
     // dont reexec inline for polyfills -> just return null (since no module id for executed inline module scripts)
-    const n = source && nativelyLoaded;
-    return { m: n ? null : await dynamicImport(source ? createBlob(source) : url), n };
+    return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
   }
   await init;
   const load = getOrCreateLoad(url, fetchOpts, source);
@@ -70,11 +69,11 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
       if (domContentLoaded)
         didExecForDomContentLoaded = true;
     }
-    const m = await dynamicImport(createBlob(source));
+    const module = await dynamicImport(createBlob(source));
     if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
-    return { m, n: false };
+    return module;
   }
-  const m = await dynamicImport(load.b);
+  const module = await dynamicImport(load.b);
   if (lastStaticLoadPromise && (!nativelyLoaded || load.b !== load.u)) {
     didExecForReadyPromise = true;
     if (domContentLoaded)
@@ -84,7 +83,9 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   if (load.s)
     (await dynamicImport(load.s)).u$_(module);
   if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
-  return { m, n: true };
+  // when tla is supported, this should return the tla promise as an actual handle
+  // so readystate can still correspond to the sync subgraph exec completions
+  return module;
 }
 
 function revokeObjectURLs(registryKeys) {
@@ -109,7 +110,7 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
   const resolved = await resolve(id, parentUrl);
-  return (await topLevelLoad(resolved.r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' })).m;
+  return topLevelLoad(resolved.r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
 
 self.importShim = importShim;
@@ -388,9 +389,8 @@ function processScript (script, dynamic) {
   if (type === 'module') {
     const isReadyScript = document.readyState !== 'complete';
     if (isReadyScript) staticLoadCnt++;
-    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(({ n }) => {
-      if (shimMode || n)
-        script.dispatchEvent(new Event('load'));
+    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(() => {
+      script.dispatchEvent(new Event('load'));
     }, e => {
       script.dispatchEvent(new Event('load'));
       onerror(e);
