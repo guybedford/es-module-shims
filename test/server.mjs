@@ -35,9 +35,9 @@ function setBrowserTimeout () {
   if (browserTimeout)
     clearTimeout(browserTimeout);
   browserTimeout = setTimeout(() => {
-    console.log('No browser requests made to server for 30s, closing.');
+    console.log('No browser requests made to server for 10s, closing.');
     process.exit(failTimeout || process.env.CI_BROWSER ? 1 : 0);
-  }, 30000);
+  }, 10000);
 }
 
 setBrowserTimeout();
