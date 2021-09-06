@@ -1,4 +1,6 @@
 async function loadModuleScript (src) {
+  // appease Mocha
+  window.onerror = () => {};
   await new Promise(resolve => {
     let first = true;
     document.head.appendChild(Object.assign(document.createElement('script'), {

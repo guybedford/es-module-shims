@@ -43,7 +43,7 @@ jobs:
       matrix:
         chrome: [
           '695079', # September 2019
-          '846616', # Jan 2021
+          '859178', # Mar 2021, Import Maps first released
           '913920', # August 2021
         ]
     name: Chrome Browser Tests
