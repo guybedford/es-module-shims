@@ -1,7 +1,7 @@
 export function runMochaTests(suites) {
   mocha.setup({
     ui: 'tdd',
-    // cleanReferencesAfterRun: false
+    cleanReferencesAfterRun: false
   });
   mocha.allowUncaught();
   self.assert = function (val) {
