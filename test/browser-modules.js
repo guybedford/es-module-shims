@@ -103,67 +103,67 @@ suite('Basic loading tests', () => {
     assert.equal(dynamicModule.default, 'bareDynamicImport');
   });
 
-  test('should support dynamic import in an inline script', async function () {
-    await new Promise(resolve => setTimeout(resolve, 50));
-    assert.equal(window.inlineScriptDynamicImportResult.default, 'bareDynamicImport');
-  });
+  // test('should support dynamic import in an inline script', async function () {
+  //   await new Promise(resolve => setTimeout(resolve, 50));
+  //   assert.equal(window.inlineScriptDynamicImportResult.default, 'bareDynamicImport');
+  // });
 
-  test('should support dynamic import with an import map', async function () {
-    await new Promise(resolve => document.head.appendChild(Object.assign(document.createElement('script'), {
-      type: 'module-shim',
-      src: './fixtures/es-modules/importer1.js',
-      onload: resolve
-    })));
-    await new Promise(resolve => setTimeout(resolve, 20));
-    assert.equal(window.global1, true);
-  });
+  // test('should support dynamic import with an import map', async function () {
+  //   await new Promise(resolve => document.head.appendChild(Object.assign(document.createElement('script'), {
+  //     type: 'module-shim',
+  //     src: './fixtures/es-modules/importer1.js',
+  //     onload: resolve
+  //   })));
+  //   await new Promise(resolve => setTimeout(resolve, 20));
+  //   assert.equal(window.global1, true);
+  // });
 
-  test('Should import a module via a full url, with scheme', async function () {
-    const url = window.location.href.replace('/test.html', '/fixtures/es-modules/no-imports.js');
-    assert.equal(url.slice(0, 4), 'http');
-    var m = await importShim(url);
-    assert(m);
-    assert.equal(m.asdf, 'asdf');
-  });
+  // test('Should import a module via a full url, with scheme', async function () {
+  //   const url = window.location.href.replace('/test.html', '/fixtures/es-modules/no-imports.js');
+  //   assert.equal(url.slice(0, 4), 'http');
+  //   var m = await importShim(url);
+  //   assert(m);
+  //   assert.equal(m.asdf, 'asdf');
+  // });
 
-  test('Should import a module via a full url, without scheme', async function () {
-    const url = window.location.href
-      .replace('/test.html', '/fixtures/es-modules/no-imports.js')
-      .replace(/^http(s)?:/, '');
-    assert.equal(url.slice(0, 2), '//');
-    var m = await importShim(url);
-    assert(m);
-    assert.equal(m.asdf, 'asdf');
-  });
+  // test('Should import a module via a full url, without scheme', async function () {
+  //   const url = window.location.href
+  //     .replace('/test.html', '/fixtures/es-modules/no-imports.js')
+  //     .replace(/^http(s)?:/, '');
+  //   assert.equal(url.slice(0, 2), '//');
+  //   var m = await importShim(url);
+  //   assert(m);
+  //   assert.equal(m.asdf, 'asdf');
+  // });
 
-  test("Should import a module via a relative path re-mapped with importmap's scopes", async function () {
-    const url = window.location.href
-      .replace('/test.html', '/fixtures/es-modules/import-relative-path.js');
-    var m = await importShim(url);
-    assert(m);
-    assert.equal(m.p, 'p');
-    assert.equal(m.a, 'a');
-  });
+  // test("Should import a module via a relative path re-mapped with importmap's scopes", async function () {
+  //   const url = window.location.href
+  //     .replace('/test.html', '/fixtures/es-modules/import-relative-path.js');
+  //   var m = await importShim(url);
+  //   assert(m);
+  //   assert.equal(m.p, 'p');
+  //   assert.equal(m.a, 'a');
+  // });
 
-  test('Should import a module via data url', async function () {
-    var m = await importShim('data:application/javascript;charset=utf-8;base64,ZXhwb3J0IHZhciBhc2RmID0gJ2FzZGYnOw0KZXhwb3J0IHZhciBvYmogPSB7fTs=');
-    assert(m);
-    assert.equal(m.asdf, 'asdf');
-  });
+  // test('Should import a module via data url', async function () {
+  //   var m = await importShim('data:application/javascript;charset=utf-8;base64,ZXhwb3J0IHZhciBhc2RmID0gJ2FzZGYnOw0KZXhwb3J0IHZhciBvYmogPSB7fTs=');
+  //   assert(m);
+  //   assert.equal(m.asdf, 'asdf');
+  // });
 
-  test('Should import a module via blob', async function () {
-    const code = await (await fetch('./fixtures/es-modules/no-imports.js')).text();
-    const blob = new Blob([code], { type: 'application/javascript' });
-    var m = await importShim(URL.createObjectURL(blob));
-    assert(m);
-    assert.equal(m.asdf, 'asdf');
-  });
+  // test('Should import a module via blob', async function () {
+  //   const code = await (await fetch('./fixtures/es-modules/no-imports.js')).text();
+  //   const blob = new Blob([code], { type: 'application/javascript' });
+  //   var m = await importShim(URL.createObjectURL(blob));
+  //   assert(m);
+  //   assert.equal(m.asdf, 'asdf');
+  // });
 
-  test('Should import a module with query parameters with path segments', async function () {
-    var m = await importShim('./fixtures/es-modules/query-param-a.js?foo=/foo/bar/');
-    assert(m);
-    assert.equal(m.a, 'ab');
-  });
+  // test('Should import a module with query parameters with path segments', async function () {
+  //   var m = await importShim('./fixtures/es-modules/query-param-a.js?foo=/foo/bar/');
+  //   assert(m);
+  //   assert.equal(m.a, 'ab');
+  // });
 });
 
 suite.skip('Circular dependencies', function() {
