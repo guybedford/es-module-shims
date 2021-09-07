@@ -2,9 +2,13 @@ const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
+beforeEach(() => {
+  // mocha issues
+  window.onerror = () => {};
+});
+
 suite('Basic loading tests', () => {
   test('Static load order and domcontentloaded and ready state', async function () {
-    window.onerror = () => {};
     await new Promise(resolve => {
       if (window.domContentLoadedOrder)
         resolve();
@@ -22,7 +26,6 @@ suite('Basic loading tests', () => {
   });
 
   test('Load counter', function () {
-    window.onerror = () => {};
     assert.equal(count, 2);
   });
   test('Should import a module', async function () {
