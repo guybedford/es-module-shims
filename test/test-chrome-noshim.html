@@ -11,6 +11,15 @@
 <script>
   window.esmsInitOptions = { enable: ['css-modules'] };
 </script>
+
+<script type="module">
+  // Dynamic map injections only support by polyfill
+  document.head.appendChild(Object.assign(document.createElement('script'), {
+    type: 'importmap',
+    innerHTML: '{ "imports": { "app": "data:text/javascript,window.polyfill=true;" } }'
+  }));
+  </script>
+
 <script type="module">
 import 'app';
 import 'shared';
@@ -24,12 +33,6 @@ if (window.polyfill)
   throw new Error('Did not expect polyfill execution');
 
 window.counter = 1;
-
-// Dynamic map injections only support by polyfill
-document.head.appendChild(Object.assign(document.createElement('script'), {
-  type: 'importmap',
-  innerHTML: '{ "imports": { "app": "data:text/javascript,window.polyfill=true;" } }'
-}));
 </script>
 
 <script type="module">
