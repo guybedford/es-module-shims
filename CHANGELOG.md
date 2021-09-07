@@ -1,3 +1,12 @@
+ES Module Shims 0.13.0 (2021/09/07)
+* Breaking Change: Polyfill mode restricts behaviours to native baseline support (https://github.com/guybedford/es-module-shims/pull/173)
+* Breaking Change: JSON and CSS modules require explicit enabling (https://github.com/guybedford/es-module-shims/pull/172)
+* Breaking Change: Adds the "exports" field to encapsulate the package entry point (https://github.com/guybedford/es-module-shims/pull/177)
+* Feature: Support script DOM "load" events (https://github.com/guybedford/es-module-shims/pull/170)
+* Improve browser compatibility for Weixin browser (https://github.com/guybedford/es-module-shims/pull/165, @xxgjzftd)
+* Fix dynamic import polyfill recursion in Firefox 60 (https://github.com/guybedford/es-module-shims/pull/176)
+* Change compat to Edge 17+ (https://github.com/guybedford/es-module-shims/pull/178)
+
 ES Module Shims 0.12.8 (2021/08/24)
 * Fix preload deduping for re-injection of preloads (https://github.com/guybedford/es-module-shims/pull/164)
 

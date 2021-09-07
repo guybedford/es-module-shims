@@ -1,5 +1,7 @@
 # ES Module Shims
 
+[Release Notes](CHANGELOG.md)
+
 [93% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
 
 But modules features like Import Maps will take a while to be supported in browsers.
@@ -32,10 +34,10 @@ For example, from CDN:
 
 ```html
 <!-- UNPKG -->
-<script async src="https://unpkg.com/es-module-shims@0.12.8/dist/es-module-shims.js"></script>
+<script async src="https://unpkg.com/es-module-shims@0.13.0/dist/es-module-shims.js"></script>
 
 <!-- JSPM.IO -->
-<script async src="https://ga.jspm.io/npm:es-module-shims@0.12.8/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@0.13.0/dist/es-module-shims.js"></script>
 ```
 
 Then there are two ways to use ES Module Shims: Polyfill Mode and [Shim Mode](#shim-mode).
