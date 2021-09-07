@@ -238,8 +238,8 @@ function resolveDeps (load, seen) {
 }
 
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
-const jsonContentType = /^application\/json(;|$)/;
-const cssContentType = /^text\/css(;|$)/;
+const jsonContentType = /^(text|application)\/json(;|$)/;
+const cssContentType = /^(text|application)\/css(;|$)/;
 const wasmContentType = /^application\/wasm(;|$)/;
 
 const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\])+))\s*\)/g;
