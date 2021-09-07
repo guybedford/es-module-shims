@@ -18,19 +18,21 @@
     type: 'importmap',
     innerHTML: '{ "imports": { "app": "data:text/javascript,window.polyfill=true;" } }'
   }));
-  </script>
+</script>
 
 <script type="module">
 import 'app';
 import 'shared';
 import x from '/test/fixtures/css-assertion.js';
 
-if (!window.native)
-  throw new Error('Expected native exec');
+if (window.native && window.polyfill)
+  throw new Error('Expected native or polyfill exec, not both');
+if (window.native)
+  console.log('NATIVE EXEC');
+if (window.polyfill)
+  console.log('POLYFILL EXEC');
 if (window.shared !== 1)
   throw new Error('Expected shared execution once');
-if (window.polyfill)
-  throw new Error('Did not expect polyfill execution');
 
 window.counter = 1;
 </script>
@@ -39,7 +41,7 @@ window.counter = 1;
 window.counter += 1;
 if (window.counter !== 2)
   throw new Error('Expected previous exec');
-
 fetch('/done');
 </script>
+
 <script type="module" src="/src/es-module-shims.js" async></script>
