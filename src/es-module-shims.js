@@ -407,6 +407,10 @@ function processScript (script, dynamic) {
       lastStaticLoadPromise = loadPromise.then(staticLoadCheck, staticLoadCheck);
   }
   else if (type === 'importmap') {
+    // we dont currently support dynamic imports maps or import map "src" in polyfill mode
+    // in order to match native implementations
+    if (!shimMode && (script.src || dynamic))
+      return;
     importMapPromise = importMapPromise.then(async () => {
       if (script.src || dynamic)
         importMapSrcOrLazy = true;

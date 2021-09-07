@@ -161,11 +161,25 @@ Using this polyfill we can write:
 
 All modules are still loaded with the native browser module loader, but with their specifiers rewritten then executed as Blob URLs, so there is a relatively minimal overhead to using a polyfill approach like this.
 
-#### Dynamic and External Import Maps
+#### Multiple Import Maps
 
-Import maps with a `src` attribute are not currently supported in any native implementations.
+Multiple import maps are not currently supported in any native implementation, Chromium support is currently being tracked in https://bugs.chromium.org/p/chromium/issues/detail?id=927119.
 
-Dynamic injections of import maps into the page via eg:
+In polyfill mode, multiple import maps are therefore not supported.
+
+In shim mode, support for multiple `importmap-shim` scripts follows the [import map extensions](https://github.com/guybedford/import-maps-extensions) proposal.
+
+#### External Import Maps
+
+External import maps (using a `"src"` attribute) are not currently supported in any native implementation.
+
+In polyfill mode, external import maps are therefore not supported.
+
+In shim mode, external import maps are fully supported.
+
+#### Dynamic Import Maps
+
+Support for dynamically injecting import maps with JavaScript via:
 
 ```js
 document.body.appendChild(Object.assign(document.createElement('script'), {
@@ -174,11 +188,13 @@ document.body.appendChild(Object.assign(document.createElement('script'), {
 }));
 ```
 
-are supported in Chrome currently, but only if the import map is injected _before any modules execute_.
+is supported in Chromium, provided it is injected before any module loads and there is no other import map.
 
-Support for these features is provided by ES Module Shims.
+Both modes in ES Module Shims thus support dynamic injection using DOM Mutation Observers.
 
-This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
+In polyfill mode, a best effort is made to support the same timing constraints.
+
+In shim mode, full support for dynamic injection of `"importmap-shim"` is provided.
 
 ### Dynamic Import
 
