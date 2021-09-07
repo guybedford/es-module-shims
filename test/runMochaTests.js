@@ -17,7 +17,10 @@ export function runMochaTests(suites) {
     throw new Error(msg);
   };
 
+  let totalFailures = 0;
   function runNextSuite(failures) {
+    if (failures)
+      totalFailures += failures;
     mocha.suite.suites = [];
     const suite = suites.shift();
     if (suite) {
@@ -29,7 +32,7 @@ export function runMochaTests(suites) {
           console.error(err);
         });
     } else {
-      fetch(failures ? '/error?' + failures : '/done');
+      fetch(totalFailures ? '/error?' + totalFailures : '/done');
     }
   }
 

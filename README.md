@@ -161,6 +161,25 @@ Using this polyfill we can write:
 
 All modules are still loaded with the native browser module loader, but with their specifiers rewritten then executed as Blob URLs, so there is a relatively minimal overhead to using a polyfill approach like this.
 
+#### Dynamic and External Import Maps
+
+Import maps with a `src` attribute are not currently supported in any native implementations.
+
+Dynamic injections of import maps into the page via eg:
+
+```js
+document.body.appendChild(Object.assign(document.createElement('script'), {
+  type: 'importmap',
+  innerHTML: JSON.stringify({ imports: { x: './y.js' } })
+}));
+```
+
+are supported in Chrome currently, but only if the import map is injected _before any modules execute_.
+
+Support for these features is provided by ES Module Shims.
+
+This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
+
 ### Dynamic Import
 
 > Stability: Stable browser standard
@@ -259,23 +278,6 @@ var resolvedUrl = await import.meta.resolve('dep', 'https://site.com/another/sco
 
 This implementation is as provided experimentally in Node.js - https://nodejs.org/dist/latest-v14.x/docs/api/esm.html#esm_no_require_resolve.
 
-### Dynamic Import Map Updates
-
-Support is provided for dynamic import map updates via Mutation Observers.
-
-This allows extending the import map via:
-
-```js
-document.body.appendChild(Object.assign(document.createElement('script'), {
-  type: 'importmap',
-  innerHTML: JSON.stringify({ imports: { x: './y.js' } })
-}));
-```
-
-Dynamic import map extensions after the first module load are not supported by the native module loader so ES Module Shims will carefully polyfill these map cases specifically.
-
-This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
-
 ## Polyfill Mode Details
 
 In polyfill mode, feature detections are performed for ES modules features. In browsers with full feature support no further processing is done.
@@ -284,13 +286,13 @@ In browsers with variable feature support, sources are analyzed using the very f
 
 #### Polyfill Features
 
-The current default native baseline for ES module shims polyfill mode is browsers supporting import maps.
+The current default native baseline for the ES module shims polyfill mode is browsers supporting import maps.
 
-If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`enable` init option](#enable-option) to raise the native baseline to only browsers supporting these features.
+If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`polyfillEnable` init option](#polyfill-enable-option) to raise the native baseline to only browsers supporting these features.
 
 #### Polyfill Edge Cases
 
-The guarantee of the polyfill is that any module graph that would have failed will be reexecuted through the shim layer. This leaves an edge case of dynamic imports though. Consider the following example:
+The guarantee of the polyfill is that any module graph that would have failed will be reexecuted through the shim layer. This leaves any edge case where execution succeeds but not as expected. For example when using dynamic imports:
 
 ```html
 <script type="module">
@@ -307,6 +309,8 @@ The guarantee of the polyfill is that any module graph that would have failed wi
 The native browser loader without import maps support will execute the above module fine, but fail on the lazy dynamic import.
 
 ES Module Shims will not reexecute the above in browsers without import maps support though because it will see that the execution did complete successfully therefore it will not attempt reexecution and as a result, `"Ok"` is never logged.
+
+Other examples include dynamically injecting import maps, or using import maps with a `"src"` attribute, which aren't supported in native Chrome.
 
 This is why it is advisable to always ensure modules use syntax that will fail early to avoid non-execution.
 
@@ -332,7 +336,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 ```html
 <script>
   window.esmsInitOptions = {
-    enable: ['css-modules', 'json-modules'],
+    polyfillEnable: ['css-modules', 'json-modules'],
     fetch: (url => fetch(url)),
     skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
     onerror: ((e) => { throw e; }),
@@ -384,16 +388,16 @@ import 'shared';
 </script>
 ```
 
-### Enable Option
+### Pollyfill Enable Option
 
-The enable option allows enabling polyfill features which are newer and would otherwise result in unnecessary polyfilling in modern browsers that haven't yet updated.
+The `polyfillEnable` option allows enabling polyfill features which are newer and would otherwise result in unnecessary polyfilling in modern browsers that haven't yet updated.
 
 Currently this option supports just `"css-modules"` and `"json-modules"`.
 
 ```js
 <script>
   window.esmsInitOptions = {
-    enable: ['css-modules', 'json-modules']
+    polyfillEnable: ['css-modules', 'json-modules']
   };
 </script>
 ```

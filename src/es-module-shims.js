@@ -135,7 +135,7 @@ const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\
 const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
 const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
 const noLoadEventRetriggers = esmsInitOptions.noLoadEventRetriggers;
-const enable = Array.isArray(esmsInitOptions.enable) ? esmsInitOptions.enable : [];
+const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
 const cssModulesEnabled = enable.includes('css-modules');
 const jsonModulesEnabled = enable.includes('json-modules');
 
@@ -297,9 +297,9 @@ function getOrCreateLoad (url, fetchOpts, source) {
       // preload fetch options override fetch options (race)
       let t;
       ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts)));
-      if (t) {
+      if (t && !shimMode) {
         if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled)
-          throw new Error(`Feature ${t}-modules must be enabled via: window.esmsInitOptions = { enable: ['${t}-modules'] }`);
+          throw new Error(`${t}-modules must be enabled to polyfill via: window.esmsInitOptions = { polyfillEnable: ['${t}-modules'] }`);
         if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
           load.n = true;
       }
@@ -402,7 +402,6 @@ function processScript (script, dynamic) {
       script.dispatchEvent(new Event('load'));
       onerror(e);
     });
-    loadPromise.catch(() => {});
     if (isReadyScript)
       lastStaticLoadPromise = loadPromise.then(staticLoadCheck);
   }
