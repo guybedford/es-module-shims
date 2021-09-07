@@ -85,6 +85,16 @@ if (!baseUrl && typeof location !== 'undefined') {
     baseUrl = baseUrl.slice(0, lastSepIndex + 1);
 }
 
+export function isURL (url) {
+  try {
+    new URL(url);
+    return true;
+  }
+  catch {
+    return false;
+  }
+}
+
 const backslashRegEx = /\\/g;
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
   // strip off any trailing query params or hashes

@@ -13,7 +13,8 @@ import {
   supportsImportMaps,
   featureDetectionPromise,
   supportsCssAssertions,
-  supportsJsonAssertions
+  supportsJsonAssertions,
+  isURL
 } from './common.js';
 import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
 
@@ -34,6 +35,7 @@ async function loadAll (load, seen) {
 }
 
 let importMap = { imports: {}, scopes: {} };
+let hasImportMap = false;
 let importMapSrcOrLazy = false;
 let importMapPromise = resolvedPromise;
 
@@ -85,6 +87,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
   // when tla is supported, this should return the tla promise as an actual handle
   // so readystate can still correspond to the sync subgraph exec completions
+  console.log(url, 'DONE');
   return module;
 }
 
@@ -109,8 +112,7 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   await featureDetectionPromise;
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
-  const resolved = await resolve(id, parentUrl);
-  return topLevelLoad(resolved.r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
+  return topLevelLoad((await resolveHook(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
 
 self.importShim = importShim;
@@ -121,8 +123,7 @@ const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 async function importMetaResolve (id, parentUrl = this.url) {
   await importMapPromise;
-  const resolved = await resolve(id, `${parentUrl}`);
-  return resolved.r || throwUnresolved(id, parentUrl);
+  return (await resolveHook(id, `${parentUrl}`)).r || throwUnresolved(id, parentUrl);
 }
 
 self._esmsm = meta;
@@ -130,7 +131,8 @@ self._esmsm = meta;
 const esmsInitOptions = self.esmsInitOptions || {};
 delete self.esmsInitOptions;
 let shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
-const fetchHook = esmsInitOptions.fetch || ((url, opts) => fetch(url, opts));
+const fetchHook = shimMode && esmsInitOptions.fetch || fetch;
+const resolveHook = shimMode && esmsInitOptions.resolve ? async (id, parentUrl) => ({ r: await esmsInitOptions.resolve(id, parentUrl, defaultResolve), b: false }) : resolve;
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 const onerror = esmsInitOptions.onerror || (() => {});
 const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
@@ -317,13 +319,12 @@ function getOrCreateLoad (url, fetchOpts, source) {
 
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
-    load.d = (await Promise.all(load.a[0].map(async ({ n, d, a }) => {
-      if (d >= 0 && !supportsDynamicImport ||
-          d === 2 && (!supportsImportMeta || source.slice(end, end + 8) === '.resolve'))
+    load.d = (await Promise.all(load.a[0].map(async ({ n, d }) => {
+      if (d >= 0 && !supportsDynamicImport || d === 2 && !supportsImportMeta)
         load.n = true;
       if (!n) return;
-      const { r, m } = await resolve(n, load.r || load.u);
-      if (m && (!supportsImportMaps || importMapSrcOrLazy))
+      const { r, b } = await resolveHook(n, load.r || load.u);
+      if (b && !supportsImportMaps)
         load.n = true;
       if (d !== -1) return;
       if (!r)
@@ -407,6 +408,10 @@ function processScript (script, dynamic) {
       lastStaticLoadPromise = loadPromise.then(staticLoadCheck, staticLoadCheck);
   }
   else if (type === 'importmap') {
+    // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
+    if (!shimMode && (hasImportMap || script.src || dynamic))
+      return;
+    hasImportMap = true;
     importMapPromise = importMapPromise.then(async () => {
       if (script.src || dynamic)
         importMapSrcOrLazy = true;
@@ -450,17 +455,12 @@ async function defaultResolve (id, parentUrl) {
 }
 
 async function resolve (id, parentUrl) {
-  let urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
-
-  let resolved;
-  if (esmsInitOptions.resolve) {
-    resolved = await esmsInitOptions.resolve(id, parentUrl, defaultResolve);
-  }
-  else {
-    resolved = resolveImportMap(importMap, urlResolved || id, parentUrl);
-  }
-
-  return { r: resolved, m: urlResolved !== resolved };
+  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
+  return {
+    r: resolveImportMap(importMap, urlResolved || id, parentUrl),
+    // b = bare specifier
+    b: !urlResolved && !isURL(id)
+  };
 }
 
 function throwUnresolved (id, parentUrl) {

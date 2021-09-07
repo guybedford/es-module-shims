@@ -11,7 +11,7 @@ This includes support for:
 * [Import Maps](https://github.com/wicg/import-maps) support.
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
-* JSON modules with import assertions.
+* JSON and CSS modules with import assertions.
 * `<link rel="modulepreload">` polyfill in non Chromium browsers for both shimmed and unshimmed preloading scenarios.
 
 In addition a custom [fetch hook](#fetch-hook) can be implemented allowing for streaming in-browser transform workflows to support custom module types.
@@ -57,20 +57,20 @@ Just write your HTML modules like you would in the latest Chrome:
 
 and ES Module Shims will make it work in [all browsers with any ES Module Support](#browser-support).
 
-NOTE: `script[type="importmap"]` and `script[type="importmap-shim"]` should be placed before any `script[type="module"]` or `script[type="module-shim"]` in the html.
+> `<script type="importmap">` should always be placed before any `<script type="module">` as per native support in browsers.
 
-Note that you will typically see a console error in browsers without import maps support like:
+You will typically see a console error in browsers without import maps support like:
 
 ```
 Uncaught TypeError: Failed to resolve module specifier "app". Relative references must start with either "/", "./", or "../".
   at <anonymous>:1:15
 ```
 
-This execution failure is wanted - it avoids the polyfill causing double execution. The first import being a bare specifier in the pattern above is important to ensure this.
+This execution failure is a feature - it avoids the polyfill causing double execution. The first import being a bare specifier in the pattern above is important to ensure this.
 
 This is because the polyfill cannot disable the native loader - instead it can only execute modules that would otherwise fail instantiation while avoiding duplicate fetches or executions.
 
-If using CSS modules or JSON modules, since these features are relatively new they require manually enabling using the initialization option:
+If using CSS modules or JSON modules, since these features are relatively new, they require manually enabling using the initialization option:
 
 ```html
 <script>window.esmsInitOptions = { enable: ['css-modules', 'json-modules'] }</script>
@@ -80,15 +80,11 @@ See the [Polyfill Mode Details](#polyfill-mode-details) section for more informa
 
 ### Shim Mode
 
-Shim mode is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly
-setting the [`shimMode` init option](#shim-mode-option).
+Shim mode is an alternative to polyfill mode and doesn't rely on native modules erroring - instead it is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly setting the [`shimMode` init option](#shim-mode-option).
 
-In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES
-Module Shims instead.
+In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES Module Shims instead.
 
-This can useful in some [polyfill mode edge cases](#polyfill-edge-cases) where it's not clear whether or not a given module will execute in the native browser loader or not.
-
-DOM `'load'` events are triggered for `"module-shim"` scripts just like native modules, firing for both erroring or successful completion.
+Shim mode also provides some additional features that aren't yet natively supported such as [external import maps](#external-import-maps) with a `"src"` attribute or [dynamicallly injecting import maps](#dynamic-import-maps), which can be useful in certain applications.
 
 ## Features
 
@@ -161,11 +157,25 @@ Using this polyfill we can write:
 
 All modules are still loaded with the native browser module loader, but with their specifiers rewritten then executed as Blob URLs, so there is a relatively minimal overhead to using a polyfill approach like this.
 
-#### Dynamic and External Import Maps
+#### Multiple Import Maps
 
-Import maps with a `src` attribute are not currently supported in any native implementations.
+Multiple import maps are not currently supported in any native implementation, Chromium support is currently being tracked in https://bugs.chromium.org/p/chromium/issues/detail?id=927119.
 
-Dynamic injections of import maps into the page via eg:
+In polyfill mode, multiple import maps are therefore not supported.
+
+In shim mode, support for multiple `importmap-shim` scripts follows the [import map extensions](https://github.com/guybedford/import-maps-extensions) proposal.
+
+#### External Import Maps
+
+External import maps (using a `"src"` attribute) are not currently supported in any native implementation.
+
+In polyfill mode, external import maps are therefore not supported.
+
+In shim mode, external import maps are fully supported.
+
+#### Dynamic Import Maps
+
+Support for dynamically injecting import maps with JavaScript via
 
 ```js
 document.body.appendChild(Object.assign(document.createElement('script'), {
@@ -174,11 +184,13 @@ document.body.appendChild(Object.assign(document.createElement('script'), {
 }));
 ```
 
-are supported in Chrome currently, but only if the import map is injected _before any modules execute_.
+is supported in Chromium, provided it is injected before any module loads and there is no other import map.
 
-Support for these features is provided by ES Module Shims.
+Both modes in ES Module Shims thus support dynamic injection using DOM Mutation Observers.
 
-This follows the [dynamic import map specification approach outlined in import map extensions](https://github.com/guybedford/import-maps-extensions).
+In polyfill mode, a best effort is made to support the same timing constraints.
+
+In shim mode, full support for dynamic injection of `"importmap-shim"` is provided.
 
 ### Dynamic Import
 
@@ -216,6 +228,8 @@ code analysis in the polyfill scenarios. **It is recommended to preload deep imp
 
 > Stability: WhatWG Standard, Single Browser Implementer
 
+In shim mode, JSON modules are always supported. In polyfill mode, JSON modules require the `polyfillEnable: ['json-modules']` [init option](#polyfill-enable-option).
+
 JSON Modules are currently supported in Chrome when using them via an import assertion:
 
 ```html
@@ -226,13 +240,13 @@ import json from 'https://site.com/data.json' assert { type: 'json' };
 
 In addition JSON modules need to be served with a valid JSON content type.
 
-ES Module Shims will fully feature detect and shim or polyfill support as necessary for this feature in other browsers.
-
 Checks for assertion failures are not currently included.
 
 ### CSS Modules
 
 > Stability: WhatWG Standard, Single Browser Implementer
+
+In shim mode, CSS modules are always supported. In polyfill mode, CSS modules require the `polyfillEnable: ['css-modules']` [init option](#polyfill-enable-option).
 
 CSS Modules are currently supported in Chrome when using them via an import assertion:
 
@@ -251,8 +265,6 @@ To support the polyfill or shim of this feature, the [Constructable Stylesheets 
 For more information see the [web.dev article](https://web.dev/css-module-scripts/).
 
 In addition CSS modules need to be served with a valid CSS content type.
-
-ES Module Shims will fully feature detect and shim or polyfill support as necessary for this feature in other browsers.
 
 Checks for assertion failures are not currently included.
 
@@ -326,8 +338,29 @@ Adding the `"noshim"` attribute to the script tag will also ensure that ES Modul
 
 #### Load Events
 
-In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion,
-fired for both success and failure completions, and always twice (once by the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
+Native module scripts only fire `'load'` events but not `'error'` events per the specification.
+
+In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion, fired for both success and failure completions like the native loader, and always twice (once from the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
+
+To dynamically load a module and get a callback once its execution has been triggered or failed, the following code snippet can therefore be used:
+
+```js
+function loadModuleScript (src) {
+  return new Promise(resolve => {
+    let first = true;
+    document.head.appendChild(Object.assign(document.createElement('script'), {
+      type: 'module',
+      src,
+      onload () {
+        if (first) first = false;
+        else resolve();
+      }
+    }));
+  });
+}
+```
+
+Where native module script errors are propagated via `window.onerror`, [`esmsInitOptions.onerror`](#error-hook) can be used to catch polyfill errors.
 
 ## Init Options
 
@@ -335,14 +368,16 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 
 ```html
 <script>
-  window.esmsInitOptions = {
-    polyfillEnable: ['css-modules', 'json-modules'],
-    fetch: (url => fetch(url)),
-    skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
-    onerror: ((e) => { throw e; }),
-    noLoadEventRetriggers: false,
-    revokeBlobURLs: false,
-  }
+window.esmsInitOptions = {
+  shimMode: true, // default false
+  polyfillEnable: ['css-modules', 'json-modules'], // default empty
+  noLoadEventRetriggers: true, // default false
+  skip: /^https:\/\/cdn\.com/, // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
+  onerror: (e) => { /*...*/ }, // default noop
+  resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
+  fetch: (url) => fetch(url), // default is native
+  revokeBlobURLs: true, // default false
+}
 </script>
 <script async src="es-module-shims.js"></script>
 ```
@@ -361,32 +396,9 @@ See below for a detailed description of each of these options.
 </script>
 ```
 
-For example, if lazy loading `<script type="module-shim">` scripts shim mode would not be enabled by default.
+For example, if lazy loading `<script type="module-shim">` scripts alongside static native module scripts, shim mode would not be enabled at initialization time.
 
-Conversely, setting `shimMode: false` allows for branching workflows between the native loader and ES module shims:
-
-```js
-<script>window.esmsInitOptions = { shimMode: false }</script>
-<script type="importmap">
-{
-  "imports": {
-    "app": "data:text/javascript,console.log('running in native loader')",
-    "shared": "data:text/javascript,console.log('shared map')"
-  }
-}
-</script>
-<script type="importmap-shim">
-{
-  "imports": {
-    "app": "data:text/javascript,console.log('running polyfill')"
-  }
-}
-</script>
-<script type="module">
-import 'app';
-import 'shared';
-</script>
-```
+DOM `load` events are fired for all `"module-shim"` scripts both for success and failure just like for native module scripts.
 
 ### Pollyfill Enable Option
 
@@ -454,11 +466,12 @@ You can provide a function to handle errors during the module loading process by
 
 #### Resolve Hook
 
-The resolve hook allows full customization of the resolver, while still having access to the original resolve function.
+The resolve hook is supported for shim mode only and allows full customization of the resolver, while still having access to the original resolve function.
 
 ```js
 <script>
   window.esmsInitOptions = {
+    shimMode: true,
     resolve: async function (id, parentUrl, defaultResolve) {
       if (id === 'custom' && parentUrl.startsWith('https://custom.com/'))
         return 'https://custom.com/custom.js';
@@ -472,9 +485,7 @@ The resolve hook allows full customization of the resolver, while still having a
 
 ### Fetch Hook
 
-This is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
-
-When using the fetch hook, [shim mode](#shim-mode) is enabled by default.
+The fetch hook is supported for shim mode only.
 
 The ES Module Shims fetch hook can be used to implement transform plugins.
 
@@ -483,6 +494,7 @@ For example:
 ```js
 <script>
   window.esmsInitOptions = {
+    shimMode: true,
     fetch: async function (url) {
       const response = await fetch(url);
       if (response.url.endsWith('.ts')) {
