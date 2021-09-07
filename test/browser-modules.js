@@ -3,32 +3,33 @@ const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
 suite('Basic loading tests', () => {
-  // test('Static load order and domcontentloaded and ready state', async function () {
-  //   window.onerror = () => {};
-  //   await new Promise(resolve => {
-  //     if (window.domContentLoadedOrder)
-  //       resolve();
-  //     document.addEventListener('DOMContentLoaded', resolve);
-  //   });
-  //   assert.ok(window.domContentLoadedOrder);
-  //   assert.equal(window.domContentLoadedOrder.join(','), '1,2,3,4,5');
-  //   await new Promise(resolve => {
-  //     if (window.readyStateOrder)
-  //       resolve();
-  //     document.addEventListener('readystatechange', resolve);
-  //   });
-  //   assert.ok(window.readyStateOrder);
-  //   assert.equal(window.readyStateOrder.join(','), '1,2,3,4,5');
-  // });
+  test('Static load order and domcontentloaded and ready state', async function () {
+    window.onerror = () => {};
+    await new Promise(resolve => {
+      if (window.domContentLoadedOrder)
+        resolve();
+      document.addEventListener('DOMContentLoaded', resolve);
+    });
+    assert.ok(window.domContentLoadedOrder);
+    assert.equal(window.domContentLoadedOrder.join(','), '1,2,3,4,5');
+    await new Promise(resolve => {
+      if (window.readyStateOrder)
+        resolve();
+      document.addEventListener('readystatechange', resolve);
+    });
+    assert.ok(window.readyStateOrder);
+    assert.equal(window.readyStateOrder.join(','), '1,2,3,4,5');
+  });
 
-  // test('Load counter', function () {
-  //   assert.equal(count, 2);
-  // });
-  // test('Should import a module', async function () {
-  //   var m = await importShim('./fixtures/es-modules/no-imports.js');
-  //   assert(m);
-  //   assert.equal(m.asdf, 'asdf');
-  // });
+  test('Load counter', function () {
+    window.onerror = () => {};
+    assert.equal(count, 2);
+  });
+  test('Should import a module', async function () {
+    var m = await importShim('./fixtures/es-modules/no-imports.js');
+    assert(m);
+    assert.equal(m.asdf, 'asdf');
+  });
 
   // test('Should import a module cached', async function () {
   //   var m1 = await importShim('./fixtures/es-modules/no-imports.js');
