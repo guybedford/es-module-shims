@@ -151,19 +151,19 @@ suite('Basic loading tests', () => {
     assert.equal(m.asdf, 'asdf');
   });
 
-  // test('Should import a module via blob', async function () {
-  //   const code = await (await fetch('./fixtures/es-modules/no-imports.js')).text();
-  //   const blob = new Blob([code], { type: 'application/javascript' });
-  //   var m = await importShim(URL.createObjectURL(blob));
-  //   assert(m);
-  //   assert.equal(m.asdf, 'asdf');
-  // });
+  test('Should import a module via blob', async function () {
+    const code = await (await fetch('./fixtures/es-modules/no-imports.js')).text();
+    const blob = new Blob([code], { type: 'application/javascript' });
+    var m = await importShim(URL.createObjectURL(blob));
+    assert(m);
+    assert.equal(m.asdf, 'asdf');
+  });
 
-  // test('Should import a module with query parameters with path segments', async function () {
-  //   var m = await importShim('./fixtures/es-modules/query-param-a.js?foo=/foo/bar/');
-  //   assert(m);
-  //   assert.equal(m.a, 'ab');
-  // });
+  test('Should import a module with query parameters with path segments', async function () {
+    var m = await importShim('./fixtures/es-modules/query-param-a.js?foo=/foo/bar/');
+    assert(m);
+    assert.equal(m.a, 'ab');
+  });
 });
 
 suite.skip('Circular dependencies', function() {
