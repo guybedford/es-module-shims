@@ -2,7 +2,7 @@ const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
-suite('Basic loading tests', () => {
+suite.skip('Basic loading tests', () => {
   test('Static load order and domcontentloaded and ready state', async function () {
     window.onerror = () => {};
     await new Promise(resolve => {
