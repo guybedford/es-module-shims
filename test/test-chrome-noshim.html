@@ -34,13 +34,6 @@ if (window.polyfill)
 if (window.shared !== 1)
   throw new Error('Expected shared execution once');
 
-window.counter = 1;
-</script>
-
-<script type="module">
-window.counter += 1;
-if (window.counter !== 2)
-  throw new Error('Expected previous exec');
 fetch('/done');
 </script>
 
