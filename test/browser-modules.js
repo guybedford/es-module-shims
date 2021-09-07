@@ -22,7 +22,6 @@ suite('Basic loading tests', () => {
   });
 
   test('Load counter', function () {
-    window.onerror = () => {};
     assert.equal(count, 2);
   });
   test('Should import a module', async function () {

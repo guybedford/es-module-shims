@@ -87,7 +87,6 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
   // when tla is supported, this should return the tla promise as an actual handle
   // so readystate can still correspond to the sync subgraph exec completions
-  console.log(url, 'DONE');
   return module;
 }
 
