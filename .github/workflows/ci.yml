@@ -43,8 +43,8 @@ jobs:
       matrix:
         chrome: [
           '695079', # September 2019
-          '846616', # Jan 2021
-          '913920', # August 2021
+          '859178', # Mar 2021, Import Maps
+          '913920', # August 2021, JSON modules + CSS modules
         ]
     name: Chrome Browser Tests
     steps:
@@ -57,8 +57,6 @@ jobs:
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: ${{ matrix.chrome }}
-      - name: Set Chrome Path
-        run: $env:CI_BROWSER=$(where chrome)
       - name: npm install
         run: npm install
       - name: npm run build
@@ -66,5 +64,5 @@ jobs:
       - name: npm run test
         run: npm run test
         env:
-          CI_BROWSER_FLAGS: --headless --screenshot
-    
+          CI_BROWSER: C:\hostedtoolcache\windows\chromium\${{ matrix.chrome }}\x64\chrome.exe
+          CI_BROWSER_FLAGS: 

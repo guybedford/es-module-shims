@@ -39,7 +39,7 @@ let importMapPromise = resolvedPromise;
 
 let waitingForImportMapsInterval;
 let firstTopLevelProcess = true;
-async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, skipShim, lastStaticLoadPromise) {
+async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
   // no need to even fetch if we have feature support
   await featureDetectionPromise;
   if (waitingForImportMapsInterval > 0) {
@@ -52,7 +52,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, skipShim, l
   }
   await importMapPromise;
   // early analysis opt-out
-  if (nativelyLoaded && (skipShim === 'import-maps' && supportsImportMaps || supportsDynamicImport && supportsImportMeta && supportsImportMaps && supportsJsonAssertions && supportsCssAssertions && !importMapSrcOrLazy)) {
+  if (nativelyLoaded && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy) {
     // dont reexec inline for polyfills -> just return null (since no module id for executed inline module scripts)
     return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
   }
@@ -132,9 +132,12 @@ delete self.esmsInitOptions;
 let shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
 const fetchHook = esmsInitOptions.fetch || ((url, opts) => fetch(url, opts));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
-const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
+const onerror = esmsInitOptions.onerror || (() => {});
 const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
 const noLoadEventRetriggers = esmsInitOptions.noLoadEventRetriggers;
+const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
+const cssModulesEnabled = enable.includes('css-modules');
+const jsonModulesEnabled = enable.includes('json-modules');
 
 function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;
@@ -294,8 +297,12 @@ function getOrCreateLoad (url, fetchOpts, source) {
       // preload fetch options override fetch options (race)
       let t;
       ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts)));
-      if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
-        load.n = true;
+      if (t && !shimMode) {
+        if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled)
+          throw new Error(`${t}-modules must be enabled to polyfill via: window.esmsInitOptions = { polyfillEnable: ['${t}-modules'] }`);
+        if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
+          load.n = true;
+      }
     }
     try {
       load.a = parse(source, load.u);
@@ -389,14 +396,15 @@ function processScript (script, dynamic) {
   if (type === 'module') {
     const isReadyScript = document.readyState !== 'complete';
     if (isReadyScript) staticLoadCnt++;
-    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, script.getAttribute('skip-shim'), isReadyScript && lastStaticLoadPromise).then(() => {
+    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(() => {
       script.dispatchEvent(new Event('load'));
-    }, e => {
+    }).catch(e => {
       script.dispatchEvent(new Event('load'));
+      // note onerror can throw itself
       onerror(e);
     });
     if (isReadyScript)
-      lastStaticLoadPromise = loadPromise.then(staticLoadCheck);
+      lastStaticLoadPromise = loadPromise.then(staticLoadCheck, staticLoadCheck);
   }
   else if (type === 'importmap') {
     importMapPromise = importMapPromise.then(async () => {
