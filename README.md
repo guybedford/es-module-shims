@@ -11,7 +11,7 @@ This includes support for:
 * [Import Maps](https://github.com/wicg/import-maps) support.
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
-* JSON modules with import assertions.
+* JSON and CSS modules with import assertions.
 * `<link rel="modulepreload">` polyfill in non Chromium browsers for both shimmed and unshimmed preloading scenarios.
 
 In addition a custom [fetch hook](#fetch-hook) can be implemented allowing for streaming in-browser transform workflows to support custom module types.
@@ -70,7 +70,7 @@ This execution failure is a feature - it avoids the polyfill causing double exec
 
 This is because the polyfill cannot disable the native loader - instead it can only execute modules that would otherwise fail instantiation while avoiding duplicate fetches or executions.
 
-If using CSS modules or JSON modules, since these features are relatively new they require manually enabling using the initialization option:
+If using CSS modules or JSON modules, since these features are relatively new, they require manually enabling using the initialization option:
 
 ```html
 <script>window.esmsInitOptions = { enable: ['css-modules', 'json-modules'] }</script>
@@ -80,11 +80,11 @@ See the [Polyfill Mode Details](#polyfill-mode-details) section for more informa
 
 ### Shim Mode
 
-Shim mode is an alternative to polyfill mode that doesn't rely on native modules erroring - instead it is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly setting the [`shimMode` init option](#shim-mode-option).
+Shim mode is an alternative to polyfill mode and doesn't rely on native modules erroring - instead it is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly setting the [`shimMode` init option](#shim-mode-option).
 
 In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES Module Shims instead.
 
-In addition shim mode provides some additional features that aren't natively supported such as import maps with a `"src"` attribute or dynamicallly injecting import maps, which can be useful in certain applications.
+Shim mode also provides some additional features that aren't yet natively supported such as [external import maps](#external-import-maps) with a `"src"` attribute or [dynamicallly injecting import maps](#dynamic-import-maps), which can be useful in certain applications.
 
 ## Features
 
@@ -175,7 +175,7 @@ In shim mode, external import maps are fully supported.
 
 #### Dynamic Import Maps
 
-Support for dynamically injecting import maps with JavaScript via:
+Support for dynamically injecting import maps with JavaScript via
 
 ```js
 document.body.appendChild(Object.assign(document.createElement('script'), {
@@ -228,6 +228,8 @@ code analysis in the polyfill scenarios. **It is recommended to preload deep imp
 
 > Stability: WhatWG Standard, Single Browser Implementer
 
+In shim mode, JSON modules are always supported. In polyfill mode, JSON modules require the `polyfillEnable: ['json-modules']` [init option](#polyfill-enable-option).
+
 JSON Modules are currently supported in Chrome when using them via an import assertion:
 
 ```html
@@ -238,13 +240,13 @@ import json from 'https://site.com/data.json' assert { type: 'json' };
 
 In addition JSON modules need to be served with a valid JSON content type.
 
-ES Module Shims will fully feature detect and shim or polyfill support as necessary for this feature in other browsers.
-
 Checks for assertion failures are not currently included.
 
 ### CSS Modules
 
 > Stability: WhatWG Standard, Single Browser Implementer
+
+In shim mode, CSS modules are always supported. In polyfill mode, CSS modules require the `polyfillEnable: ['css-modules']` [init option](#polyfill-enable-option).
 
 CSS Modules are currently supported in Chrome when using them via an import assertion:
 
@@ -263,8 +265,6 @@ To support the polyfill or shim of this feature, the [Constructable Stylesheets 
 For more information see the [web.dev article](https://web.dev/css-module-scripts/).
 
 In addition CSS modules need to be served with a valid CSS content type.
-
-ES Module Shims will fully feature detect and shim or polyfill support as necessary for this feature in other browsers.
 
 Checks for assertion failures are not currently included.
 
@@ -350,14 +350,16 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 
 ```html
 <script>
-  window.esmsInitOptions = {
-    polyfillEnable: ['css-modules', 'json-modules'],
-    fetch: (url => fetch(url)),
-    skip: /^https?:\/\/(cdn\.pika\.dev|dev\.jspm\.io|jspm\.dev)\//,
-    onerror: ((e) => { throw e; }),
-    noLoadEventRetriggers: false,
-    revokeBlobURLs: false,
-  }
+window.esmsInitOptions = {
+  shimMode: true, // default false
+  polyfillEnable: ['css-modules', 'json-modules'], // default empty
+  noLoadEventRetriggers: true, // default false
+  skip: /^https:\/\/cdn\.com/, // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
+  onerror: (e) => { /*...*/ }, // default noop
+  resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
+  fetch: (url) => fetch(url), // default is native
+  revokeBlobURLs: true, // default false
+}
 </script>
 <script async src="es-module-shims.js"></script>
 ```
@@ -446,11 +448,12 @@ You can provide a function to handle errors during the module loading process by
 
 #### Resolve Hook
 
-The resolve hook allows full customization of the resolver, while still having access to the original resolve function.
+The resolve hook is supported for shim mode only and allows full customization of the resolver, while still having access to the original resolve function.
 
 ```js
 <script>
   window.esmsInitOptions = {
+    shimMode: true,
     resolve: async function (id, parentUrl, defaultResolve) {
       if (id === 'custom' && parentUrl.startsWith('https://custom.com/'))
         return 'https://custom.com/custom.js';
@@ -464,9 +467,7 @@ The resolve hook allows full customization of the resolver, while still having a
 
 ### Fetch Hook
 
-This is provided as a convenience feature since the pipeline handles the same data URL rewriting and circular handling of the module graph that applies when trying to implement any module transform system.
-
-When using the fetch hook, [shim mode](#shim-mode) is enabled by default.
+The fetch hook is supported for shim mode only.
 
 The ES Module Shims fetch hook can be used to implement transform plugins.
 
@@ -475,6 +476,7 @@ For example:
 ```js
 <script>
   window.esmsInitOptions = {
+    shimMode: true,
     fetch: async function (url) {
       const response = await fetch(url);
       if (response.url.endsWith('.ts')) {
