@@ -43,7 +43,9 @@ function setBrowserTimeout () {
 setBrowserTimeout();
 
 http.createServer(async function (req, res) {
-  console.log("REQ: " + req.url);
+  // Helps CI debugging:
+  if (process.env.CI_BROWSER)
+    console.log("REQ: " + req.url);
   setBrowserTimeout();
   if (req.url.startsWith('/done')) {
     console.log(kleur.green('Tests completed successfully.'));
