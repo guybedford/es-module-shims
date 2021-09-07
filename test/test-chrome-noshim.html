@@ -9,11 +9,11 @@
 </script>
 <script async src="https://unpkg.com/construct-style-sheets-polyfill@3.0.0/dist/adoptedStyleSheets.js"></script>
 <script>
-  window.esmsInitOptions = { enable: ['css-modules'] };
+  window.esmsInitOptions = { polyfillEnable: ['css-modules'] };
 </script>
 
 <script type="module">
-// Dynamic map injections only support by polyfill
+// Dynamic map injections only supported in this timing profile by the polyfill
 document.head.appendChild(Object.assign(document.createElement('script'), {
   type: 'importmap',
   innerHTML: '{ "imports": { "app": "data:text/javascript,window.polyfill=true;window.shared=0;" } }'

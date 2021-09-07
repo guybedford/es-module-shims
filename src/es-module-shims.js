@@ -132,7 +132,7 @@ delete self.esmsInitOptions;
 let shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
 const fetchHook = esmsInitOptions.fetch || ((url, opts) => fetch(url, opts));
 const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
-const onerror = esmsInitOptions.onerror || ((e) => { throw e; });
+const onerror = esmsInitOptions.onerror || (() => {});
 const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
 const noLoadEventRetriggers = esmsInitOptions.noLoadEventRetriggers;
 const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
@@ -398,12 +398,13 @@ function processScript (script, dynamic) {
     if (isReadyScript) staticLoadCnt++;
     const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(() => {
       script.dispatchEvent(new Event('load'));
-    }, e => {
+    }).catch(e => {
       script.dispatchEvent(new Event('load'));
+      // note onerror can throw itself
       onerror(e);
     });
     if (isReadyScript)
-      lastStaticLoadPromise = loadPromise.then(staticLoadCheck);
+      lastStaticLoadPromise = loadPromise.then(staticLoadCheck, staticLoadCheck);
   }
   else if (type === 'importmap') {
     importMapPromise = importMapPromise.then(async () => {
