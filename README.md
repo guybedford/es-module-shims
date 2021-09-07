@@ -342,6 +342,24 @@ Native module scripts only fire `'load'` events but not `'error'` events per the
 
 In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion, fired for both success and failure completions like the native loader, and always twice (once from the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
 
+To dynamically load a module and get a callback once its execution has been triggered or failed, the following code snippet can therefore be used:
+
+```js
+function loadModuleScript (src) {
+  return new Promise(resolve => {
+    let first = true;
+    document.head.appendChild(Object.assign(document.createElement('script'), {
+      type: 'module',
+      src,
+      onload () {
+        if (first) first = false;
+        else resolve();
+      }
+    }));
+  });
+}
+```
+
 Where native module script errors are propagated via `window.onerror`, [`esmsInitOptions.onerror`](#error-hook) can be used to catch polyfill errors.
 
 ## Init Options

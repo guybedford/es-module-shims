@@ -87,6 +87,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
   // when tla is supported, this should return the tla promise as an actual handle
   // so readystate can still correspond to the sync subgraph exec completions
+  console.log(url, 'DONE');
   return module;
 }
 
@@ -319,12 +320,11 @@ function getOrCreateLoad (url, fetchOpts, source) {
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
     load.d = (await Promise.all(load.a[0].map(async ({ n, d }) => {
-      if (d >= 0 && !supportsDynamicImport ||
-          d === 2 && (!supportsImportMeta || source.slice(end, end + 8) === '.resolve'))
+      if (d >= 0 && !supportsDynamicImport || d === 2 && !supportsImportMeta)
         load.n = true;
       if (!n) return;
       const { r, b } = await resolveHook(n, load.r || load.u);
-      if (b && (!supportsImportMaps || importMapSrcOrLazy))
+      if (b && !supportsImportMaps)
         load.n = true;
       if (d !== -1) return;
       if (!r)
