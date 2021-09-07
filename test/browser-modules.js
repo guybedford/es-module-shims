@@ -83,24 +83,24 @@ suite('Basic loading tests', () => {
   //   assert.equal(m.name, new URL('./fixtures/es-modules/moduleName.js', baseURL).href);
   // });
 
-  test('should support import assertions', async function () {
-    var m = await importShim('./fixtures/json-assertion.js');
-    assert.equal(m.m, 'module');
-  });
+  // test('should support import assertions', async function () {
+  //   var m = await importShim('./fixtures/json-assertion.js');
+  //   assert.equal(m.m, 'module');
+  // });
 
   test('should support css imports', async function () {
     var m = await importShim('./fixtures/css-assertion.js');
     assert.equal(m.default.cssRules[0].selectorText, 'body');
   });
 
-  // test('should support dynamic import', async function () {
-  //   var m = await importShim('./fixtures/es-modules/dynamic-import.js');
-  //   var dynamicModule = await m.doImport();
+  test('should support dynamic import', async function () {
+    var m = await importShim('./fixtures/es-modules/dynamic-import.js');
+    var dynamicModule = await m.doImport();
 
-  //   assert.equal(m.before, 'before');
-  //   assert.equal(m.after, 'after');
-  //   assert.equal(dynamicModule.default, 'bareDynamicImport');
-  // });
+    assert.equal(m.before, 'before');
+    assert.equal(m.after, 'after');
+    assert.equal(dynamicModule.default, 'bareDynamicImport');
+  });
 
   // test('should support dynamic import in an inline script', async function () {
   //   await new Promise(resolve => setTimeout(resolve, 50));
