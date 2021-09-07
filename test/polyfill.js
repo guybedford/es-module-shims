@@ -2,7 +2,7 @@ async function loadModuleScript (src) {
   // appease Mocha
   window.onerror = () => {};
   await new Promise(resolve => {
-    let first = true;
+    let first = false;
     document.head.appendChild(Object.assign(document.createElement('script'), {
       type: 'module',
       src,
@@ -25,5 +25,15 @@ suite('Polyfill tests', () => {
   test('should support css imports', async function () {
     await loadModuleScript('./fixtures/css-assertion.js');
     assert.equal(window.cssAssertion, true);
+  });
+
+  test('URL mappings do not cause double execution', async function () {
+    await loadModuleScript('./fixtures/es-modules/dynamic-parent.js');
+    if (window.dynamic)
+      console.log('POLYFILL');
+    if (window.dynamicUrlMap)
+      console.log('NATIVE');
+    assert.equal(window.dynamic || window.dynamicUrlMap, true);
+    assert.equal(Boolean(window.dynamic && window.dynamicUrlMap), false);
   });
 });

@@ -24,7 +24,7 @@ export function runMochaTests(suites) {
     mocha.suite.suites = [];
     const suite = suites.shift();
     if (suite) {
-      importShim('./' + suite + '.js')
+      import('./' + suite + '.js')
         .then(function () {
           mocha.run(runNextSuite);
         }, function (err) {

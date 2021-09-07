@@ -1,1 +1,1 @@
-export default import('./dynamic.js');
+import './dynamic.js';

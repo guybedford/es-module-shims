@@ -7,7 +7,8 @@
   "imports": {
     "test": "/test/fixtures/es-modules/es6-file.js",
     "test/": "/test/fixtures/",
-    "global1": "/test/fixtures/es-modules/global1.js"
+    "global1": "/test/fixtures/es-modules/global1.js",
+    "/test/fixtures/es-modules/dynamic.js": "/test/fixtures/es-modules/dynamic-url-map.js"
   }
 }
 </script>
@@ -20,7 +21,7 @@
 </script>
 <script>window.esmsInitOptions = { polyfillEnable: ['json-modules', 'css-modules' ] }</script>
 
-<script type="module" src="../src/es-module-shims.js"></script>
+<!-- <script type="module" src="../src/es-module-shims.js"></script> -->
 
 <script type="module" noshim>
   import { runMochaTests } from "./runMochaTests.js";
