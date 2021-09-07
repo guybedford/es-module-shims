@@ -103,28 +103,28 @@ suite('Basic loading tests', () => {
     assert.equal(dynamicModule.default, 'bareDynamicImport');
   });
 
-  // test('should support dynamic import in an inline script', async function () {
-  //   await new Promise(resolve => setTimeout(resolve, 50));
-  //   assert.equal(window.inlineScriptDynamicImportResult.default, 'bareDynamicImport');
-  // });
+  test('should support dynamic import in an inline script', async function () {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal(window.inlineScriptDynamicImportResult.default, 'bareDynamicImport');
+  });
 
-  // test('should support dynamic import with an import map', async function () {
-  //   await new Promise(resolve => document.head.appendChild(Object.assign(document.createElement('script'), {
-  //     type: 'module-shim',
-  //     src: './fixtures/es-modules/importer1.js',
-  //     onload: resolve
-  //   })));
-  //   await new Promise(resolve => setTimeout(resolve, 20));
-  //   assert.equal(window.global1, true);
-  // });
+  test('should support dynamic import with an import map', async function () {
+    await new Promise(resolve => document.head.appendChild(Object.assign(document.createElement('script'), {
+      type: 'module-shim',
+      src: './fixtures/es-modules/importer1.js',
+      onload: resolve
+    })));
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(window.global1, true);
+  });
 
-  // test('Should import a module via a full url, with scheme', async function () {
-  //   const url = window.location.href.replace('/test.html', '/fixtures/es-modules/no-imports.js');
-  //   assert.equal(url.slice(0, 4), 'http');
-  //   var m = await importShim(url);
-  //   assert(m);
-  //   assert.equal(m.asdf, 'asdf');
-  // });
+  test('Should import a module via a full url, with scheme', async function () {
+    const url = window.location.href.replace('/test.html', '/fixtures/es-modules/no-imports.js');
+    assert.equal(url.slice(0, 4), 'http');
+    var m = await importShim(url);
+    assert(m);
+    assert.equal(m.asdf, 'asdf');
+  });
 
   // test('Should import a module via a full url, without scheme', async function () {
   //   const url = window.location.href
