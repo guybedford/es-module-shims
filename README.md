@@ -57,16 +57,16 @@ Just write your HTML modules like you would in the latest Chrome:
 
 and ES Module Shims will make it work in [all browsers with any ES Module Support](#browser-support).
 
-NOTE: `script[type="importmap"]` and `script[type="importmap-shim"]` should be placed before any `script[type="module"]` or `script[type="module-shim"]` in the html.
+> `<script type="importmap">` should always be placed before any `<script type="module">` as per native support in browsers.
 
-Note that you will typically see a console error in browsers without import maps support like:
+You will typically see a console error in browsers without import maps support like:
 
 ```
 Uncaught TypeError: Failed to resolve module specifier "app". Relative references must start with either "/", "./", or "../".
   at <anonymous>:1:15
 ```
 
-This execution failure is wanted - it avoids the polyfill causing double execution. The first import being a bare specifier in the pattern above is important to ensure this.
+This execution failure is a feature - it avoids the polyfill causing double execution. The first import being a bare specifier in the pattern above is important to ensure this.
 
 This is because the polyfill cannot disable the native loader - instead it can only execute modules that would otherwise fail instantiation while avoiding duplicate fetches or executions.
 
@@ -80,15 +80,11 @@ See the [Polyfill Mode Details](#polyfill-mode-details) section for more informa
 
 ### Shim Mode
 
-Shim mode is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly
-setting the [`shimMode` init option](#shim-mode-option).
+Shim mode is an alternative to polyfill mode that doesn't rely on native modules erroring - instead it is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly setting the [`shimMode` init option](#shim-mode-option).
 
-In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES
-Module Shims instead.
+In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES Module Shims instead.
 
-This can useful in some [polyfill mode edge cases](#polyfill-edge-cases) where it's not clear whether or not a given module will execute in the native browser loader or not.
-
-DOM `'load'` events are triggered for `"module-shim"` scripts just like native modules, firing for both erroring or successful completion.
+In addition shim mode provides some additional features that aren't natively supported such as import maps with a `"src"` attribute or dynamicallly injecting import maps, which can be useful in certain applications.
 
 ## Features
 
@@ -342,8 +338,11 @@ Adding the `"noshim"` attribute to the script tag will also ensure that ES Modul
 
 #### Load Events
 
-In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion,
-fired for both success and failure completions, and always twice (once by the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
+Native module scripts only fire `'load'` events but not `'error'` events per the specification.
+
+In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion, fired for both success and failure completions like the native loader, and always twice (once from the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
+
+Where native module script errors are propagated via `window.onerror`, [`esmsInitOptions.onerror`](#error-hook) can be used to catch polyfill errors.
 
 ## Init Options
 
@@ -377,32 +376,9 @@ See below for a detailed description of each of these options.
 </script>
 ```
 
-For example, if lazy loading `<script type="module-shim">` scripts shim mode would not be enabled by default.
+For example, if lazy loading `<script type="module-shim">` scripts alongside static native module scripts, shim mode would not be enabled at initialization time.
 
-Conversely, setting `shimMode: false` allows for branching workflows between the native loader and ES module shims:
-
-```js
-<script>window.esmsInitOptions = { shimMode: false }</script>
-<script type="importmap">
-{
-  "imports": {
-    "app": "data:text/javascript,console.log('running in native loader')",
-    "shared": "data:text/javascript,console.log('shared map')"
-  }
-}
-</script>
-<script type="importmap-shim">
-{
-  "imports": {
-    "app": "data:text/javascript,console.log('running polyfill')"
-  }
-}
-</script>
-<script type="module">
-import 'app';
-import 'shared';
-</script>
-```
+DOM `load` events are fired for all `"module-shim"` scripts both for success and failure just like for native module scripts.
 
 ### Pollyfill Enable Option
 
