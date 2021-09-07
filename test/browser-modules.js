@@ -2,12 +2,13 @@ const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
-beforeEach(() => {
-  // mocha issues
-  window.onerror = () => {};
-});
-
 suite('Basic loading tests', () => {
+
+  beforeEach(() => {
+    // mocha issues
+    window.onerror = () => {};
+  });
+
   test('Static load order and domcontentloaded and ready state', async function () {
     await new Promise(resolve => {
       if (window.domContentLoadedOrder)
