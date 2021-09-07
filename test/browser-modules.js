@@ -166,14 +166,14 @@ suite('Basic loading tests', () => {
   });
 });
 
-suite.skip('Circular dependencies', function() {
+suite('Circular dependencies', function() {
   test('should resolve circular dependencies', async function () {
     var m = await importShim('./fixtures/test-cycle.js');
     assert.equal(m.default, 'f');
   });
 });
 
-suite.skip('Loading order', function() {
+suite('Loading order', function() {
   async function assertLoadOrder(module, exports) {
     window.ordering = [];
     await importShim(`./fixtures/es-modules/${module}`);
@@ -200,7 +200,7 @@ suite.skip('Loading order', function() {
   });
 });
 
-suite.skip('Export variations', function () {
+suite('Export variations', function () {
   test('should resolve different export syntax', async function () {
     var m = await importShim('./fixtures/es-modules/export.js');
     assert.equal(m.p, 5);
@@ -264,7 +264,7 @@ suite.skip('Export variations', function () {
   });
 });
 
-suite.skip('Errors', function () {
+suite('Errors', function () {
   async function getImportError(module) {
     try {
       await importShim(module);
@@ -341,7 +341,7 @@ suite.skip('Errors', function () {
   });
 });
 
-suite.skip('Source maps', () => {
+suite('Source maps', () => {
   test('should include `//# sourceURL=` directive if one is not present in original module', async () => {
     const moduleURL = new URL("./fixtures/es-modules/without-source-url.js", location.href).href;
     await importShim(moduleURL);
