@@ -118,7 +118,7 @@ suite('Basic loading tests', () => {
   });
 
   test('Should import a module via a full url, with scheme', async function () {
-    const url = window.location.href.replace('/test.html', '/fixtures/es-modules/no-imports.js');
+    const url = window.location.href.replace('/test-shim.html', '/fixtures/es-modules/no-imports.js');
     assert.equal(url.slice(0, 4), 'http');
     var m = await importShim(url);
     assert(m);
@@ -127,7 +127,7 @@ suite('Basic loading tests', () => {
 
   test('Should import a module via a full url, without scheme', async function () {
     const url = window.location.href
-      .replace('/test.html', '/fixtures/es-modules/no-imports.js')
+      .replace('/test-shim.html', '/fixtures/es-modules/no-imports.js')
       .replace(/^http(s)?:/, '');
     assert.equal(url.slice(0, 2), '//');
     var m = await importShim(url);
@@ -137,7 +137,7 @@ suite('Basic loading tests', () => {
 
   test("Should import a module via a relative path re-mapped with importmap's scopes", async function () {
     const url = window.location.href
-      .replace('/test.html', '/fixtures/es-modules/import-relative-path.js');
+      .replace('/test-shim.html', '/fixtures/es-modules/import-relative-path.js');
     var m = await importShim(url);
     assert(m);
     assert.equal(m.p, 'p');
@@ -385,5 +385,59 @@ suite('Source maps', () => {
 
     // Should not touch any other occurrences of `//# sourceMappingURL=` in the code.
     assert(blobContent.includes('//# sourceMappingURL=i-should-not-be-affected.no'));
+  });
+});
+
+
+suite('Fetch hook', () => {
+  test('Should hook fetch', async function () {
+    const baseFetchHook = window.fetchHook;
+    window.fetchHook = async (url) => {
+      const response = await fetch(url);
+      if (!response.ok)
+        throw new Error(`${response.status} ${response.statusText} ${response.url}`);
+      const contentType = response.headers.get('content-type');
+      if (!/^application\/json($|;)/.test(contentType))
+        return response;
+      const reader = response.body.getReader();
+      return new Response(new ReadableStream({
+        async start (controller) {
+          let done, value;
+          controller.enqueue(new Uint8Array([...'export default '].map(c => c.charCodeAt(0))));
+          while (({ done, value } = await reader.read()) && !done) {
+            controller.enqueue(value);
+          }
+          controller.close();
+        }
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/javascript"
+        }
+      });
+    };
+
+    var m = await importShim('./fixtures/json-or-js.js');
+    window.fetchHook = baseFetchHook;
+    assert(m.default);
+    assert.equal(m.default.json, 'module');
+  });
+});
+
+
+suite('Resolve hook', () => {
+  test('Should hook resolve', async function () {
+    const resolveHook = window.resolveHook;
+    window.resolveHook = async (id, parentUrl, defaultResolve) => {
+      if (id === 'resolveTestModule') {
+        return defaultResolve('./fixtures/es-modules/es6.js', parentUrl);
+        // OR just resolve by yourself like this:
+        // return new URL('./fixtures/es-modules/es6.js', location.href).href;
+      }
+    };
+
+    var m = await importShim('resolveTestModule');
+    window.resolveHook = resolveHook;
+    assert(m.p);
   });
 });

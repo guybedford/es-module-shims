@@ -1,8 +1,5 @@
-export function runMochaTests(suites) {
-  mocha.setup({
-    ui: 'tdd',
-    cleanReferencesAfterRun: false
-  });
+export function runMochaTests(suite) {
+  mocha.setup({ ui: 'tdd' });
   mocha.allowUncaught();
   self.assert = function (val) {
     equal(!!val, true);
@@ -17,24 +14,12 @@ export function runMochaTests(suites) {
     throw new Error(msg);
   };
 
-  let totalFailures = 0;
-  function runNextSuite(failures) {
-    if (failures)
-      totalFailures += failures;
-    mocha.suite.suites = [];
-    const suite = suites.shift();
-    if (suite) {
-      importShim('./' + suite + '.js')
-        .then(function () {
-          mocha.run(runNextSuite);
-        }, function (err) {
-          console.error('Unable to import test ' + suite);
-          console.error(err);
-        });
-    } else {
-      fetch(totalFailures ? '/error?' + totalFailures : '/done');
-    }
-  }
-
-  runNextSuite();
+  importShim('./' + suite + '.js')
+  .then(async () => {
+    const failures = await new Promise(resolve => mocha.run(resolve));
+    fetch(failures ? '/error?' + failures : '/done');
+  }, err => {
+    console.error('Unable to import test ' + suite);
+    console.error(err);
+  });
 }
