@@ -402,6 +402,7 @@ function processScript (script, dynamic) {
       script.dispatchEvent(new Event('load'));
       onerror(e);
     });
+    loadPromise.catch(() => {});
     if (isReadyScript)
       lastStaticLoadPromise = loadPromise.then(staticLoadCheck);
   }
