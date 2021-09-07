@@ -2,81 +2,81 @@ const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
-suite.skip('Basic loading tests', () => {
-  test('Static load order and domcontentloaded and ready state', async function () {
-    window.onerror = () => {};
-    await new Promise(resolve => {
-      if (window.domContentLoadedOrder)
-        resolve();
-      document.addEventListener('DOMContentLoaded', resolve);
-    });
-    assert.ok(window.domContentLoadedOrder);
-    assert.equal(window.domContentLoadedOrder.join(','), '1,2,3,4,5');
-    await new Promise(resolve => {
-      if (window.readyStateOrder)
-        resolve();
-      document.addEventListener('readystatechange', resolve);
-    });
-    assert.ok(window.readyStateOrder);
-    assert.equal(window.readyStateOrder.join(','), '1,2,3,4,5');
-  });
+suite('Basic loading tests', () => {
+  // test('Static load order and domcontentloaded and ready state', async function () {
+  //   window.onerror = () => {};
+  //   await new Promise(resolve => {
+  //     if (window.domContentLoadedOrder)
+  //       resolve();
+  //     document.addEventListener('DOMContentLoaded', resolve);
+  //   });
+  //   assert.ok(window.domContentLoadedOrder);
+  //   assert.equal(window.domContentLoadedOrder.join(','), '1,2,3,4,5');
+  //   await new Promise(resolve => {
+  //     if (window.readyStateOrder)
+  //       resolve();
+  //     document.addEventListener('readystatechange', resolve);
+  //   });
+  //   assert.ok(window.readyStateOrder);
+  //   assert.equal(window.readyStateOrder.join(','), '1,2,3,4,5');
+  // });
 
-  test('Load counter', function () {
-    assert.equal(count, 2);
-  });
-  test('Should import a module', async function () {
-    var m = await importShim('./fixtures/es-modules/no-imports.js');
-    assert(m);
-    assert.equal(m.asdf, 'asdf');
-  });
+  // test('Load counter', function () {
+  //   assert.equal(count, 2);
+  // });
+  // test('Should import a module', async function () {
+  //   var m = await importShim('./fixtures/es-modules/no-imports.js');
+  //   assert(m);
+  //   assert.equal(m.asdf, 'asdf');
+  // });
 
-  test('Should import a module cached', async function () {
-    var m1 = await importShim('./fixtures/es-modules/no-imports.js');
-    var m2 = await importShim('./fixtures/es-modules/no-imports.js');
-    assert.equal(m1.asdf, 'asdf');
-    assert.equal(m1.obj, m2.obj);
-  });
+  // test('Should import a module cached', async function () {
+  //   var m1 = await importShim('./fixtures/es-modules/no-imports.js');
+  //   var m2 = await importShim('./fixtures/es-modules/no-imports.js');
+  //   assert.equal(m1.asdf, 'asdf');
+  //   assert.equal(m1.obj, m2.obj);
+  // });
 
-  test('should import an es module with its dependencies', async function () {
-    var m = await importShim('./fixtures/es-modules/es6-withdep.js');
-    assert.equal(m.p, 'p');
-  });
+  // test('should import an es module with its dependencies', async function () {
+  //   var m = await importShim('./fixtures/es-modules/es6-withdep.js');
+  //   assert.equal(m.p, 'p');
+  // });
 
-  test('should import without bindings', async function () {
-    var m = await importShim('./fixtures/es-modules/direct.js');
-    assert(!!m);
-  });
+  // test('should import without bindings', async function () {
+  //   var m = await importShim('./fixtures/es-modules/direct.js');
+  //   assert(!!m);
+  // });
 
-  test('should support various es syntax', async function () {
-    var m = await importShim('./fixtures/es-modules/es6-file.js');
+  // test('should support various es syntax', async function () {
+  //   var m = await importShim('./fixtures/es-modules/es6-file.js');
 
-    assert.equal(typeof m.q, 'function');
+  //   assert.equal(typeof m.q, 'function');
 
-    var thrown = false;
-    try {
-      new m.q().foo();
-    }
-    catch(e) {
-      thrown = true;
-      assert.equal(e, 'g');
-    }
+  //   var thrown = false;
+  //   try {
+  //     new m.q().foo();
+  //   }
+  //   catch(e) {
+  //     thrown = true;
+  //     assert.equal(e, 'g');
+  //   }
 
-    if (!thrown)
-      throw new Error('Supposed to throw');
-  });
+  //   if (!thrown)
+  //     throw new Error('Supposed to throw');
+  // });
 
-  test('should resolve various import syntax', async function () {
-    var m = await importShim('./fixtures/es-modules/import.js');
-    if (!edge)
-      assert.equal(typeof m.a, 'function');
-    assert.equal(m.b, 4);
-    assert.equal(m.c, 5);
-    assert.equal(m.d, 4);
-    if (!edge) {
-      assert.equal(typeof m.q, 'object');
-      assert.equal(typeof m.q.foo, 'function');
-    }
-  });
+  // test('should resolve various import syntax', async function () {
+  //   var m = await importShim('./fixtures/es-modules/import.js');
+  //   if (!edge)
+  //     assert.equal(typeof m.a, 'function');
+  //   assert.equal(m.b, 4);
+  //   assert.equal(m.c, 5);
+  //   assert.equal(m.d, 4);
+  //   if (!edge) {
+  //     assert.equal(typeof m.q, 'object');
+  //     assert.equal(typeof m.q.foo, 'function');
+  //   }
+  // });
 
   test('should support import.meta.url', async function () {
     var m = await importShim('./fixtures/es-modules/moduleName.js');
