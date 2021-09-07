@@ -18,6 +18,7 @@
   "types": "index.d.ts",
   "type": "module",
   "files": [
+    "CHANGELOG.md",
     "dist",
     "index.d.ts"
   ],

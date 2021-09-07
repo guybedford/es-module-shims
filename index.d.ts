@@ -1,4 +1,20 @@
-declare namespace importShim {
+interface ESMSInitOptions {
+  /**
+   * Enable Shim Mode
+   */
+  shimMode?: boolean;
+
+  /**
+   * Enable polyfill features.
+   * Currently supports ['css-modules', 'json-modules']
+   */
+  polyfillEnable?: string[];
+
+  /**
+   * Disable retriggering of document readystate
+   */
+  noLoadEventRetriggers: true,
+
   /**
    * #### Skip Processing Stability
    *
@@ -20,10 +36,29 @@ declare namespace importShim {
    * By default, this expression supports jspm.dev, dev.jspm.io and
    * cdn.pika.dev.
    */
-  const skip: RegExp;
+  skip: RegExp;
+
+  /**
+   * #### Error hook
+   * 
+   * Register a callback for any ES Module Shims module errors.
+   * 
+   */
+  onerror: (e: any) => any;
+
+  /**
+   * #### Resolve Hook
+   * 
+   * Only supported in Shim Mode.
+   * 
+   * Provide a custom resolver function.
+   */
+  resolve: (id: string, parentUrl: string, resolve: (id: string, parentUrl: string) => string) => string | Promise<string>;
 
   /**
    * #### Fetch Hook
+   * 
+   * Only supported in Shim Mode.
    *
    * > Stability: Non-spec feature
    *
@@ -82,39 +117,16 @@ declare namespace importShim {
    * }
    * ```
    */
-  function fetch(input: RequestInfo, init?: RequestInit): Promise<Response>;
+  fetch: (input: RequestInfo, init?: RequestInit) => Promise<Response>;
 
   /**
-   * #### Dynamic Import Map Updates
-   *
-   * Import maps are frozen as soon as the first module load is loaded.
-   *
-   * To support dynamic injection of new import maps into the page, call
-   * importShim.load() to pick up any new `<script type="importmap-shim">`
-   * tags.
-   *
-   * This can be linked up to mutation observers if desired, with something
-   * like:
-   *
-   * ```js
-   * new MutationObserver(mutations => {
-   *   for (const mutation of mutations) {
-   *     if (mutation.type !== 'childList') continue;
-   *
-   *     for (const node of mutation.addedNodes) {
-   *       if (node.tagName === 'SCRIPT' && node.type === 'importmap-shim' && !node.ep) {
-   *         importShim.load();
-   *         break;
-   *       }
-   *     }
-   *   }
-   * }).observe(document, { childList: true, subtree: true });
-   * ```
-   *
-   * then allowing dynamic injection of `<script type="importmap-shim">` to
-   * immediately update the internal import maps.
+   * #### Revoke Blob URLs
+   * 
+   * Set to *true* to cleanup blob URLs from memory after execution.
+   * Can cost some compute time for large loads.
+   * 
    */
-  function load(): void;
+  revokeBlobURLs: boolean;
 }
 
 /**
@@ -130,9 +142,11 @@ declare namespace importShim {
  * ```
  */
 declare function importShim<Default, Exports extends object>(
-  path: string,
+  specifier: string,
+  parentUrl?: string
 ): Promise<{ default: Default } & Exports>;
 
 interface Window {
+  esmsInitOptions?: ESMSInitOptions;
   importShim: typeof importShim;
 }
