@@ -13,11 +13,11 @@
 </script>
 
 <script type="module">
-  // Dynamic map injections only support by polyfill
-  document.head.appendChild(Object.assign(document.createElement('script'), {
-    type: 'importmap',
-    innerHTML: '{ "imports": { "app": "data:text/javascript,window.polyfill=true;" } }'
-  }));
+// Dynamic map injections only support by polyfill
+document.head.appendChild(Object.assign(document.createElement('script'), {
+  type: 'importmap',
+  innerHTML: '{ "imports": { "app": "data:text/javascript,window.polyfill=true;window.shared=0;" } }'
+}));
 </script>
 
 <script type="module">
