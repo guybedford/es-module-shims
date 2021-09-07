@@ -31,6 +31,7 @@ catch (e) {
         `import*as m from'${blobUrl}';self._esmsi=m;`
       );
       const s = document.createElement('script');
+      s.setAttribute('noshim', '');
       s.type = 'module';
       s.src = topLevelBlobUrl;
       document.head.appendChild(s);
