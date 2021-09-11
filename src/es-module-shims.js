@@ -400,11 +400,11 @@ function processScript (script, dynamic) {
       script.dispatchEvent(new Event('load'));
     }).catch(e => {
       script.dispatchEvent(new Event('load'));
-      // note onerror can throw itself
+      setTimeout(() => { throw e; });
       onerror(e);
     });
     if (isReadyScript)
-      lastStaticLoadPromise = loadPromise.then(staticLoadCheck, staticLoadCheck);
+      lastStaticLoadPromise = loadPromise.then(staticLoadCheck);
   }
   else if (type === 'importmap') {
     // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
