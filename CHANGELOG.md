@@ -1,3 +1,6 @@
+ES Module Shims 0.13.1 (2021/09/10)
+* Fix to ensure global script errors always propagate to the console (https://github.com/guybedford/es-module-shims/pull/182)
+
 ES Module Shims 0.13.0 (2021/09/07)
 * Breaking Change: Polyfill mode restricts behaviours to native baseline support (https://github.com/guybedford/es-module-shims/pull/173)
 * Breaking Change: JSON and CSS modules require explicit enabling (https://github.com/guybedford/es-module-shims/pull/172)

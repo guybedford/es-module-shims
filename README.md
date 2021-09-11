@@ -6,7 +6,7 @@
 
 But modules features like Import Maps will take a while to be supported in browsers.
 
-_It turns out that we can actually polyfill new modules features on top of these baseline implementations in a performant 7KB shim._
+_It turns out that we can actually polyfill new modules features on top of these baseline implementations in a performant 9.5KB shim._
 
 This includes support for:
 
@@ -34,10 +34,10 @@ For example, from CDN:
 
 ```html
 <!-- UNPKG -->
-<script async src="https://unpkg.com/es-module-shims@0.13.0/dist/es-module-shims.js"></script>
+<script async src="https://unpkg.com/es-module-shims@0.13.1/dist/es-module-shims.js"></script>
 
 <!-- JSPM.IO -->
-<script async src="https://ga.jspm.io/npm:es-module-shims@0.13.0/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@0.13.1/dist/es-module-shims.js"></script>
 ```
 
 Then there are two ways to use ES Module Shims: Polyfill Mode and [Shim Mode](#shim-mode).
