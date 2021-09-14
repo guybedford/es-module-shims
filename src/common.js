@@ -1,9 +1,6 @@
-export const hasSelf = typeof self !== 'undefined';
-
-const envGlobal = hasSelf ? self : global;
-export { envGlobal as global };
-
 export const resolvedPromise = Promise.resolve();
+
+export const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 export let baseUrl;
 
@@ -11,73 +8,11 @@ export function createBlob (source, type = 'text/javascript') {
   return URL.createObjectURL(new Blob([source], { type }));
 }
 
-export const hasDocument = typeof document !== 'undefined';
+export const noop = () => {};
 
-// support browsers without dynamic import support (eg Firefox 6x)
-export let supportsDynamicImport = false;
-export let supportsJsonAssertions = false;
-export let supportsCssAssertions = false;
-export let dynamicImport;
-try {
-  dynamicImport = (0, eval)('u=>import(u)');
-  supportsDynamicImport = true;
-}
-catch (e) {
-  if (hasDocument) {
-    let err;
-    self.addEventListener('error', e => err = e.error);
-    dynamicImport = blobUrl => {
-      const topLevelBlobUrl = createBlob(
-        `import*as m from'${blobUrl}';self._esmsi=m;`
-      );
-      const s = document.createElement('script');
-      s.setAttribute('noshim', '');
-      s.type = 'module';
-      s.src = topLevelBlobUrl;
-      document.head.appendChild(s);
-      return new Promise((resolve, reject) => {
-        s.addEventListener('load', () => {
-          document.head.removeChild(s);
-          if (self._esmsi) {
-            resolve(self._esmsi, baseUrl);
-            self._esmsi = null;
-          }
-          else {
-            reject(err);
-          }
-        });
-      });
-    };
-  }
-}
-
-export let supportsImportMeta = false;
-export let supportsImportMaps = false;
-
-export const featureDetectionPromise = Promise.all([
-  dynamicImport(createBlob('import"data:text/css,{}"assert{type:"css"}')).then(() => supportsCssAssertions = true, () => {}),
-  dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true, () => {}),
-  dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, () => {}),
-  supportsDynamicImport && hasDocument && new Promise(resolve => {
-    self._$s = v => {
-      document.body.removeChild(iframe);
-      if (v) supportsImportMaps = true;
-      delete self._$s;
-      resolve();
-    };
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    // we use document.write here because eg Weixin built-in browser doesn't support setting srcdoc
-    iframe.contentWindow.document.write(`<script type=importmap>{"imports":{"x":"data:text/javascript,"}}<${''}/script><script>import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`);
-  })
-]);
-
-if (hasDocument) {
-  const baseEl = document.querySelector('base[href]');
-  if (baseEl)
-    baseUrl = baseEl.href;
-}
+const baseEl = document.querySelector('base[href]');
+if (baseEl)
+  baseUrl = baseEl.href;
 
 if (!baseUrl && typeof location !== 'undefined') {
   baseUrl = location.href.split('#')[0].split('?')[0];

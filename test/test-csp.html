@@ -1,0 +1,37 @@
+<!doctype html>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'nonce-asdf' unpkg.com" />
+<link rel="stylesheet" type="text/css" href="../node_modules/mocha/mocha.css"/>
+<script src="../node_modules/mocha/mocha.js"></script>
+<script async src="https://unpkg.com/construct-style-sheets-polyfill@3.0.0/dist/adoptedStyleSheets.js"></script>
+<script type="importmap" nonce="asdf">
+{
+  "imports": {
+    "test": "/test/fixtures/es-modules/es6-file.js",
+    "test/": "/test/fixtures/",
+    "global1": "/test/fixtures/es-modules/global1.js",
+    "/test/fixtures/es-modules/dynamic.js": "/test/fixtures/es-modules/dynamic-url-map.js"
+  }
+}
+</script>
+<script type="importmap" nonce="asdf">
+{
+  "imports": {
+    "global1": "data:text/javascript,throw new Error('Polyfill should not support multiple import maps');"
+  }
+}
+</script>
+<script type="esms-options">
+{
+  "nonce": "asdf",
+  "polyfillEnable": ["json-modules", "css-modules"]
+}
+</script>
+
+<script type="module" src="../dist/es-module-shims.csp.js"></script>
+
+<script type="module" noshim nonce="asdf">
+  import { runMochaTests } from "./runMochaTests.js";
+  runMochaTests('polyfill');
+</script>
+
+<div id="mocha"></div>
