@@ -1,19 +1,15 @@
-import { nonce } from './options.js';
 import { createBlob, baseUrl } from './common.js';
 
-if (nonce)
-  throw new Error('ESMS nonce unsupported in Wasm build');
-
-export let supportsDynamicImport = false;
+export let supportsDynamicImportCheck = false;
 
 export let dynamicImport;
 try {
   dynamicImport = (0, eval)('u=>import(u)');
-  supportsDynamicImport = true;
+  supportsDynamicImportCheck = true;
 }
-catch {}
+catch (e) {}
 
-if (!supportsDynamicImport) {
+if (!supportsDynamicImportCheck) {
   let err;
   self.addEventListener('error', e => err = e.error);
   dynamicImport = specifier => {

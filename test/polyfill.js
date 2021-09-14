@@ -21,8 +21,6 @@ suite('Polyfill tests', () => {
 
   test('should support css imports', async function () {
     await loadModuleScript('./fixtures/css-assertion.js');
-    // await new Promise(resolve => setTimeout(resolve, 100));
-    console.log('done');
     assert.equal(window.cssAssertion, true);
   });
 

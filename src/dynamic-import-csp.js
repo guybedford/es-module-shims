@@ -1,8 +1,6 @@
 import { nonce } from './options.js';
 import { createBlob, baseUrl } from './common.js';
 
-export const supportsDynamicImport = true;
-
 let err;
 self.addEventListener('error', e => err = e.error);
 
@@ -29,3 +27,5 @@ export function dynamicImport (specifier) {
     });
   });
 }
+
+export const supportsDynamicImportCheck = dynamicImport(createBlob('if(0)import("")'));
