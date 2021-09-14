@@ -27,6 +27,10 @@ const testName = process.env.TEST_NAME ?? 'test';
 if (testName.startsWith('test-chrome') && process.env.CI_BROWSER && !process.env.CI_BROWSER.includes('chrome'))
   process.exit(0);
 
+// Dont run CSP tests on old Firefox
+if (testName.startsWith('test-csp') && process.env.CI_BROWSER && process.env.CI_BROWSER.includes('firefox') && (process.env.CI_BROWSER.includes('60') || process.env.CI_BROWSER.includes('67')))
+  process.exit(0);
+
 let failTimeout, browserTimeout;
 
 function setBrowserTimeout () {
