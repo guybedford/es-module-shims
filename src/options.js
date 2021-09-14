@@ -9,12 +9,20 @@ export const resolveHook = shimMode && esmsInitOptions.resolve;
 
 export const skip = esmsInitOptions.skip ? new RegExp(esmsInitOptions.skip) : /^https:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
 
+export let nonce = esmInitOptions.nonce;
+
+if (!nonce) {
+  const nonceElement = document.querySelector('script[nonce]');
+  if (nonceElement)
+    nonce = nonceElement.nonce;
+}
+  
+
 export const {
   fetchHook = fetch,
   onerror = noop,
   revokeBlobURLs,
   noLoadEventRetriggers,
-  nonce = document.querySelector('script[nonce]').nonce
 } = esmsInitOptions;
 
 const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
