@@ -3,13 +3,18 @@
   "version": "0.13.1",
   "description": "Shims for the latest ES module features",
   "main": "dist/es-module-shims.js",
-  "exports": "./dist/es-module-shims.js",
+  "exports": {
+    ".": "./dist/es-module-shims.js",
+    "./csp": "./dist/es-module-shims.csp.js"
+  },
   "scripts": {
     "build": "rollup -c",
-    "footprint": "npm run build && cat dist/es-module-shims.min.js | gzip -9f | wc -c",
+    "footprint": "npm run build && cat dist/es-module-shims.js | brotli | wc -c",
+    "footprint:csp": "npm run build && cat dist/es-module-shims.csp.js | brotli | wc -c",
     "prepublishOnly": "npm run build",
-    "test": "npm run test:test-base-href && npm run test:test-polyfill && npm run test:test-preload-case && npm run test:test-revoke-blob-urls && npm run test:test-shim",
+    "test": "npm run test:test-base-href && npm run test:test-csp && npm run test:test-polyfill && npm run test:test-preload-case && npm run test:test-revoke-blob-urls && npm run test:test-shim",
     "test:test-base-href": "cross-env TEST_NAME=test-base-href node test/server.mjs",
+    "test:test-csp": "cross-env TEST_NAME=test-csp node test/server.mjs",
     "test:test-polyfill": "cross-env TEST_NAME=test-polyfill node test/server.mjs",
     "test:test-preload-case": "cross-env TEST_NAME=test-preload-case node test/server.mjs",
     "test:test-revoke-blob-urls": "cross-env TEST_NAME=test-revoke-blob-urls node test/server.mjs",
@@ -27,14 +32,13 @@
   "devDependencies": {
     "@rollup/plugin-replace": "^2.4.2",
     "cross-env": "^7.0.3",
-    "es-module-lexer": "^0.7.1",
+    "es-module-lexer": "^0.8.0",
     "esm": "^3.2.25",
     "kleur": "^4.1.4",
     "mocha": "^9.1.1",
     "open": "^8.0.8",
     "pretty-ms": "^3.2.0",
-    "rollup": "^2.17.0",
-    "rollup-plugin-terser": "^7.0.2"
+    "rollup": "^2.17.0"
   },
   "directories": {
     "test": "test"

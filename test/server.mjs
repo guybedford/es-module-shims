@@ -2,7 +2,7 @@ import http from "http";
 import fs from "fs";
 import {once} from "events";
 import path from "path";
-import {fileURLToPath, pathToFileURL} from "url";
+import {fileURLToPath} from "url";
 import open from "open";
 import kleur from 'kleur';
 import { spawn } from 'child_process';
@@ -27,6 +27,10 @@ const testName = process.env.TEST_NAME ?? 'test';
 if (testName.startsWith('test-chrome') && process.env.CI_BROWSER && !process.env.CI_BROWSER.includes('chrome'))
   process.exit(0);
 
+// Dont run CSP tests on old Firefox
+if (testName.startsWith('test-csp') && process.env.CI_BROWSER && process.env.CI_BROWSER.includes('firefox') && (process.env.CI_BROWSER.includes('60') || process.env.CI_BROWSER.includes('67')))
+  process.exit(0);
+
 let failTimeout, browserTimeout;
 
 function setBrowserTimeout () {
@@ -48,6 +52,8 @@ http.createServer(async function (req, res) {
     console.log("REQ: " + req.url);
   setBrowserTimeout();
   if (req.url.startsWith('/done')) {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('');
     console.log(kleur.green('Tests completed successfully.'));
     const message = new URL(req.url, rootURL).searchParams.get('message');
     if (message) console.log(message);

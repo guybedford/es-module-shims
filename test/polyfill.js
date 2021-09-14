@@ -5,6 +5,10 @@ async function loadModuleScript (src) {
     document.head.appendChild(Object.assign(document.createElement('script'), {
       type: 'module',
       src,
+      onerror () {
+        if (first) first = false;
+        else resolve();
+      },
       onload () {
         if (first) first = false;
         else resolve();
@@ -21,8 +25,6 @@ suite('Polyfill tests', () => {
 
   test('should support css imports', async function () {
     await loadModuleScript('./fixtures/css-assertion.js');
-    // await new Promise(resolve => setTimeout(resolve, 100));
-    console.log('done');
     assert.equal(window.cssAssertion, true);
   });
 

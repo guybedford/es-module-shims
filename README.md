@@ -342,7 +342,7 @@ Adding the `"noshim"` attribute to the script tag will also ensure that ES Modul
 
 Native module scripts only fire `'load'` events but not `'error'` events per the specification.
 
-In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion, fired for both success and failure completions like the native loader, and always twice (once from the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
+In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion, fired for both success and failure completions like the native loader (except in Safari which uniquely fires the module script error event), and always twice (once from the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
 
 To dynamically load a module and get a callback once its execution has been triggered or failed, the following code snippet can therefore be used:
 
@@ -350,13 +350,19 @@ To dynamically load a module and get a callback once its execution has been trig
 function loadModuleScript (src) {
   return new Promise(resolve => {
     let first = true;
+    function callback () {
+      if (first) first = false;
+      else resolve();
+    }
     document.head.appendChild(Object.assign(document.createElement('script'), {
       type: 'module',
       src,
-      onload () {
-        if (first) first = false;
-        else resolve();
-      }
+      onload: callback,
+
+      // Safari Fix:
+      // Safari is the only browser that triggers "error" events instead of "load" events
+      // for both error and success like Firefox and Chrome
+      onerror: callback
     }));
   });
 }
@@ -364,15 +370,43 @@ function loadModuleScript (src) {
 
 Where native module script errors are propagated via `window.onerror`, [`esmsInitOptions.onerror`](#error-hook) can be used to catch polyfill errors.
 
+## CSP Build
+
+ES Module Shims uses a Web Assembly lexer to execute blob URLs. Web Assembly currently always requires the `unsafe-eval` CSP policy to be set which can weaken the security requirements of an application.
+
+For better CSP compatibility an alternative build that uses a JS-based lexer is provided, which offers [comporable performance](https://github.com/guybedford/es-module-lexer#js-build) although with a slower cold start due to leaning more heavily on the JS compiler to kick in for the lexer as opposed to the AOT compilation benefits of using Wasm.
+
+This build is exported as `es-module-shims/csp` located at the `dist/es-module-shims.csp.js` file path.
+
+CSP compatibility is enabled by adding the `'nonce-...'` CSP nonce rule.
+
+The nonce will then be read from the preceding module scripts in the page, or alternatively via the [`nonce` init option](#nonce).
+
+A full example of such a CSP workflow is provided below:
+
+```html
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-n0nce'" />
+<script async src="es-module-shims.csp.js"></script>
+<script type="importmap" nonce="n0nce">
+{
+  "pkg": "/pkg.js"
+}
+</script>
+<script type="module" nonce="n0nce">
+import pkg from 'pkg';
+</script>
+```
+
 ## Init Options
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
-
+o
 ```html
 <script>
 window.esmsInitOptions = {
   shimMode: true, // default false
   polyfillEnable: ['css-modules', 'json-modules'], // default empty
+  nonce: 'n0nce', // default null
   noLoadEventRetriggers: true, // default false
   skip: /^https:\/\/cdn\.com/, // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
   onerror: (e) => { /*...*/ }, // default noop
@@ -384,17 +418,31 @@ window.esmsInitOptions = {
 <script async src="es-module-shims.js"></script>
 ```
 
+If only setting JSON-compatible options, the `<script type="esms-options">` can be used instead:
+
+```html
+<script type="esms-options">
+{
+  "shimMode": true,
+  "polyfillEnable": ["css-modules", "json-modules"],
+  "nonce": "n0nce"
+}
+</script>
+```
+
+This can be convenient when using the [CSP build](#csp-build).
+
 See below for a detailed description of each of these options.
 
 ### Shim Mode Option
 
 [Shim Mode](#shim-mode) can be overridden using the `shimMode` option:
 
-```js
-<script>
-  window.esmsInitOptions = {
-    shimMode: true
-  }
+```html
+<script type="esms-options">
+{
+  "shimMode": true
+}
 </script>
 ```
 
@@ -408,11 +456,25 @@ The `polyfillEnable` option allows enabling polyfill features which are newer an
 
 Currently this option supports just `"css-modules"` and `"json-modules"`.
 
+```html
+<script type="esms-options">
+{
+  "polyfillEnable": ["css-modules", "json-modules"]
+}
+</script>
+```
+
+### Nonce
+
+The `nonce` option allows setting a CSP nonce to be used with all script injections for full CSP compatibility supported by the [CSP build](#csp-build) of ES Module Shims.
+
+Alternatively, add a `blob:` URL policy with the CSP build to get CSP compatibility.
+
 ```js
-<script>
-  window.esmsInitOptions = {
-    polyfillEnable: ['css-modules', 'json-modules']
-  };
+<script type="esms-options">
+{
+  "nonce": "n0nce"
+}
 </script>
 ```
 
@@ -427,11 +489,11 @@ These events are carefully only triggered when there definitely were modules tha
 In such a case, this double event firing can be disabled with the `noLoadEventRetriggers` option:
 
 ```js
-<script>
-  window.esmsInitOptions = {
-    // do not re-trigger the onreadystatechange and DOMContentLoaded DOM events
-    noLoadEventRetriggers: true
-  }
+<script type="esms-options">
+{
+  // do not re-trigger the onreadystatechange and DOMContentLoaded DOM events
+  "noLoadEventRetriggers": true
+}
 </script>
 <script async src="es-module-shims.js"></script>
 ```
@@ -443,10 +505,10 @@ When loading modules that you know will only use baseline modules features, it i
 This can be configured by providing a URL regular expression for the `skip` option:
 
 ```js
-<script>
-  window.esmsInitOptions = {
-    skip: /^https:\/\/cdn\.com/ // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
-  }
+<script type="esms-options">
+{
+  skip: "/^https:\/\/cdn\.com/" // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
+}
 </script>
 <script async src="es-module-shims.js"></script>
 ```
@@ -518,6 +580,7 @@ Streaming support is also provided, for example here is a hook with streaming su
 
 ```js
 window.esmsInitOptions = {
+  shimMode: true,
   fetch: async function (url) {
     const response = await fetch(url);
     if (!response.ok)
@@ -557,10 +620,10 @@ you might want to reduce the growth of memory usage by revoking those blob URLs 
 You can do that by enabling the `revokeBlobURLs` init option:
 
 ```js
-<script>
-  window.esmsInitOptions = {
-    revokeBlobURLs: true
-  }
+<script type="esms-options">
+{
+  "revokeBlobURLs": true
+}
 </script>
 <script type="module" src="es-module-shims.js"></script>
 ```
@@ -573,7 +636,6 @@ cause janks, we recommend enabling this option only if you have done the measure
 ### Import Rewriting
 
 * Sources are fetched, import specifiers are rewritten to reference exact URLs, and then executed as BlobURLs through the whole module graph.
-* CSP is not supported as we're using fetch and modular evaluation.
 * The [lexer](https://github.com/guybedford/es-module-lexer) handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
 * When executing a circular reference A -> B -> A, a shell module technique is used to "shim" the circular reference into an acyclic graph. As a result, live bindings for the circular parent A are not supported, and instead the bindings are captured immediately after the execution of A.
 

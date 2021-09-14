@@ -1,22 +1,51 @@
 import {
   baseUrl as pageBaseUrl,
-  resolveImportMap,
   createBlob,
   resolveAndComposeImportMap,
-  hasDocument,
-  resolveIfNotPlainOrUrl,
   resolvedPromise,
   resolveUrl,
-  dynamicImport,
+  edge,
+  resolveImportMap,
+  resolveIfNotPlainOrUrl,
+  isURL,
+} from './common.js';
+import {
+  setShimMode,
+  shimMode,
+  resolveHook,
+  fetchHook,
+  skip,
+  onerror,
+  revokeBlobURLs,
+  noLoadEventRetriggers,
+  cssModulesEnabled,
+  jsonModulesEnabled,
+} from './options.js';
+import { dynamicImport } from './dynamic-import.js';
+import {
+  featureDetectionPromise,
   supportsDynamicImport,
   supportsImportMeta,
   supportsImportMaps,
-  featureDetectionPromise,
   supportsCssAssertions,
   supportsJsonAssertions,
-  isURL
-} from './common.js';
-import { init, parse } from '../node_modules/es-module-lexer/dist/lexer.js';
+} from './features.js';
+import * as lexer from '../node_modules/es-module-lexer/dist/lexer.js';
+
+async function defaultResolve (id, parentUrl) {
+  return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl);
+}
+
+async function _resolve (id, parentUrl) {
+  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
+  return {
+    r: resolveImportMap(importMap, urlResolved || id, parentUrl),
+    // b = bare specifier
+    b: !urlResolved && !isURL(id)
+  };
+}
+
+const resolve = resolveHook ? async (id, parentUrl) => ({ r: await esmsInitOptions.resolve(id, parentUrl, defaultResolve), b: false }) : _resolve;
 
 let id = 0;
 const registry = {};
@@ -58,7 +87,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
     // dont reexec inline for polyfills -> just return null (since no module id for executed inline module scripts)
     return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
   }
-  await init;
+  await lexer.init;
   const load = getOrCreateLoad(url, fetchOpts, source);
   const seen = {};
   await loadAll(load, seen);
@@ -72,7 +101,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
         didExecForDomContentLoaded = true;
     }
     const module = await dynamicImport(createBlob(source));
-    if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
+    if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
   }
   const module = await dynamicImport(load.b);
@@ -84,7 +113,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   // if the top-level load is a shell, run its update function
   if (load.s)
     (await dynamicImport(load.s)).u$_(module);
-  if (shouldRevokeBlobURLs) revokeObjectURLs(Object.keys(seen));
+  if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
   // when tla is supported, this should return the tla promise as an actual handle
   // so readystate can still correspond to the sync subgraph exec completions
   return module;
@@ -111,34 +140,19 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   await featureDetectionPromise;
   // Make sure all the "in-flight" import maps are loaded and applied.
   await importMapPromise;
-  return topLevelLoad((await resolveHook(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
+  return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
 
 self.importShim = importShim;
 
 const meta = {};
 
-const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
-
 async function importMetaResolve (id, parentUrl = this.url) {
   await importMapPromise;
-  return (await resolveHook(id, `${parentUrl}`)).r || throwUnresolved(id, parentUrl);
+  return (await resolve(id, `${parentUrl}`)).r || throwUnresolved(id, parentUrl);
 }
 
 self._esmsm = meta;
-
-const esmsInitOptions = self.esmsInitOptions || {};
-delete self.esmsInitOptions;
-let shimMode = typeof esmsInitOptions.shimMode === 'boolean' ? esmsInitOptions.shimMode : !!esmsInitOptions.fetch || !!document.querySelector('script[type="module-shim"],script[type="importmap-shim"]');
-const fetchHook = shimMode && esmsInitOptions.fetch || fetch;
-const resolveHook = shimMode && esmsInitOptions.resolve ? async (id, parentUrl) => ({ r: await esmsInitOptions.resolve(id, parentUrl, defaultResolve), b: false }) : resolve;
-const skip = esmsInitOptions.skip || /^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
-const onerror = esmsInitOptions.onerror || (() => {});
-const shouldRevokeBlobURLs = esmsInitOptions.revokeBlobURLs;
-const noLoadEventRetriggers = esmsInitOptions.noLoadEventRetriggers;
-const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
-const cssModulesEnabled = enable.includes('css-modules');
-const jsonModulesEnabled = enable.includes('json-modules');
 
 function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;
@@ -306,7 +320,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
       }
     }
     try {
-      load.a = parse(source, load.u);
+      load.a = lexer.parse(source, load.u);
     }
     catch (e) {
       console.warn(e);
@@ -322,7 +336,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
       if (d >= 0 && !supportsDynamicImport || d === 2 && !supportsImportMeta)
         load.n = true;
       if (!n) return;
-      const { r, b } = await resolveHook(n, load.r || load.u);
+      const { r, b } = await resolve(n, load.r || load.u);
       if (b && !supportsImportMaps)
         load.n = true;
       if (d !== -1) return;
@@ -345,7 +359,15 @@ function processScripts () {
   }
   for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
     processPreload(link);
-  for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]'))
+  const scripts = document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]');
+  // early shim mode opt-in
+  if (!shimMode) {
+    for (const script of scripts) {
+      if (script.type.endsWith('-shim'))
+        setShimMode();
+    }
+  }
+  for (const script of scripts)
     processScript(script);
 }
 
@@ -384,7 +406,7 @@ function processScript (script, dynamic) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('-shim');
-  if (shim) shimMode = true;
+  if (shim && !shimMode) setShimMode();
   const type = shimMode ? script.type.slice(0, -5) : script.type;
   // dont process module scripts in shim mode or noshim module scripts in polyfill mode
   if (!shim && shimMode || script.getAttribute('noshim') !== null)
@@ -449,24 +471,9 @@ new MutationObserver(mutations => {
   }
 }).observe(document, { childList: true, subtree: true });
 
-async function defaultResolve (id, parentUrl) {
-  return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl);
-}
-
-async function resolve (id, parentUrl) {
-  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
-  return {
-    r: resolveImportMap(importMap, urlResolved || id, parentUrl),
-    // b = bare specifier
-    b: !urlResolved && !isURL(id)
-  };
-}
-
 function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
 }
 
-if (hasDocument) {
-  processScripts();
-  waitingForImportMapsInterval = setInterval(processScripts, 20);
-}
+processScripts();
+waitingForImportMapsInterval = setInterval(processScripts, 20);
