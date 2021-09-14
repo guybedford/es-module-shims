@@ -1,3 +1,6 @@
+ES Module Shims 0.14.0 (2021/09/13)
+* CSP compatible ES Module Shims build (https://github.com/guybedford/es-module-shims/pull/183)
+
 ES Module Shims 0.13.1 (2021/09/10)
 * Fix to ensure global script errors always propagate to the console (https://github.com/guybedford/es-module-shims/pull/182)
 
