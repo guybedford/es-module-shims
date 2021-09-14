@@ -379,7 +379,7 @@ The nonce will then be read from the preceding module scripts in the page, or al
 A full example of such a CSP workflow is provided below:
 
 ```html
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'nonce-n0nce'" />
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-n0nce'" />
 <script async src="es-module-shims.csp.js"></script>
 <script type="importmap" nonce="n0nce">
 {
