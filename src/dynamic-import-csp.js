@@ -8,14 +8,17 @@ export function dynamicImport (specifier) {
   const s = Object.assign(document.createElement('script'), {
     type: 'module',
     src: createBlob(
-      `import*as m from'${specifier}';self._esmsi=m;`
+      `import*as m from'${specifier}';self._esmsi=m`
     ),
     nonce
   });
   s.setAttribute('noshim', '');
-  document.head.appendChild(s);
-  return new Promise((resolve, reject) => {
-    s.addEventListener('load', () => {
+  const p =  new Promise((resolve, reject) => {
+    // Safari is unique in supporting module script error events
+    s.addEventListener('error', cb);
+    s.addEventListener('load', cb);
+
+    function cb () {
       document.head.removeChild(s);
       if (self._esmsi) {
         resolve(self._esmsi, baseUrl);
@@ -24,8 +27,10 @@ export function dynamicImport (specifier) {
       else {
         reject(err);
       }
-    });
+    }
   });
+  document.head.appendChild(s);
+  return p;
 }
 
 export const supportsDynamicImportCheck = dynamicImport(createBlob('if(0)import("")'));

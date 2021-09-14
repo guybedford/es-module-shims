@@ -5,6 +5,10 @@ async function loadModuleScript (src) {
     document.head.appendChild(Object.assign(document.createElement('script'), {
       type: 'module',
       src,
+      onerror () {
+        if (first) first = false;
+        else resolve();
+      },
       onload () {
         if (first) first = false;
         else resolve();
