@@ -2,7 +2,7 @@ import http from "http";
 import fs from "fs";
 import {once} from "events";
 import path from "path";
-import {fileURLToPath, pathToFileURL} from "url";
+import {fileURLToPath} from "url";
 import open from "open";
 import kleur from 'kleur';
 import { spawn } from 'child_process';
@@ -52,6 +52,8 @@ http.createServer(async function (req, res) {
     console.log("REQ: " + req.url);
   setBrowserTimeout();
   if (req.url.startsWith('/done')) {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('');
     console.log(kleur.green('Tests completed successfully.'));
     const message = new URL(req.url, rootURL).searchParams.get('message');
     if (message) console.log(message);
