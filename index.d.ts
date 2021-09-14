@@ -11,6 +11,11 @@ interface ESMSInitOptions {
   polyfillEnable?: string[];
 
   /**
+   * Nonce for CSP build
+   */
+  nonce?: boolean;
+
+  /**
    * Disable retriggering of document readystate
    */
   noLoadEventRetriggers: true,
