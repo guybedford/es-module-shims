@@ -14,7 +14,7 @@ export const {
   onerror = noop,
   revokeBlobURLs,
   noLoadEventRetriggers,
-  nonce
+  nonce = document.querySelector('script[nonce]')
 } = esmsInitOptions;
 
 const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];

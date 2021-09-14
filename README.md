@@ -372,23 +372,24 @@ For better CSP compatibility an alternative build that uses a JS-based lexer is 
 
 This build is exported as `es-module-shims/csp` located at the `dist/es-module-shims.csp.js` file path.
 
-There are two CSP policy rules that can be used to support this build:
+CSP compatibility is enabled by adding the `'nonce-...'` CSP nonce rule.
 
-1. Create a CSP nonce and set the [`nonce`](#nonce) option for ES Module Shims.
-2. Add a CSP rule to support `blob:` URLs.
+The nonce will then be read from the preceding module scripts in the page, or alternatively via the [`nonce` init option](#nonce).
 
-For example:
+A full example of such a CSP workflow is provided below:
 
 ```html
-<script type="esms-options">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'nonce-n0nce'" />
+<script async src="es-module-shims.csp.js"></script>
+<script type="importmap" nonce="n0nce">
 {
-  "nonce": "n0nce"
+  "pkg": "/pkg.js"
 }
 </script>
-<script async src="es-module-shims.csp.js"></script>
+<script type="module" nonce="n0nce">
+import pkg from 'pkg';
+</script>
 ```
-
-When using the `nonce` option, all module script injections in ES Module Shims will carry the associated nonce that ensures their execution.
 
 ## Init Options
 
