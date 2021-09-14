@@ -342,7 +342,7 @@ Adding the `"noshim"` attribute to the script tag will also ensure that ES Modul
 
 Native module scripts only fire `'load'` events but not `'error'` events per the specification.
 
-In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion, fired for both success and failure completions like the native loader, and always twice (once from the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
+In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion, fired for both success and failure completions like the native loader (except in Safari which uniquely fires the module script error event), and always twice (once from the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
 
 To dynamically load a module and get a callback once its execution has been triggered or failed, the following code snippet can therefore be used:
 
@@ -350,13 +350,19 @@ To dynamically load a module and get a callback once its execution has been trig
 function loadModuleScript (src) {
   return new Promise(resolve => {
     let first = true;
+    function callback () {
+      if (first) first = false;
+      else resolve();
+    }
     document.head.appendChild(Object.assign(document.createElement('script'), {
       type: 'module',
       src,
-      onload () {
-        if (first) first = false;
-        else resolve();
-      }
+      onload: callback,
+
+      // Safari Fix:
+      // Safari is the only browser that triggers "error" events instead of "load" events
+      // for both error and success like Firefox and Chrome
+      onerror: callback
     }));
   });
 }
@@ -394,7 +400,7 @@ import pkg from 'pkg';
 ## Init Options
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
-
+o
 ```html
 <script>
 window.esmsInitOptions = {
