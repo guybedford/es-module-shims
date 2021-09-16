@@ -258,8 +258,28 @@ const wasmContentType = /^application\/wasm(;|$)/;
 
 const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\])+))\s*\)/g;
 
+// restrict in-flight fetches to a pool of 100
+let p = [];
+let c = 0;
+function pushFetchPool () {
+  if (++c > 100)
+    return new Promise(r => p.push(r));
+}
+function popFetchPool () {
+  c--;
+  if (p.length)
+    p.pop()();
+}
+
 async function doFetch (url, fetchOpts) {
-  const res = await fetchHook(url, fetchOpts);
+  const poolQueue = pushFetchPool();
+  if (poolQueue) await poolQueue;
+  try {
+    var res = await fetchHook(url, fetchOpts);
+  }
+  finally {
+    popFetchPool();
+  }
   if (!res.ok)
     throw new Error(`${res.status} ${res.statusText} ${res.url}`);
   const contentType = res.headers.get('content-type');
