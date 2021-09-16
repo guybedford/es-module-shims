@@ -268,7 +268,7 @@ function pushFetchPool () {
 function popFetchPool () {
   c--;
   if (p.length)
-    p.pop()();
+    p.shift()();
 }
 
 async function doFetch (url, fetchOpts) {
