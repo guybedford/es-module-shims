@@ -303,27 +303,28 @@ suite('Errors', function () {
   this.timeout(10000);
 
   test('Dynamic import map shim', async function () {
-    await insertDynamicImportMap({
-        "imports": {
-            "react-dom": "https://ga.jspm.io/npm:react-dom@17.0.2/dev.index.js"
-        },
-        "scopes": {
-            "https://ga.jspm.io/": {
-                "scheduler": "https://ga.jspm.io/npm:scheduler@0.20.2/dev.index.js",
-                "scheduler/tracing": "https://ga.jspm.io/npm:scheduler@0.20.2/dev.tracing.js"
-            }
+    insertDynamicImportMap({
+      "imports": {
+        "react-dom": "https://ga.jspm.io/npm:react-dom@17.0.2/dev.index.js"
+      },
+      "scopes": {
+        "https://ga.jspm.io/": {
+          "scheduler": "https://ga.jspm.io/npm:scheduler@0.20.2/dev.index.js",
+          "scheduler/tracing": "https://ga.jspm.io/npm:scheduler@0.20.2/dev.tracing.js"
         }
+      }
     });
+    console.log('LOADING REACT BARE');
     const [React, ReactDOM] = await Promise.all([
-        importShim('react'),
-        importShim('react-dom'),
+      importShim('react'),
+      importShim('react-dom'),
     ]);
     assert.ok(React);
     assert.ok(ReactDOM);
   });
 
   test('Dynamic import map shim 2', async function () {
-    await insertDynamicImportMap({
+    insertDynamicImportMap({
       "imports": {
           "lodash": "https://ga.jspm.io/npm:lodash-es@4.17.21/lodash.js",
       }
@@ -333,11 +334,10 @@ suite('Errors', function () {
   })
 
   function insertDynamicImportMap(importMap) {
-    return new Promise(resolve => document.body.appendChild(Object.assign(document.createElement('script'), {
-        type: 'importmap-shim',
-        innerHTML: JSON.stringify(importMap),
-        onload: resolve
-    })));
+    document.body.appendChild(Object.assign(document.createElement('script'), {
+      type: 'importmap-shim',
+      innerHTML: JSON.stringify(importMap),
+    }));
   }
 });
 

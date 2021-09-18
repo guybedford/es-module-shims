@@ -190,25 +190,6 @@ is supported in Chromium, provided it is injected before any module loads and th
 
 Both modes in ES Module Shims support dynamic injection using DOM Mutation Observers.
 
-One issue with this Mutation Observer approach is that a dynamic import immediately after the injection may not yet have received the mutation observer update since mutation observers are batched in the browser.
-
-To ensure an import is applied after the import map has been updated, a non-standard custom `onload` event is supported for import maps by ES Module Shims:
-
-```js
-async function injectImportMap (map) {
-  return new Promise(resolve => document.body.appendChild(Object.assign(document.createElement('script'), {
-    type: 'importmap',
-    innerHTML: JSON.stringify(map),
-    onload: resolve
-  })));
-}
-
-await injectImportMap({ imports: { newmap: './module.js' }});
-await importShim('newmap'); // will get the new map attached
-```
-
-This event is fired in both polyfill and shim modes so can be fully relied upon regardless of whether it's just fully delegating to the native loader anyway behind the scenes or not.
-
 While in polyfill mode the same restrictions apply that multiple import maps, import maps with a `src` attribute, and import maps loaded after the first module load are not supported, in shim mode all of these behaviours are fully enabled for `"importmap-shim"`.
 
 ### Dynamic Import

@@ -128,6 +128,7 @@ function revokeObjectURLs(registryKeys) {
 }
 
 async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
+  processScripts();
   await importMapPromise;
   return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
@@ -446,7 +447,7 @@ function processScript (script) {
     if (isReadyScript)
       lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
     if (isDomContentLoadedScript)
-      lastStaticLoadPromise = loadPromise.then(domContentLoadedCheck);
+      loadPromise.then(domContentLoadedCheck);
   }
   else if (acceptingImportMaps && type === 'importmap') {
     // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
@@ -465,7 +466,6 @@ function processScript (script) {
     importMapPromise = importMapPromise.then(async () => {
       importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
     });
-    triggerLoadEvent(script);
   }
 }
 
