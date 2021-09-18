@@ -1,3 +1,8 @@
+ES Module Shims 0.15.0 (2021/09/17)
+* Various perf and behaviour polishing (https://github.com/guybedford/es-module-shims/pull/188)
+* Revert DOM mutator nested queryString checks (https://github.com/guybedford/es-module-shims/pull/189)
+* Fetch pooling (https://github.com/guybedford/es-module-shims/pull/184)
+
 ES Module Shims 0.14.0 (2021/09/13)
 * CSP compatible ES Module Shims build (https://github.com/guybedford/es-module-shims/pull/183)
 
