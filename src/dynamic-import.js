@@ -11,12 +11,8 @@ catch (e) {}
 
 if (!supportsDynamicImportCheck) {
   dynamicImport = (url, { errUrl = url }) => {
-    const s = Object.assign(document.createElement('script'), {
-      type: 'module',
-      src: createBlob(
-        `import*as m from'${url}';self._esmsi=m;`
-      )
-    });
+    const src = createBlob(`import*as m from'${url}';self._esmsi=m;`);
+    const s = Object.assign(document.createElement('script'), { type: 'module', src });
     s.setAttribute('noshim', '');
     document.head.appendChild(s);
     return new Promise((resolve, reject) => {
