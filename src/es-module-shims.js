@@ -85,7 +85,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
     if (nativelyLoaded)
       return null;
     await lastStaticLoadPromise;
-    return dynamicImport(source ? createBlob(source) : url);
+    return dynamicImport(source ? createBlob(source) : url, { errUrl: url || source });
   }
   await lexer.init;
   const load = getOrCreateLoad(url, fetchOpts, source);
@@ -95,11 +95,11 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
   if (source && !shimMode && !load.n) {
-    const module = await dynamicImport(createBlob(source));
+    const module = await dynamicImport(createBlob(source), { errUrl: source });
     if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
   }
-  const module = await dynamicImport(load.b);
+  const module = await dynamicImport(load.b, { errUrl: load.u });
   // if the top-level load is a shell, run its update function
   if (load.s)
     (await dynamicImport(load.s)).u$_(module);
@@ -440,7 +440,7 @@ function processScript (script) {
     }).catch(e => {
       if (!noLoadEventRetriggers)
         triggerLoadEvent(script);
-      setTimeout(() => { throw e; });
+      // setTimeout(() => { throw e; });
       onerror(e);
     });
     if (isReadyScript)

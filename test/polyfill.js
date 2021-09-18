@@ -1,13 +1,12 @@
 const nonceScript = document.querySelector('script[nonce]');
-const nonce = nonceScript && nonceScript.nonce;
+const nonce = nonceScript && nonceScript.getAttribute('nonce');
 
 async function loadModuleScript (src) {
   window.onerror = () => {};
   await new Promise(resolve => {
     let first = true;
-    document.head.appendChild(Object.assign(document.createElement('script'), {
+    const s = Object.assign(document.createElement('script'), {
       type: 'module',
-      nonce: nonce,
       src,
       onerror () {
         if (first) first = false;
@@ -17,7 +16,9 @@ async function loadModuleScript (src) {
         if (first) first = false;
         else resolve();
       }
-    }));
+    });
+    s.setAttribute('nonce', nonce);
+    document.head.appendChild(s);
   });
 }
 
