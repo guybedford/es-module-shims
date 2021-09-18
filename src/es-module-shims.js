@@ -73,7 +73,6 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   if (acceptingImportMaps) {
     if (!shimMode) {
       acceptingImportMaps = false;
-      mutationObserver.disconnect();
     }
     else {
       nativeAcceptingImportMaps = false;
@@ -458,7 +457,6 @@ function processScript (script) {
     }
     if (!shimMode) {
       acceptingImportMaps = false;
-      mutationObserver.disconnect();
     }
     else {
       nativeAcceptingImportMaps = false;
@@ -483,7 +481,7 @@ function processPreload (link) {
   fetchCache[link.href] = doFetch(link.href, getFetchOpts(link));
 }
 
-const mutationObserver = new MutationObserver(mutations => {
+new MutationObserver(mutations => {
   for (const mutation of mutations) {
     if (mutation.type !== 'childList') continue;
     for (const node of mutation.addedNodes) {

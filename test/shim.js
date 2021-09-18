@@ -314,7 +314,6 @@ suite('Errors', function () {
         }
       }
     });
-    console.log('LOADING REACT BARE');
     const [React, ReactDOM] = await Promise.all([
       importShim('react'),
       importShim('react-dom'),
