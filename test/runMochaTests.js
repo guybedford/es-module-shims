@@ -17,7 +17,6 @@ export function runMochaTests(suite) {
   importShim('./' + suite + '.js')
   .then(async () => {
     const failures = await new Promise(resolve => mocha.run(resolve));
-    console.log('DOOOOOOO');
     fetch(failures ? '/error?' + failures : '/done');
   }, err => {
     console.error('Unable to import test ' + suite);

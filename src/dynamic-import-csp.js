@@ -25,6 +25,10 @@ export function dynamicImport (specifier) {
         self._esmsi = null;
       }
       else {
+        // If error is undefined, that usually means it was a previously natively loaded module
+        // with a cached error.
+        // TODO: in this case we should do a dynamic import and return the rejection, so long
+        // as we can reliably determine that is the case in all browsers.
         reject(err);
       }
     }
@@ -33,4 +37,4 @@ export function dynamicImport (specifier) {
   return p;
 }
 
-export const supportsDynamicImportCheck = dynamicImport(createBlob('if(0)import("")'));
+export const supportsDynamicImportCheck = dynamicImport(createBlob('()=>import("")'));

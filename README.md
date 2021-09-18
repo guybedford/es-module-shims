@@ -177,22 +177,39 @@ In shim mode, external import maps are fully supported.
 
 #### Dynamic Import Maps
 
-Support for dynamically injecting import maps with JavaScript via
+Support for dynamically injecting import maps with JavaScript via eg:
 
 ```js
 document.body.appendChild(Object.assign(document.createElement('script'), {
   type: 'importmap',
-  innerHTML: JSON.stringify({ imports: { x: './y.js' } })
+  innerHTML: JSON.stringify({ imports: { x: './y.js' } }),
 }));
 ```
 
-is supported in Chromium, provided it is injected before any module loads and there is no other import map.
+is supported in Chromium, provided it is injected before any module loads and there is no other import map yet loaded (multiple import maps are not supported).
 
-Both modes in ES Module Shims thus support dynamic injection using DOM Mutation Observers.
+Both modes in ES Module Shims support dynamic injection using DOM Mutation Observers.
 
-In polyfill mode, a best effort is made to support the same timing constraints.
+One issue with this Mutation Observer approach is that a dynamic import immediately after the injection may not yet have received the mutation observer update since mutation observers are batched in the browser.
 
-In shim mode, full support for dynamic injection of `"importmap-shim"` is provided.
+To ensure an import is applied after the import map has been updated, a non-standard custom `onload` event is supported for import maps by ES Module Shims:
+
+```js
+async function injectImportMap (map) {
+  return new Promise(resolve => document.body.appendChild(Object.assign(document.createElement('script'), {
+    type: 'importmap',
+    innerHTML: JSON.stringify(map),
+    onload: resolve
+  })));
+}
+
+await injectImportMap({ imports: { newmap: './module.js' }});
+await importShim('newmap'); // will get the new map attached
+```
+
+This event is fired in both polyfill and shim modes so can be fully relied upon regardless of whether it's just fully delegating to the native loader anyway behind the scenes or not.
+
+While in polyfill mode the same restrictions apply that multiple import maps, import maps with a `src` attribute, and import maps loaded after the first module load are not supported, in shim mode all of these behaviours are fully enabled for `"importmap-shim"`.
 
 ### Dynamic Import
 
@@ -344,6 +361,8 @@ Native module scripts only fire `'load'` events but not `'error'` events per the
 
 In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion, fired for both success and failure completions like the native loader (except in Safari which uniquely fires the module script error event), and always twice (once from the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
 
+This behaviour can be disabled via the [`noLoadEventRetriggers` option](#no-load-event-retriggers).
+
 To dynamically load a module and get a callback once its execution has been triggered or failed, the following code snippet can therefore be used:
 
 ```js
@@ -482,16 +501,14 @@ Alternatively, add a `blob:` URL policy with the CSP build to get CSP compatibil
 
 Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
 
-In order to ensure libraries that rely on these event still behave correctly, ES Module Shims will double trigger these events when there are script executions that would normally have executed before the document ready state transition to completion.
-
-These events are carefully only triggered when there definitely were modules that would have missed attachment but there is still the risk that this can result in double attachments when mixing modules and scripts where the scripts might get two events firing.
+In order to ensure libraries that rely on these event still behave correctly, ES Module Shims will always double trigger these events that would normally have executed before the document ready state transition to completion.
 
 In such a case, this double event firing can be disabled with the `noLoadEventRetriggers` option:
 
 ```js
 <script type="esms-options">
 {
-  // do not re-trigger the onreadystatechange and DOMContentLoaded DOM events
+  // do not re-trigger DOM events (onreadystatechange, DOMContentLoaded and load events on scripts)
   "noLoadEventRetriggers": true
 }
 </script>

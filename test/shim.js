@@ -301,8 +301,9 @@ suite('Errors', function () {
   });
 
   this.timeout(10000);
-  test('Dynamic import map shim', async () => {
-    insertDynamicImportMap({
+
+  test('Dynamic import map shim', async function () {
+    await insertDynamicImportMap({
         "imports": {
             "react-dom": "https://ga.jspm.io/npm:react-dom@17.0.2/dev.index.js"
         },
@@ -317,27 +318,27 @@ suite('Errors', function () {
         importShim('react'),
         importShim('react-dom'),
     ]);
-
     assert.ok(React);
     assert.ok(ReactDOM);
+  });
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    insertDynamicImportMap({
-        "imports": {
-            "lodash": "https://ga.jspm.io/npm:lodash-es@4.17.21/lodash.js",
-        }
+  test('Dynamic import map shim 2', async function () {
+    await insertDynamicImportMap({
+      "imports": {
+          "lodash": "https://ga.jspm.io/npm:lodash-es@4.17.21/lodash.js",
+      }
     });
-
     const lodash = await importShim("lodash");
     assert.ok(lodash);
+  })
 
-    function insertDynamicImportMap(importMap) {
-      document.body.appendChild(Object.assign(document.createElement('script'), {
-          type: 'importmap-shim',
-          innerHTML: JSON.stringify(importMap)
-      }));
-    }
-  });
+  function insertDynamicImportMap(importMap) {
+    return new Promise(resolve => document.body.appendChild(Object.assign(document.createElement('script'), {
+        type: 'importmap-shim',
+        innerHTML: JSON.stringify(importMap),
+        onload: resolve
+    })));
+  }
 });
 
 suite('Source maps', () => {
