@@ -64,28 +64,28 @@ async function loadAll (load, seen) {
 }
 
 let importMap = { imports: {}, scopes: {} };
-let hasImportMap = false;
 let importMapSrcOrLazy = false;
-let importMapPromise = resolvedPromise;
+let importMapPromise = featureDetectionPromise;
 
-let waitingForImportMapsInterval;
-let firstTopLevelProcess = true;
+let acceptingImportMaps = true;
+let nativeAcceptingImportMaps = true;
 async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
-  // no need to even fetch if we have feature support
-  await featureDetectionPromise;
-  if (waitingForImportMapsInterval > 0) {
-    clearTimeout(waitingForImportMapsInterval);
-    waitingForImportMapsInterval = 0;
-  }
-  if (firstTopLevelProcess) {
-    firstTopLevelProcess = false;
-    processScripts();
+  if (acceptingImportMaps) {
+    if (!shimMode) {
+      acceptingImportMaps = false;
+    }
+    else {
+      nativeAcceptingImportMaps = false;
+    }
   }
   await importMapPromise;
-  // early analysis opt-out
-  if (nativelyLoaded && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy) {
-    // dont reexec inline for polyfills -> just return null (since no module id for executed inline module scripts)
-    return source && nativelyLoaded ? null : dynamicImport(source ? createBlob(source) : url);
+  // early analysis opt-out - no need to even fetch if we have feature support
+  if (!shimMode && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy) {
+    // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
+    if (nativelyLoaded)
+      return null;
+    await lastStaticLoadPromise;
+    return dynamicImport(source ? createBlob(source) : url, { errUrl: url || source });
   }
   await lexer.init;
   const load = getOrCreateLoad(url, fetchOpts, source);
@@ -95,21 +95,11 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
   if (source && !shimMode && !load.n) {
-    if (lastStaticLoadPromise) {
-      didExecForReadyPromise = true;
-      if (domContentLoaded)
-        didExecForDomContentLoaded = true;
-    }
-    const module = await dynamicImport(createBlob(source));
+    const module = await dynamicImport(createBlob(source), { errUrl: source });
     if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
   }
-  const module = await dynamicImport(load.b);
-  if (lastStaticLoadPromise && (!nativelyLoaded || load.b !== load.u)) {
-    didExecForReadyPromise = true;
-    if (domContentLoaded)
-      didExecForDomContentLoaded = true;
-  }
+  const module = await dynamicImport(load.b, { errUrl: load.u });
   // if the top-level load is a shell, run its update function
   if (load.s)
     (await dynamicImport(load.s)).u$_(module);
@@ -137,8 +127,7 @@ function revokeObjectURLs(registryKeys) {
 }
 
 async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
-  await featureDetectionPromise;
-  // Make sure all the "in-flight" import maps are loaded and applied.
+  processScripts();
   await importMapPromise;
   return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
@@ -372,14 +361,13 @@ function getOrCreateLoad (url, fetchOpts, source) {
   return load;
 }
 
+const scriptQuery = 'script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]';
+const preloadQuery = 'link[rel="modulepreload"]';
+
 function processScripts () {
-  if (waitingForImportMapsInterval > 0 && document.readyState !== 'loading') {
-    clearTimeout(waitingForImportMapsInterval);
-    waitingForImportMapsInterval = 0;
-  }
-  for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
+  for (const link of document.querySelectorAll(preloadQuery))
     processPreload(link);
-  const scripts = document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]');
+  const scripts = document.querySelectorAll(scriptQuery);
   // early shim mode opt-in
   if (!shimMode) {
     for (const script of scripts) {
@@ -406,23 +394,27 @@ function getFetchOpts (script) {
   return fetchOpts;
 }
 
-let staticLoadCnt = 0;
-let didExecForReadyPromise = false;
-let didExecForDomContentLoaded = false;
 let lastStaticLoadPromise = Promise.resolve();
-let domContentLoaded = false;
-document.addEventListener('DOMContentLoaded', () => domContentLoaded = true);
-function staticLoadCheck () {
-  staticLoadCnt--;
-  if (staticLoadCnt === 0 && !noLoadEventRetriggers) {
-    if (didExecForDomContentLoaded)
-      document.dispatchEvent(new Event('DOMContentLoaded'));
-    if (didExecForReadyPromise && document.readyState === 'complete')
-      document.dispatchEvent(new Event('readystatechange'));
-  }
+
+let domContentLoadedCnt = 1;
+function domContentLoadedCheck () {
+  if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers)
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+}
+// this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
+document.addEventListener('DOMContentLoaded', domContentLoadedCheck);
+
+let readyStateCompleteCnt = 1;
+if (document.readyState === 'complete')
+  readyStateCompleteCheck();
+else
+  document.addEventListener('readystatechange', readyStateCompleteCheck);
+function readyStateCompleteCheck () {
+  if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
+    document.dispatchEvent(new Event('readystatechange'));
 }
 
-function processScript (script, dynamic) {
+function processScript (script) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('-shim');
@@ -436,29 +428,47 @@ function processScript (script, dynamic) {
     return;
   script.ep = true;
   if (type === 'module') {
-    const isReadyScript = document.readyState !== 'complete';
-    if (isReadyScript) staticLoadCnt++;
+    // does this load block readystate complete
+    const isReadyScript = readyStateCompleteCnt > 0;
+    // does this load block DOMContentLoaded
+    const isDomContentLoadedScript = domContentLoadedCnt > 0;
+    if (isReadyScript) readyStateCompleteCnt++;
+    if (isDomContentLoadedScript) domContentLoadedCnt++;
     const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(() => {
-      script.dispatchEvent(new Event('load'));
+      if (!noLoadEventRetriggers)
+        triggerLoadEvent(script);
     }).catch(e => {
-      script.dispatchEvent(new Event('load'));
-      setTimeout(() => { throw e; });
+      if (!noLoadEventRetriggers)
+        triggerLoadEvent(script);
+      // setTimeout(() => { throw e; });
       onerror(e);
     });
     if (isReadyScript)
-      lastStaticLoadPromise = loadPromise.then(staticLoadCheck);
+      lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
+    if (isDomContentLoadedScript)
+      loadPromise.then(domContentLoadedCheck);
   }
-  else if (type === 'importmap') {
+  else if (acceptingImportMaps && type === 'importmap') {
     // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
-    if (!shimMode && (hasImportMap || script.src || dynamic))
-      return;
-    hasImportMap = true;
+    if (script.src || !nativeAcceptingImportMaps) {
+      if (!shimMode)
+        return;
+      importMapSrcOrLazy = true;
+    }
+    if (!shimMode) {
+      acceptingImportMaps = false;
+    }
+    else {
+      nativeAcceptingImportMaps = false;
+    }
     importMapPromise = importMapPromise.then(async () => {
-      if (script.src || dynamic)
-        importMapSrcOrLazy = true;
       importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
     });
   }
+}
+
+function triggerLoadEvent (script) {
+  script.dispatchEvent(new Event('load'));
 }
 
 const fetchCache = {};
@@ -476,7 +486,7 @@ new MutationObserver(mutations => {
     if (mutation.type !== 'childList') continue;
     for (const node of mutation.addedNodes) {
       if (node.tagName === 'SCRIPT' && node.type)
-        processScript(node, !firstTopLevelProcess);
+        processScript(node);
       else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
         processPreload(node);
     }
@@ -488,4 +498,3 @@ function throwUnresolved (id, parentUrl) {
 }
 
 processScripts();
-waitingForImportMapsInterval = setInterval(processScripts, 20);

@@ -10,15 +10,9 @@ try {
 catch (e) {}
 
 if (!supportsDynamicImportCheck) {
-  let err;
-  self.addEventListener('error', e => err = e.error);
-  dynamicImport = specifier => {
-    const s = Object.assign(document.createElement('script'), {
-      type: 'module',
-      src: createBlob(
-        `import*as m from'${specifier}';self._esmsi=m;`
-      )
-    });
+  dynamicImport = (url, { errUrl = url }) => {
+    const src = createBlob(`import*as m from'${url}';self._esmsi=m;`);
+    const s = Object.assign(document.createElement('script'), { type: 'module', src });
     s.setAttribute('noshim', '');
     document.head.appendChild(s);
     return new Promise((resolve, reject) => {
@@ -29,7 +23,7 @@ if (!supportsDynamicImportCheck) {
           self._esmsi = null;
         }
         else {
-          reject(err);
+          reject(new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
         }
       });
     });

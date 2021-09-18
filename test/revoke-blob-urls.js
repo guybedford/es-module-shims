@@ -3,6 +3,11 @@ test('should revoke blob URLs if `esmsInitOptions.revokeBlobURLs` is set to `tru
 
     const moduleURL = new URL('./fixtures/es-modules/es6-withdep.js', location.href).href;
     const moduleDepURL = new URL('./fixtures/es-modules/es6-dep.js', location.href).href;
+
+    // must be on an old browser to test!
+    if (!window._esmsr[moduleDepURL])
+        return;
+
     const moduleBlobURL = window._esmsr[moduleURL].b;
     const moduleDepBlobURL = window._esmsr[moduleDepURL].b;
     assert(moduleBlobURL.startsWith("blob:http"));
