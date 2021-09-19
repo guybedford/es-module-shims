@@ -1,7 +1,10 @@
 import { nonce } from './options.js';
 import { createBlob, baseUrl, noop } from './common.js';
 
+let err;
+window.addEventListener('error', _err => err = _err);
 export function dynamicImport (url, { errUrl = url } = {}) {
+  err = undefined;
   const src = createBlob(`import*as m from'${url}';self._esmsi=m`);
   const s = Object.assign(document.createElement('script'), { type: 'module', src });
   s.setAttribute('nonce', nonce);
@@ -18,7 +21,8 @@ export function dynamicImport (url, { errUrl = url } = {}) {
         self._esmsi = undefined;
       }
       else {
-        reject(new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
+        reject(err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
+        err = undefined;
       }
     }
   });

@@ -10,7 +10,10 @@ try {
 catch (e) {}
 
 if (!supportsDynamicImportCheck) {
+  let err;
+  window.addEventListener('error', _err => err = _err);
   dynamicImport = (url, { errUrl = url }) => {
+    err = undefined;
     const src = createBlob(`import*as m from'${url}';self._esmsi=m;`);
     const s = Object.assign(document.createElement('script'), { type: 'module', src });
     s.setAttribute('noshim', '');
@@ -23,7 +26,8 @@ if (!supportsDynamicImportCheck) {
           self._esmsi = null;
         }
         else {
-          reject(new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
+          reject(err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
+          err = undefined;
         }
       });
     });
