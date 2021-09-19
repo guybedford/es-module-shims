@@ -25,7 +25,7 @@ function config (isWasm) {
             {
                 resolveId (id) {
                     if (!isWasm && id === '../node_modules/es-module-lexer/dist/lexer.js')
-                        return path.resolve('node_modules/es-module-lexer/lexer.js');
+                        return path.resolve('node_modules/es-module-lexer/dist/lexer.asm.js');
                     if (!isWasm && id === './dynamic-import.js')
                         return path.resolve('src/dynamic-import-csp.js');
                 }
