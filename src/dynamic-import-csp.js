@@ -3,7 +3,7 @@ import { createBlob, baseUrl, noop } from './common.js';
 
 let err;
 window.addEventListener('error', _err => err = _err);
-export function dynamicImport (url, { errUrl = url } = {}) {
+function dynamicImportScript (url, { errUrl = url } = {}) {
   err = undefined;
   const src = createBlob(`import*as m from'${url}';self._esmsi=m`);
   const s = Object.assign(document.createElement('script'), { type: 'module', src });
@@ -30,4 +30,10 @@ export function dynamicImport (url, { errUrl = url } = {}) {
   return p;
 }
 
-export const supportsDynamicImportCheck = dynamicImport(createBlob('0&&import("")')).catch(noop);
+export let dynamicImport = dynamicImportScript;
+
+export const supportsDynamicImportCheck = dynamicImportScript(createBlob('export default u=>import(u)')).then(_dynamicImport => {
+  if (_dynamicImport)
+    dynamicImport = _dynamicImport.default;
+  return !!_dynamicImport;
+}, noop);
