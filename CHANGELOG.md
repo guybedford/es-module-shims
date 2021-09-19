@@ -1,3 +1,6 @@
+ES Module Shims 0.15.1 (2021/09/18)
+* Significant performance improvements to CSP build via asm.js (https://github.com/guybedford/es-module-shims/pull/190) and direct dynamic import (https://github.com/guybedford/es-module-shims/pull/191)
+
 ES Module Shims 0.15.0 (2021/09/17)
 * Various perf and behaviour polishing (https://github.com/guybedford/es-module-shims/pull/188)
 * Revert DOM mutator nested queryString checks (https://github.com/guybedford/es-module-shims/pull/189)
