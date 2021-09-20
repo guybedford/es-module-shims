@@ -2,7 +2,6 @@ import {
   baseUrl as pageBaseUrl,
   createBlob,
   resolveAndComposeImportMap,
-  resolvedPromise,
   resolveUrl,
   edge,
   resolveImportMap,
@@ -65,7 +64,7 @@ async function loadAll (load, seen) {
 
 let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
-let importMapPromise = featureDetectionPromise;
+let importMapPromise = featureDetectionPromise.then(() => lexer.init);
 
 let acceptingImportMaps = true;
 let nativeAcceptingImportMaps = true;
@@ -80,21 +79,20 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   }
   await importMapPromise;
   // early analysis opt-out - no need to even fetch if we have feature support
-  if (!shimMode && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy) {
+  if (!shimMode && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG) {
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded)
       return null;
     await lastStaticLoadPromise;
     return dynamicImport(source ? createBlob(source) : url, { errUrl: url || source });
   }
-  await lexer.init;
   const load = getOrCreateLoad(url, fetchOpts, source);
   const seen = {};
   await loadAll(load, seen);
   lastLoad = undefined;
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
-  if (source && !shimMode && !load.n) {
+  if (source && !shimMode && !load.n && !self.ESMS_DEBUG) {
     const module = await dynamicImport(createBlob(source), { errUrl: source });
     if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
@@ -224,17 +222,11 @@ function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  resolvedSource = resolvedSource.replace(/\/\/# sourceMappingURL=(.*)\s*$/, (match, url) => {
-    return match.replace(url, new URL(url, load.r));
-  });
+  resolvedSource = resolvedSource.replace(/\/\/# sourceMappingURL=(.*)\s*$/, (match, url) => match.replace(url, () => new URL(url, load.r)));
   let hasSourceURL = false
-  resolvedSource = resolvedSource.replace(/\/\/# sourceURL=(.*)\s*$/, (match, url) => {
-    hasSourceURL = true;
-    return match.replace(url, new URL(url, load.r));
-  });
-  if (!hasSourceURL) {
+  resolvedSource = resolvedSource.replace(/\/\/# sourceURL=(.*)\s*$/, (match, url) => (hasSourceURL = true, match.replace(url, () => new URL(url, load.r))));
+  if (!hasSourceURL)
     resolvedSource += '\n//# sourceURL=' + load.r;
-  }
 
   load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
@@ -361,13 +353,10 @@ function getOrCreateLoad (url, fetchOpts, source) {
   return load;
 }
 
-const scriptQuery = 'script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]';
-const preloadQuery = 'link[rel="modulepreload"]';
-
 function processScripts () {
-  for (const link of document.querySelectorAll(preloadQuery))
+  for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
     processPreload(link);
-  const scripts = document.querySelectorAll(scriptQuery);
+  const scripts = document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]');
   // early shim mode opt-in
   if (!shimMode) {
     for (const script of scripts) {
