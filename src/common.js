@@ -1,5 +1,3 @@
-export const resolvedPromise = Promise.resolve();
-
 export const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
 
 export let baseUrl;
