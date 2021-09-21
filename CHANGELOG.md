@@ -1,3 +1,6 @@
+ES Module Shims 1.0.0 (2021/09/20)
+* CSP support build by default (https://github.com/guybedford/es-module-shims/pull/193)
+
 ES Module Shims 0.15.1 (2021/09/18)
 * Significant performance improvements to CSP build via asm.js (https://github.com/guybedford/es-module-shims/pull/190) and direct dynamic import (https://github.com/guybedford/es-module-shims/pull/191)
 
