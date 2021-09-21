@@ -15,6 +15,7 @@ This includes support for:
 * `import.meta` and `import.meta.url`.
 * JSON and CSS modules with import assertions.
 * `<link rel="modulepreload">` polyfill in non Chromium browsers for both shimmed and unshimmed preloading scenarios.
+* Comprehensive CSP support using nonces, no `unsafe-eval` or `blob:` policy being necessary.
 
 In addition a custom [fetch hook](#fetch-hook) can be implemented allowing for streaming in-browser transform workflows to support custom module types.
 
@@ -294,7 +295,7 @@ This implementation is as provided experimentally in Node.js - https://nodejs.or
 
 In polyfill mode, feature detections are performed for ES modules features. In browsers with full feature support no further processing is done.
 
-In browsers with variable feature support, sources are analyzed using the very fast Wasm-based lexer while sharing the source network fetch cache with the native loader, and only those sources known by the analysis to require syntax features not natively supported in the browser will then be reexecuted.
+In browsers with variable feature support, sources are analyzed using the very fast Wasm / asm.js lexer while sharing the source network fetch cache with the native loader, and only those sources known by the analysis to require syntax features not natively supported in the browser will then be reexecuted.
 
 #### Polyfill Features
 
@@ -370,23 +371,17 @@ function loadModuleScript (src) {
 
 Where native module script errors are propagated via `window.onerror`, [`esmsInitOptions.onerror`](#error-hook) can be used to catch polyfill errors.
 
-## CSP Build
+## CSP Support
 
-ES Module Shims uses a Web Assembly lexer to execute blob URLs. Web Assembly currently always requires the `unsafe-eval` CSP policy to be set which can weaken the security requirements of an application.
+By default ES Module Shims provides full support for CSP by using the asm.js ES Module Lexer build. This is absolutely identical in performance to the Wasm version in Firefox and Chrome, while in Safari the asm.js version is actually faster than Wasm making this build preferable.
 
-For better CSP compatibility an alternative build that uses a JS-based lexer is provided, which offers [comporable performance](https://github.com/guybedford/es-module-lexer#js-build) although with a slower cold start due to leaning more heavily on the JS compiler to kick in for the lexer as opposed to the AOT compilation benefits of using Wasm.
-
-This build is exported as `es-module-shims/csp` located at the `dist/es-module-shims.csp.js` file path.
-
-CSP compatibility is enabled by adding the `'nonce-...'` CSP nonce rule.
-
-The nonce will then be read from the preceding module scripts in the page, or alternatively via the [`nonce` init option](#nonce).
+The CSP nonce to use for module scripts will be picked up from the first script on the page or via the [`nonce` init option](#nonce).
 
 A full example of such a CSP workflow is provided below:
 
 ```html
 <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-n0nce'" />
-<script async src="es-module-shims.csp.js"></script>
+<script async src="es-module-shims.js"></script>
 <script type="importmap" nonce="n0nce">
 {
   "pkg": "/pkg.js"
@@ -396,6 +391,10 @@ A full example of such a CSP workflow is provided below:
 import pkg from 'pkg';
 </script>
 ```
+
+## Wasm Build
+
+To use the Web Assembly / non-CSP build of ES Module Shims, this is available as a self-contained single file at `es-module-shims/wasm` or `es-module-shims/dist/es-module-shims.wasm.js` in the package folder.
 
 ## Init Options
 
