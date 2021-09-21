@@ -225,6 +225,31 @@ This tag just initiates a fetch request in the browser and thus works equally as
 Unlike the browser specification, the modulepreload polyfill does not request dependency modules by default, in order to avoid unnecessary
 code analysis in the polyfill scenarios. **It is recommended to preload deep imports anyway so that this feature shouldn't be necessary.**
 
+### CSP Support
+
+By default ES Module Shims provides full support for CSP by using the asm.js ES Module Lexer build. This is absolutely identical in performance to the Wasm version in Firefox and Chrome, while in Safari the asm.js version is actually faster than Wasm making this build preferable.
+
+The CSP nonce to use for module scripts will be picked up from the first script on the page or via the [`nonce` init option](#nonce).
+
+A full example of such a CSP workflow is provided below:
+
+```html
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-n0nce'" />
+<script async src="es-module-shims.js"></script>
+<script type="importmap" nonce="n0nce">
+{
+  "pkg": "/pkg.js"
+}
+</script>
+<script type="module" nonce="n0nce">
+import pkg from 'pkg';
+</script>
+```
+
+#### Wasm Build
+
+To use the Web Assembly / non-CSP build of ES Module Shims, this is available as a self-contained single file at `es-module-shims/wasm` or `es-module-shims/dist/es-module-shims.wasm.js` in the package folder.
+
 ### JSON Modules
 
 > Stability: WhatWG Standard, Single Browser Implementer
@@ -370,31 +395,6 @@ function loadModuleScript (src) {
 ```
 
 Where native module script errors are propagated via `window.onerror`, [`esmsInitOptions.onerror`](#error-hook) can be used to catch polyfill errors.
-
-## CSP Support
-
-By default ES Module Shims provides full support for CSP by using the asm.js ES Module Lexer build. This is absolutely identical in performance to the Wasm version in Firefox and Chrome, while in Safari the asm.js version is actually faster than Wasm making this build preferable.
-
-The CSP nonce to use for module scripts will be picked up from the first script on the page or via the [`nonce` init option](#nonce).
-
-A full example of such a CSP workflow is provided below:
-
-```html
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-n0nce'" />
-<script async src="es-module-shims.js"></script>
-<script type="importmap" nonce="n0nce">
-{
-  "pkg": "/pkg.js"
-}
-</script>
-<script type="module" nonce="n0nce">
-import pkg from 'pkg';
-</script>
-```
-
-## Wasm Build
-
-To use the Web Assembly / non-CSP build of ES Module Shims, this is available as a self-contained single file at `es-module-shims/wasm` or `es-module-shims/dist/es-module-shims.wasm.js` in the package folder.
 
 ## Init Options
 
