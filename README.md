@@ -10,12 +10,12 @@ _It turns out that we can actually polyfill new modules features on top of these
 
 This includes support for:
 
-* [Import Maps](https://github.com/wicg/import-maps) support.
+* [Import Maps](#import-maps) support.
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
-* JSON and CSS modules with import assertions.
-* `<link rel="modulepreload">` polyfill in non Chromium browsers for both shimmed and unshimmed preloading scenarios.
-* Comprehensive CSP support using nonces, no `unsafe-eval` or `blob:` policy being necessary.
+* [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions.
+* [`<link rel="modulepreload">` polyfill](#modulepreload) in non Chromium browsers for both shimmed and unshimmed preloading scenarios.
+* Comprehensive [CSP support](#csp-support) using nonces, no `unsafe-eval` or `blob:` policy being necessary.
 
 In addition a custom [fetch hook](#fetch-hook) can be implemented allowing for streaming in-browser transform workflows to support custom module types.
 
