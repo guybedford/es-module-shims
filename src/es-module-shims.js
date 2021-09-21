@@ -20,7 +20,7 @@ import {
   cssModulesEnabled,
   jsonModulesEnabled,
 } from './options.js';
-import { dynamicImport } from './dynamic-import.js';
+import { dynamicImport } from './dynamic-import-csp.js';
 import {
   featureDetectionPromise,
   supportsDynamicImport,
@@ -29,7 +29,7 @@ import {
   supportsCssAssertions,
   supportsJsonAssertions,
 } from './features.js';
-import * as lexer from '../node_modules/es-module-lexer/dist/lexer.js';
+import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 
 async function defaultResolve (id, parentUrl) {
   return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl);

@@ -1,4 +1,4 @@
-import { dynamicImport, supportsDynamicImportCheck } from './dynamic-import.js';
+import { dynamicImport, supportsDynamicImportCheck } from './dynamic-import-csp.js';
 import { noop, createBlob } from './common.js';
 import { nonce, cssModulesEnabled, jsonModulesEnabled } from './options.js';
 
