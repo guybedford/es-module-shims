@@ -67,6 +67,11 @@ let importMapSrcOrLazy = false;
 let baselinePassthrough;
 let importMapPromise = featureDetectionPromise.then(() => {
   baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
+  if (!shimMode) {
+    // final shim mode opt-in
+    if (document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]').length)
+      setShimMode();
+  }
   if (shimMode || !baselinePassthrough) {
     new MutationObserver(mutations => {
       for (const mutation of mutations) {
@@ -375,13 +380,6 @@ function processScripts () {
   for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
     processPreload(link);
   const scripts = document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]');
-  // early shim mode opt-in
-  if (!shimMode) {
-    for (const script of scripts) {
-      if (script.type.endsWith('-shim'))
-        setShimMode();
-    }
-  }
   for (const script of scripts)
     processScript(script);
 }
@@ -425,7 +423,6 @@ function processScript (script) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('-shim');
-  if (shim && !shimMode) setShimMode();
   const type = shimMode ? script.type.slice(0, -5) : script.type;
   // dont process module scripts in shim mode or noshim module scripts in polyfill mode
   if (!shim && shimMode || script.getAttribute('noshim') !== null)
