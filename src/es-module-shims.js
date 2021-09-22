@@ -147,6 +147,8 @@ function revokeObjectURLs(registryKeys) {
 }
 
 async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
+  // needed for shim check
+  await initPromise;
   if (shimMode || !baselinePassthrough) {
     processScripts();
     if (acceptingImportMaps)
