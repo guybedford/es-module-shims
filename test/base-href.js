@@ -5,6 +5,7 @@ suite('Base href', () => {
   });
 
   test('should resolve import map relative to base href', async () => {
+    window.onerror = () => {};
     const m = await importShim('base-href-bare');
     assert.equal(m.default, 'base href bare');
   });
