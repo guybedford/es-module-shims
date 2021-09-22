@@ -64,7 +64,25 @@ async function loadAll (load, seen) {
 
 let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
-let importMapPromise = featureDetectionPromise.then(() => lexer.init);
+let baselinePassthrough;
+let importMapPromise = featureDetectionPromise.then(() => {
+  baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
+  if (shimMode || !baselinePassthrough) {
+    new MutationObserver(mutations => {
+      for (const mutation of mutations) {
+        if (mutation.type !== 'childList') continue;
+        for (const node of mutation.addedNodes) {
+          if (node.tagName === 'SCRIPT' && node.type)
+            processScript(node);
+          else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
+            processPreload(node);
+        }
+      }
+    }).observe(document, { childList: true, subtree: true });
+    processScripts();
+    return lexer.init;
+  }
+});
 
 let acceptingImportMaps = true;
 let nativeAcceptingImportMaps = true;
@@ -79,7 +97,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   }
   await importMapPromise;
   // early analysis opt-out - no need to even fetch if we have feature support
-  if (!shimMode && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG) {
+  if (!shimMode && baselinePassthrough) {
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded)
       return null;
@@ -470,20 +488,6 @@ function processPreload (link) {
   fetchCache[link.href] = doFetch(link.href, getFetchOpts(link));
 }
 
-new MutationObserver(mutations => {
-  for (const mutation of mutations) {
-    if (mutation.type !== 'childList') continue;
-    for (const node of mutation.addedNodes) {
-      if (node.tagName === 'SCRIPT' && node.type)
-        processScript(node);
-      else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
-        processPreload(node);
-    }
-  }
-}).observe(document, { childList: true, subtree: true });
-
 function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
 }
-
-processScripts();
