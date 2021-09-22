@@ -65,7 +65,8 @@ async function loadAll (load, seen) {
 let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
 let baselinePassthrough;
-let importMapPromise = featureDetectionPromise.then(() => {
+
+const initPromise = featureDetectionPromise.then(() => {
   baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
   if (!shimMode && document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]').length)
     setShimMode();
@@ -85,6 +86,7 @@ let importMapPromise = featureDetectionPromise.then(() => {
     return lexer.init;
   }
 });
+let importMapPromise = initPromise;
 
 let acceptingImportMaps = true;
 let nativeAcceptingImportMaps = true;
@@ -145,9 +147,11 @@ function revokeObjectURLs(registryKeys) {
 }
 
 async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
-  if (shimMode || !baselinePassthrough)
+  if (shimMode || !baselinePassthrough) {
     processScripts();
-  await importMapPromise;
+    if (acceptingImportMaps)
+      await importMapPromise;
+  }
   return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
 
@@ -400,7 +404,8 @@ function getFetchOpts (script) {
 let lastStaticLoadPromise = Promise.resolve();
 
 let domContentLoadedCnt = 1;
-function domContentLoadedCheck () {
+async function domContentLoadedCheck () {
+  await initPromise;
   if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('DOMContentLoaded'));
 }
@@ -412,7 +417,8 @@ if (document.readyState === 'complete')
   readyStateCompleteCheck();
 else
   document.addEventListener('readystatechange', readyStateCompleteCheck);
-function readyStateCompleteCheck () {
+async function readyStateCompleteCheck () {
+  await initPromise;
   if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('readystatechange'));
 }
@@ -421,7 +427,7 @@ function processScript (script) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('-shim');
-  const type = shimMode ? script.type.slice(0, -5) : script.type;
+  const type = shim ? script.type.slice(0, -5) : script.type;
   // dont process module scripts in shim mode or noshim module scripts in polyfill mode
   if (!shim && shimMode || script.getAttribute('noshim') !== null)
     return;
