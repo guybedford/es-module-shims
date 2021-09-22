@@ -67,11 +67,8 @@ let importMapSrcOrLazy = false;
 let baselinePassthrough;
 let importMapPromise = featureDetectionPromise.then(() => {
   baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
-  if (!shimMode) {
-    // final shim mode opt-in
-    if (document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]').length)
-      setShimMode();
-  }
+  if (!shimMode && document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]').length)
+    setShimMode();
   if (shimMode || !baselinePassthrough) {
     new MutationObserver(mutations => {
       for (const mutation of mutations) {
@@ -148,7 +145,8 @@ function revokeObjectURLs(registryKeys) {
 }
 
 async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
-  processScripts();
+  if (shimMode || !baselinePassthrough)
+    processScripts();
   await importMapPromise;
   return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
