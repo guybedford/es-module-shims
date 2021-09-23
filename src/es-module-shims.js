@@ -68,6 +68,7 @@ let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
   baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
+  // shim mode is determined on initialization, no late shim mode
   if (!shimMode && document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]').length)
     setShimMode();
   if (shimMode || !baselinePassthrough) {
@@ -75,14 +76,19 @@ const initPromise = featureDetectionPromise.then(() => {
       for (const mutation of mutations) {
         if (mutation.type !== 'childList') continue;
         for (const node of mutation.addedNodes) {
-          if (node.tagName === 'SCRIPT' && node.type)
-            processScript(node);
+          if (node.tagName === 'SCRIPT') {
+            if (!shimMode && node.type === 'module' || shimMode && node.type === 'module-shim')
+              processScript(node);
+            if (!shimMode && node.type === 'importmap' || shimMode && node.type === 'importmap-shim')
+              processImportMap(node);
+          }
           else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
             processPreload(node);
         }
       }
     }).observe(document, { childList: true, subtree: true });
-    processScripts();
+    processImportMaps();
+    processScriptsAndPreloads();
     return lexer.init;
   }
 });
@@ -150,17 +156,15 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   // needed for shim check
   await initPromise;
   if (acceptingImportMaps || shimMode || !baselinePassthrough) {
-    processScripts();
-    if (acceptingImportMaps) {
-      if (!shimMode) {
-        acceptingImportMaps = false;
-      }
-      else {
-        nativeAcceptingImportMaps = false;
-      }
-      await importMapPromise;
+    processImportMaps();
+    if (!shimMode) {
+      acceptingImportMaps = false;
+    }
+    else {
+      nativeAcceptingImportMaps = false;
     }
   }
+  await importMapPromise;
   return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
 
@@ -169,7 +173,6 @@ self.importShim = importShim;
 const meta = {};
 
 async function importMetaResolve (id, parentUrl = this.url) {
-  await importMapPromise;
   return (await resolve(id, `${parentUrl}`)).r || throwUnresolved(id, parentUrl);
 }
 
@@ -387,12 +390,16 @@ function getOrCreateLoad (url, fetchOpts, source) {
   return load;
 }
 
-function processScripts () {
+function processScriptsAndPreloads () {
+  for (const script of document.querySelectorAll(shimMode ? 'script[type="module-shim"]' : 'script[type="module"]'))
+    processScript(script);
   for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
     processPreload(link);
-  const scripts = document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]');
-  for (const script of scripts)
-    processScript(script);
+}
+
+function processImportMaps () {
+  for (const script of document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]'))
+    processImportMap(script);
 }
 
 function getFetchOpts (script) {
@@ -413,67 +420,79 @@ function getFetchOpts (script) {
 let lastStaticLoadPromise = Promise.resolve();
 
 let domContentLoadedCnt = 1;
-async function domContentLoadedCheck () {
-  await initPromise;
+function domContentLoadedCheck () {
   if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('DOMContentLoaded'));
 }
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
-document.addEventListener('DOMContentLoaded', domContentLoadedCheck);
+document.addEventListener('DOMContentLoaded', async () => {
+  await initPromise;
+  domContentLoadedCheck();
+  if (shimMode || !baselinePassthrough) {
+    processImportMaps();
+    processScriptAndPreloads();
+  }
+});
 
 let readyStateCompleteCnt = 1;
 if (document.readyState === 'complete')
   readyStateCompleteCheck();
 else
-  document.addEventListener('readystatechange', readyStateCompleteCheck);
-async function readyStateCompleteCheck () {
-  await initPromise;
+  document.addEventListener('readystatechange', async () => {
+    await initPromise;
+    readyStateCompleteCheck();
+  });
+function readyStateCompleteCheck () {
   if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('readystatechange'));
 }
 
-function processScript (script) {
-  if (script.ep) // ep marker = script processed
+function processImportMap (script) {
+  if (!acceptingImportMaps)
     return;
-  const shim = script.type.endsWith('-shim');
-  const type = shim ? script.type.slice(0, -5) : script.type;
-  // dont process module scripts in shim mode or noshim module scripts in polyfill mode
-  if (!shim && shimMode || script.getAttribute('noshim') !== null)
+  if (script.ep) // ep marker = script processed
     return;
   // empty inline scripts sometimes show before domready
   if (!script.src && !script.innerHTML)
     return;
   script.ep = true;
-  if (type === 'module') {
-    // does this load block readystate complete
-    const isReadyScript = readyStateCompleteCnt > 0;
-    // does this load block DOMContentLoaded
-    const isDomContentLoadedScript = domContentLoadedCnt > 0;
-    if (isReadyScript) readyStateCompleteCnt++;
-    if (isDomContentLoadedScript) domContentLoadedCnt++;
-    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).catch(onerror);
-    if (isReadyScript)
-      lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
-    if (isDomContentLoadedScript)
-      loadPromise.then(domContentLoadedCheck);
+  // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
+  if (script.src || !nativeAcceptingImportMaps) {
+    if (!shimMode)
+      return;
+    importMapSrcOrLazy = true;
   }
-  else if (acceptingImportMaps && type === 'importmap') {
-    // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
-    if (script.src || !nativeAcceptingImportMaps) {
-      if (!shimMode)
-        return;
-      importMapSrcOrLazy = true;
-    }
-    if (!shimMode) {
-      acceptingImportMaps = false;
-    }
-    else {
-      nativeAcceptingImportMaps = false;
-    }
-    importMapPromise = importMapPromise.then(async () => {
-      importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
-    });
+  if (!shimMode) {
+    acceptingImportMaps = false;
   }
+  else {
+    nativeAcceptingImportMaps = false;
+  }
+  importMapPromise = importMapPromise.then(async () => {
+    importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+  });
+}
+
+function processScript (script) {
+  if (script.ep) // ep marker = script processed
+    return;
+  if (script.getAttribute('noshim') !== null)
+    return;
+  // empty inline scripts sometimes show before domready
+  if (!script.src && !script.innerHTML)
+    return;
+  script.ep = true;
+  // does this load block readystate complete
+  const isReadyScript = readyStateCompleteCnt > 0;
+  // does this load block DOMContentLoaded
+  const isDomContentLoadedScript = domContentLoadedCnt > 0;
+  if (isReadyScript) readyStateCompleteCnt++;
+  if (isDomContentLoadedScript) domContentLoadedCnt++;
+  const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).catch(onerror);
+  if (isReadyScript)
+    lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
+  if (isDomContentLoadedScript)
+    loadPromise.then(domContentLoadedCheck);
 }
 
 const fetchCache = {};
