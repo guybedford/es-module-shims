@@ -1,7 +1,8 @@
 suite('Polyfill tests', () => {
   test('should support dynamic import with an import map', async function () {
+    const p = new Promise(resolve => window.done = resolve);
     await importShim('./fixtures/es-modules/importer1.js');
-    assert.equal(window.global1, true);
+    await p;
   });
 
   test('should support dyanmic import failure', async function () {

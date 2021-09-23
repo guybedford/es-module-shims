@@ -1,1 +1,1 @@
-window.global1 = true;
+done();
