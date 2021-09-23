@@ -1,3 +1,7 @@
+ES Module Shims 1.0.2 (2021/09/22)
+* Fix native passthrough for contextual `importShim` dynamic import to still full reconstruct top-level resolution by parsing import maps (https://github.com/guybedford/es-module-shims/pull/196)
+* Remove skip option default (https://github.com/guybedford/es-module-shims/pull/195)
+
 ES Module Shims 1.0.1 (2021/09/22)
 * Improved native passthrough performance, with some load event restrictions on unstable new features within release cutoff (https://github.com/guybedford/es-module-shims/pull/194)
 
