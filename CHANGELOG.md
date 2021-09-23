@@ -1,3 +1,6 @@
+ES Module Shims 1.0.1 (2021/09/22)
+* Improved native passthrough performance, with some load event restrictions on unstable new features within release cutoff (https://github.com/guybedford/es-module-shims/pull/194)
+
 ES Module Shims 1.0.0 (2021/09/20)
 * CSP support build by default (https://github.com/guybedford/es-module-shims/pull/193)
 
