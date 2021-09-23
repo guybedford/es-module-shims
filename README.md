@@ -373,7 +373,7 @@ window.esmsInitOptions = {
   polyfillEnable: ['css-modules', 'json-modules'], // default empty
   nonce: 'n0nce', // default null
   noLoadEventRetriggers: true, // default false
-  skip: /^https:\/\/cdn\.com/, // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
+  skip: /^https:\/\/cdn\.com/, // defaults to null
   onerror: (e) => { /*...*/ }, // default noop
   resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
   fetch: (url) => fetch(url), // default is native
@@ -470,13 +470,11 @@ This can be configured by providing a URL regular expression for the `skip` opti
 ```js
 <script type="esms-options">
 {
-  skip: "/^https:\/\/cdn\.com/" // defaults to `/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
+  skip: "/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
 }
 </script>
 <script async src="es-module-shims.js"></script>
 ```
-
-By default, this expression supports `jspm.dev`, `dev.jspm.io` and `cdn.pika.dev`.
 
 #### Error hook
 

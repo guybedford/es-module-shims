@@ -370,7 +370,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
       if (d !== -1) return;
       if (!r)
         throwUnresolved(n, load.r || load.u);
-      if (skip.test(r)) return { b: r };
+      if (skip && skip.test(r)) return { b: r };
       if (childFetchOpts.integrity)
         childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
       return getOrCreateLoad(r, childFetchOpts).f;
