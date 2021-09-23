@@ -1,3 +1,6 @@
+ES Module Shims 1.0.4 (2021/09/22)
+* Fix typo bug in import maps call (https://github.com/guybedford/es-module-shims/pull/198)
+
 ES Module Shims 1.0.3 (2021/09/22)
 * Lifecycle event polishing and fixes (https://github.com/guybedford/es-module-shims/pull/197)
 
