@@ -64,7 +64,29 @@ async function loadAll (load, seen) {
 
 let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
-let importMapPromise = featureDetectionPromise.then(() => lexer.init);
+let baselinePassthrough;
+
+const initPromise = featureDetectionPromise.then(() => {
+  baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
+  if (!shimMode && document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]').length)
+    setShimMode();
+  if (shimMode || !baselinePassthrough) {
+    new MutationObserver(mutations => {
+      for (const mutation of mutations) {
+        if (mutation.type !== 'childList') continue;
+        for (const node of mutation.addedNodes) {
+          if (node.tagName === 'SCRIPT' && node.type)
+            processScript(node);
+          else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
+            processPreload(node);
+        }
+      }
+    }).observe(document, { childList: true, subtree: true });
+    processScripts();
+    return lexer.init;
+  }
+});
+let importMapPromise = initPromise;
 
 let acceptingImportMaps = true;
 let nativeAcceptingImportMaps = true;
@@ -79,7 +101,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   }
   await importMapPromise;
   // early analysis opt-out - no need to even fetch if we have feature support
-  if (!shimMode && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG) {
+  if (!shimMode && baselinePassthrough) {
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded)
       return null;
@@ -125,8 +147,13 @@ function revokeObjectURLs(registryKeys) {
 }
 
 async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
-  processScripts();
-  await importMapPromise;
+  // needed for shim check
+  await initPromise;
+  if (shimMode || !baselinePassthrough) {
+    processScripts();
+    if (acceptingImportMaps)
+      await importMapPromise;
+  }
   return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
 
@@ -357,13 +384,6 @@ function processScripts () {
   for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
     processPreload(link);
   const scripts = document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]');
-  // early shim mode opt-in
-  if (!shimMode) {
-    for (const script of scripts) {
-      if (script.type.endsWith('-shim'))
-        setShimMode();
-    }
-  }
   for (const script of scripts)
     processScript(script);
 }
@@ -386,7 +406,8 @@ function getFetchOpts (script) {
 let lastStaticLoadPromise = Promise.resolve();
 
 let domContentLoadedCnt = 1;
-function domContentLoadedCheck () {
+async function domContentLoadedCheck () {
+  await initPromise;
   if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('DOMContentLoaded'));
 }
@@ -398,7 +419,8 @@ if (document.readyState === 'complete')
   readyStateCompleteCheck();
 else
   document.addEventListener('readystatechange', readyStateCompleteCheck);
-function readyStateCompleteCheck () {
+async function readyStateCompleteCheck () {
+  await initPromise;
   if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('readystatechange'));
 }
@@ -407,8 +429,7 @@ function processScript (script) {
   if (script.ep) // ep marker = script processed
     return;
   const shim = script.type.endsWith('-shim');
-  if (shim && !shimMode) setShimMode();
-  const type = shimMode ? script.type.slice(0, -5) : script.type;
+  const type = shim ? script.type.slice(0, -5) : script.type;
   // dont process module scripts in shim mode or noshim module scripts in polyfill mode
   if (!shim && shimMode || script.getAttribute('noshim') !== null)
     return;
@@ -423,15 +444,7 @@ function processScript (script) {
     const isDomContentLoadedScript = domContentLoadedCnt > 0;
     if (isReadyScript) readyStateCompleteCnt++;
     if (isDomContentLoadedScript) domContentLoadedCnt++;
-    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(() => {
-      if (!noLoadEventRetriggers)
-        triggerLoadEvent(script);
-    }).catch(e => {
-      if (!noLoadEventRetriggers)
-        triggerLoadEvent(script);
-      // setTimeout(() => { throw e; });
-      onerror(e);
-    });
+    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).catch(onerror);
     if (isReadyScript)
       lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
     if (isDomContentLoadedScript)
@@ -456,10 +469,6 @@ function processScript (script) {
   }
 }
 
-function triggerLoadEvent (script) {
-  script.dispatchEvent(new Event('load'));
-}
-
 const fetchCache = {};
 function processPreload (link) {
   if (link.ep) // ep marker = processed
@@ -470,20 +479,6 @@ function processPreload (link) {
   fetchCache[link.href] = doFetch(link.href, getFetchOpts(link));
 }
 
-new MutationObserver(mutations => {
-  for (const mutation of mutations) {
-    if (mutation.type !== 'childList') continue;
-    for (const node of mutation.addedNodes) {
-      if (node.tagName === 'SCRIPT' && node.type)
-        processScript(node);
-      else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
-        processPreload(node);
-    }
-  }
-}).observe(document, { childList: true, subtree: true });
-
 function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
 }
-
-processScripts();

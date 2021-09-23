@@ -362,40 +362,6 @@ Adding the `"noshim"` attribute to the script tag will also ensure that ES Modul
 </script>
 ```
 
-#### Load Events
-
-Native module scripts only fire `'load'` events but not `'error'` events per the specification.
-
-In polyfill mode, DOM `'load'` events are always retriggered, such that the second load event can be reliably considered the polyfill completion, fired for both success and failure completions like the native loader (except in Safari which uniquely fires the module script error event), and always twice (once from the native loader, secondly by the polyfill), whether or not the polyfill actually resulted in execution.
-
-This behaviour can be disabled via the [`noLoadEventRetriggers` option](#no-load-event-retriggers).
-
-To dynamically load a module and get a callback once its execution has been triggered or failed, the following code snippet can therefore be used:
-
-```js
-function loadModuleScript (src) {
-  return new Promise(resolve => {
-    let first = true;
-    function callback () {
-      if (first) first = false;
-      else resolve();
-    }
-    document.head.appendChild(Object.assign(document.createElement('script'), {
-      type: 'module',
-      src,
-      onload: callback,
-
-      // Safari Fix:
-      // Safari is the only browser that triggers "error" events instead of "load" events
-      // for both error and success like Firefox and Chrome
-      onerror: callback
-    }));
-  });
-}
-```
-
-Where native module script errors are propagated via `window.onerror`, [`esmsInitOptions.onerror`](#error-hook) can be used to catch polyfill errors.
-
 ## Init Options
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
@@ -481,14 +447,14 @@ Alternatively, add a `blob:` URL policy with the CSP build to get CSP compatibil
 
 Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
 
-In order to ensure libraries that rely on these event still behave correctly, ES Module Shims will always double trigger these events that would normally have executed before the document ready state transition to completion.
+In order to ensure libraries that rely on these event still behave correctly, ES Module Shims will always double trigger these events that would normally have executed before the document ready state transition to completion, once all the static module scripts in the page have been completely executed through ES module shims.
 
 In such a case, this double event firing can be disabled with the `noLoadEventRetriggers` option:
 
 ```js
 <script type="esms-options">
 {
-  // do not re-trigger DOM events (onreadystatechange, DOMContentLoaded and load events on scripts)
+  // do not re-trigger DOM events (onreadystatechange, DOMContentLoaded)
   "noLoadEventRetriggers": true
 }
 </script>
