@@ -112,7 +112,7 @@ suite('Basic loading tests', () => {
       type: 'module-shim',
       src: './fixtures/es-modules/importer1.js'
     }));
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise(resolve => setTimeout(resolve, 50));
     assert.equal(window.global1, true);
   });
 
