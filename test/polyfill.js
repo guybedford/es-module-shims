@@ -35,4 +35,8 @@ suite('Polyfill tests', () => {
     assert.equal(window.dynamic || window.dynamicUrlMap, true);
     assert.equal(Boolean(window.dynamic && window.dynamicUrlMap), false);
   });
+
+  test('import maps passthrough polyfill mode', async function () {
+    await importShim('test');
+  });
 });

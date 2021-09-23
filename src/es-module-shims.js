@@ -149,10 +149,17 @@ function revokeObjectURLs(registryKeys) {
 async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   // needed for shim check
   await initPromise;
-  if (shimMode || !baselinePassthrough) {
+  if (acceptingImportMaps || shimMode || !baselinePassthrough) {
     processScripts();
-    if (acceptingImportMaps)
+    if (acceptingImportMaps) {
+      if (!shimMode) {
+        acceptingImportMaps = false;
+      }
+      else {
+        nativeAcceptingImportMaps = false;
+      }
       await importMapPromise;
+    }
   }
   return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
 }
