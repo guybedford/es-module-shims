@@ -108,11 +108,10 @@ suite('Basic loading tests', () => {
   });
 
   test('should support dynamic import with an import map', async function () {
-    await new Promise(resolve => document.head.appendChild(Object.assign(document.createElement('script'), {
+    document.head.appendChild(Object.assign(document.createElement('script'), {
       type: 'module-shim',
-      src: './fixtures/es-modules/importer1.js',
-      onload: resolve
-    })));
+      src: './fixtures/es-modules/importer1.js'
+    }));
     await new Promise(resolve => setTimeout(resolve, 20));
     assert.equal(window.global1, true);
   });

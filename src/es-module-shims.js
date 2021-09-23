@@ -444,15 +444,7 @@ function processScript (script) {
     const isDomContentLoadedScript = domContentLoadedCnt > 0;
     if (isReadyScript) readyStateCompleteCnt++;
     if (isDomContentLoadedScript) domContentLoadedCnt++;
-    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).then(() => {
-      if (!noLoadEventRetriggers)
-        triggerLoadEvent(script);
-    }).catch(e => {
-      if (!noLoadEventRetriggers)
-        triggerLoadEvent(script);
-      // setTimeout(() => { throw e; });
-      onerror(e);
-    });
+    const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).catch(onerror);
     if (isReadyScript)
       lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
     if (isDomContentLoadedScript)
@@ -475,10 +467,6 @@ function processScript (script) {
       importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
     });
   }
-}
-
-function triggerLoadEvent (script) {
-  script.dispatchEvent(new Event('load'));
 }
 
 const fetchCache = {};
