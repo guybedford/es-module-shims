@@ -7,7 +7,7 @@ const esmsInitOptions = optionsScript ? JSON.parse(optionsScript.innerHTML) : se
 export let shimMode = !!esmsInitOptions.shimMode;
 export const resolveHook = shimMode && esmsInitOptions.resolve;
 
-export const skip = esmsInitOptions.skip ? new RegExp(esmsInitOptions.skip) : /^https:\/\/(cdn\.skypack\.dev|jspm\.dev)\//;
+export const skip = esmsInitOptions.skip ? new RegExp(esmsInitOptions.skip) : null;
 
 export let nonce = esmsInitOptions.nonce;
 
