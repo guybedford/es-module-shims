@@ -430,7 +430,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   domContentLoadedCheck();
   if (shimMode || !baselinePassthrough) {
     processImportMaps();
-    processScriptAndPreloads();
+    processScriptsAndPreloads();
   }
 });
 
