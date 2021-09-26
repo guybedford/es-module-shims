@@ -2,11 +2,9 @@
 
 [Release Notes](CHANGELOG.md)
 
-[93% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules.
+[93% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules. At the same time, [67% of users](https://caniuse.com/import-maps) have native support for import maps, but we still need to cater to the remaining browwers.
 
-But modules features like Import Maps will take a while to be supported in browsers.
-
-_It turns out that we can actually polyfill new modules features on top of these baseline implementations in a performant 9.5KB shim._
+_It turns out that we can actually polyfill import maps and other new modules features on top of these baseline implementations in a performant 9.5KB shim._
 
 This includes support for:
 
