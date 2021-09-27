@@ -12,9 +12,10 @@
     "footprint": "npm run build && cat dist/es-module-shims.js | brotli | wc -c",
     "footprint:csp": "npm run build && cat dist/es-module-shims.csp.js | brotli | wc -c",
     "prepublishOnly": "npm run build",
-    "test": "npm run test:test-base-href && npm run test:test-csp && npm run test:test-polyfill && npm run test:test-polyfill-wasm && npm run test:test-preload-case && npm run test:test-revoke-blob-urls && npm run test:test-shim",
+    "test": "npm run test:test-base-href && npm run test:test-csp && npm run test:test-early-module-load && npm run test:test-polyfill && npm run test:test-polyfill-wasm && npm run test:test-preload-case && npm run test:test-revoke-blob-urls && npm run test:test-shim",
     "test:test-base-href": "cross-env TEST_NAME=test-base-href node test/server.mjs",
     "test:test-csp": "cross-env TEST_NAME=test-csp node test/server.mjs",
+    "test:test-early-module-load": "cross-env TEST_NAME=test-early-module-load node test/server.mjs",
     "test:test-polyfill": "cross-env TEST_NAME=test-polyfill node test/server.mjs",
     "test:test-polyfill-wasm": "cross-env TEST_NAME=test-polyfill-wasm node test/server.mjs",
     "test:test-preload-case": "cross-env TEST_NAME=test-preload-case node test/server.mjs",
@@ -51,5 +52,8 @@
   "bugs": {
     "url": "https://github.com/guybedford/es-module-shims/issues"
   },
-  "homepage": "https://github.com/guybedford/es-module-shims#readme"
+  "homepage": "https://github.com/guybedford/es-module-shims#readme",
+  "dependencies": {
+    "rimraf": "^3.0.2"
+  }
 }
