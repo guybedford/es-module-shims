@@ -467,12 +467,13 @@ function processImportMap (script) {
       return;
     importMapSrcOrLazy = true;
   }
-  if (acceptingImportMaps)
+  if (acceptingImportMaps) {
     importMapPromise = importMapPromise.then(async () => {
       importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
     });
-  else if (!shimMode)
-    acceptingImportMaps = false;
+    if (!shimMode)
+      acceptingImportMaps = false;
+  }
 }
 
 function processScript (script) {
