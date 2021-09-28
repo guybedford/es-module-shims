@@ -79,7 +79,7 @@ window.esmsInitOptions = { enable: ['css-modules', 'json-modules'] }
 </script>
 ```
 
-To verify when the polyfill is actively engaging as opposed to relying on the native loader, [an `onpolyfill` hook](#onpolyfill-hook) is provided.
+To verify when the polyfill is actively engaging as opposed to relying on the native loader, [a `polyfill` hook](#polyfill-hook) is provided.
 
 See the [Polyfill Mode Details](#polyfill-mode-details) section for more information about how the polyfill works and what options are available.
 
