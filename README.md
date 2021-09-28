@@ -43,7 +43,7 @@ Then there are two ways to use ES Module Shims: Polyfill Mode and [Shim Mode](#s
 
 ### Polyfill Mode
 
-Just write your HTML modules like you would in the latest Chrome:
+Write your HTML modules like you would in the latest Chrome:
 
 ```html
 <script type="importmap">
@@ -60,7 +60,7 @@ and ES Module Shims will make it work in [all browsers with any ES Module Suppor
 
 > `<script type="importmap">` should always be placed before any `<script type="module">` as per native support in browsers.
 
-You will typically see a console error in browsers without import maps support like:
+You will see a console error in browsers without import maps support like:
 
 ```
 Uncaught TypeError: Failed to resolve module specifier "app". Relative references must start with either "/", "./", or "../".
@@ -69,13 +69,17 @@ Uncaught TypeError: Failed to resolve module specifier "app". Relative reference
 
 This execution failure is a feature - it avoids the polyfill causing double execution. The first import being a bare specifier in the pattern above is important to ensure this.
 
-This is because the polyfill cannot disable the native loader - instead it can only execute modules that would otherwise fail instantiation while avoiding duplicate fetches or executions.
+This is because the polyfill cannot disable the native loader - instead it will only execute modules that would otherwise fail resolving or parsing to avoid duplicate fetches or executions that would cause performance and reliability issues.
 
 If using CSS modules or JSON modules, since these features are relatively new, they require manually enabling using the initialization option:
 
 ```html
-<script>window.esmsInitOptions = { enable: ['css-modules', 'json-modules'] }</script>
+<script>
+window.esmsInitOptions = { enable: ['css-modules', 'json-modules'] }
+</script>
 ```
+
+To verify when the polyfill is actively engaging as opposed to relying on the native loader, [an `onpolyfill` hook](#onpolyfill-hook) is provided.
 
 See the [Polyfill Mode Details](#polyfill-mode-details) section for more information about how the polyfill works and what options are available.
 
@@ -85,7 +89,7 @@ Shim mode is an alternative to polyfill mode and doesn't rely on native modules 
 
 In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES Module Shims instead.
 
-Shim mode also provides some additional features that aren't yet natively supported such as [external import maps](#external-import-maps) with a `"src"` attribute or [dynamicallly injecting import maps](#dynamic-import-maps), which can be useful in certain applications.
+Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute or [dynamicallly injecting import maps](#dynamic-import-maps), which can be useful in certain applications.
 
 ## Features
 
@@ -363,7 +367,7 @@ Adding the `"noshim"` attribute to the script tag will also ensure that ES Modul
 ## Init Options
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
-o
+
 ```html
 <script>
 window.esmsInitOptions = {
@@ -373,6 +377,7 @@ window.esmsInitOptions = {
   noLoadEventRetriggers: true, // default false
   skip: /^https:\/\/cdn\.com/, // defaults to null
   onerror: (e) => { /*...*/ }, // default noop
+  onpolyfill: () => {},
   resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
   fetch: (url) => fetch(url), // default is native
   revokeBlobURLs: true, // default false
@@ -388,12 +393,15 @@ If only setting JSON-compatible options, the `<script type="esms-options">` can 
 {
   "shimMode": true,
   "polyfillEnable": ["css-modules", "json-modules"],
-  "nonce": "n0nce"
+  "nonce": "n0nce",
+  "onpolyfill": "polyfill"
 }
 </script>
 ```
 
-This can be convenient when using the [CSP build](#csp-build).
+This can be convenient when using a CSP policy.
+
+Function strings correspond to global function names.
 
 See below for a detailed description of each of these options.
 
@@ -468,11 +476,31 @@ This can be configured by providing a URL regular expression for the `skip` opti
 ```js
 <script type="esms-options">
 {
-  skip: "/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
+  "skip": "/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
 }
 </script>
 <script async src="es-module-shims.js"></script>
 ```
+
+#### Polyfill hook
+
+The polyfill hook is called when running in polyfill mode and the polyfill is kicking in instead of passing through to the native loader.
+
+This can be a useful way to verify that the native passthrough is working correctly in latest browsers for performance, while also allowing eg the ability to analyze or get metrics reports of how many users are getting the polyfill actively applying to their browser application loads.
+
+```js
+<script>
+window.polyfilling = () => console.log('The polyfill is actively applying');
+</script>
+<script type="esms-options">
+{
+  "onpolyfill": "polyfilling"
+}
+</script>
+```
+
+In the above, running in latest Chromium browsers, nothing will be logged, while running in an older browser that does not support newer features
+like import maps the console log will be output.
 
 #### Error hook
 
