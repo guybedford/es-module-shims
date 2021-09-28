@@ -19,6 +19,7 @@ import {
   noLoadEventRetriggers,
   cssModulesEnabled,
   jsonModulesEnabled,
+  onpolyfill,
 } from './options.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
@@ -67,10 +68,24 @@ let importMapSrcOrLazy = false;
 let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
-  baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
   // shim mode is determined on initialization, no late shim mode
-  if (!shimMode && document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"]').length)
-    setShimMode();
+  if (!shimMode) {
+    let seenScript = false;
+    for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]')) {
+      if (!seenScript && script.type === 'module')
+        seenScript = true;
+      if (script.type.endsWith('-shim')) {
+        setShimMode();
+        break;
+      }
+      if (seenScript && script.type === 'importmap') {
+        importMapSrcOrLazy = true;
+        break;
+      }
+    }
+  }
+  baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
+  if (!baselinePassthrough) onpolyfill();
   if (shimMode || !baselinePassthrough) {
     new MutationObserver(mutations => {
       for (const mutation of mutations) {
@@ -95,16 +110,9 @@ const initPromise = featureDetectionPromise.then(() => {
 let importMapPromise = initPromise;
 
 let acceptingImportMaps = true;
-let nativeAcceptingImportMaps = true;
 async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
-  if (acceptingImportMaps) {
-    if (!shimMode) {
-      acceptingImportMaps = false;
-    }
-    else {
-      nativeAcceptingImportMaps = false;
-    }
-  }
+  if (!shimMode)
+    acceptingImportMaps = false;
   await importMapPromise;
   // early analysis opt-out - no need to even fetch if we have feature support
   if (!shimMode && baselinePassthrough) {
@@ -157,12 +165,8 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   await initPromise;
   if (acceptingImportMaps || shimMode || !baselinePassthrough) {
     processImportMaps();
-    if (!shimMode) {
+    if (!shimMode)
       acceptingImportMaps = false;
-    }
-    else {
-      nativeAcceptingImportMaps = false;
-    }
   }
   await importMapPromise;
   return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
@@ -375,7 +379,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
         load.n = true;
       if (!n) return;
       const { r, b } = await resolve(n, load.r || load.u);
-      if (b && !supportsImportMaps)
+      if (b && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
       if (d !== -1) return;
       if (!r)
@@ -435,21 +439,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 let readyStateCompleteCnt = 1;
-if (document.readyState === 'complete')
+if (document.readyState === 'complete') {
   readyStateCompleteCheck();
-else
+}
+else {
   document.addEventListener('readystatechange', async () => {
+    processImportMaps();
     await initPromise;
     readyStateCompleteCheck();
   });
+}
 function readyStateCompleteCheck () {
   if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('readystatechange'));
 }
 
 function processImportMap (script) {
-  if (!acceptingImportMaps)
-    return;
   if (script.ep) // ep marker = script processed
     return;
   // empty inline scripts sometimes show before domready
@@ -457,20 +462,18 @@ function processImportMap (script) {
     return;
   script.ep = true;
   // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
-  if (script.src || !nativeAcceptingImportMaps) {
+  if (script.src) {
     if (!shimMode)
       return;
     importMapSrcOrLazy = true;
   }
-  if (!shimMode) {
-    acceptingImportMaps = false;
+  if (acceptingImportMaps) {
+    importMapPromise = importMapPromise.then(async () => {
+      importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+    });
+    if (!shimMode)
+      acceptingImportMaps = false;
   }
-  else {
-    nativeAcceptingImportMaps = false;
-  }
-  importMapPromise = importMapPromise.then(async () => {
-    importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
-  });
 }
 
 function processScript (script) {
@@ -488,7 +491,10 @@ function processScript (script) {
   const isDomContentLoadedScript = domContentLoadedCnt > 0;
   if (isReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
-  const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).catch(onerror);
+  const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).catch(e => {
+    setTimeout(() => { throw e });
+    onerror(e);
+  });
   if (isReadyScript)
     lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
   if (isDomContentLoadedScript)
