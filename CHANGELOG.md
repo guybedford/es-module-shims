@@ -1,3 +1,7 @@
+ES Modules Shims 1.1.0 (2021/09/28)
+* Feature: Enable polyfill when loading a module before the import map. This resolves browser extension issues (https://github.com/WICG/import-maps/issues/248) (https://github.com/guybedford/es-module-shims/pull/203)
+* Fix: Upgrade to es-module-lexer@0.9.1 supporting large source analysis (https://github.com/guybedford/es-module-shims/pull/203)
+
 ES Module Shims 1.0.4 (2021/09/22)
 * Fix typo bug in import maps call (https://github.com/guybedford/es-module-shims/pull/198)
 
