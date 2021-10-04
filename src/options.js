@@ -22,7 +22,7 @@ export const onpolyfill = globalHook(esmsInitOptions.onpolyfill || noop);
 
 export const { revokeBlobURLs, noLoadEventRetriggers } = esmsInitOptions;
 
-export const fetchHook = esmsInitOptions.fetchHook ? globalHook(esmsInitOptions.fetchHook) : fetch;
+export const fetchHook = esmsInitOptions.fetch ? globalHook(esmsInitOptions.fetch) : fetch;
 
 function globalHook (name) {
   return typeof name === 'string' ? self[name] : name;
