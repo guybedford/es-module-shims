@@ -33,10 +33,10 @@ For example, from CDN:
 
 ```html
 <!-- UNPKG -->
-<script async src="https://unpkg.com/es-module-shims@1.1.0/dist/es-module-shims.js"></script>
+<script async src="https://unpkg.com/es-module-shims@1.2.0/dist/es-module-shims.js"></script>
 
 <!-- JSPM.IO -->
-<script async src="https://ga.jspm.io/npm:es-module-shims@1.1.0/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.2.0/dist/es-module-shims.js"></script>
 ```
 
 Then there are two ways to use ES Module Shims: Polyfill Mode and [Shim Mode](#shim-mode).
@@ -547,13 +547,15 @@ For example:
   window.esmsInitOptions = {
     shimMode: true,
     fetch: async function (url, options) {
-      const response = await fetch(url, options);
-      if (response.url.endsWith('.ts')) {
-        const source = await response.body();
+      const res = await fetch(url, options);
+      if (!res.ok)
+        return res;
+      if (res.url.endsWith('.ts')) {
+        const source = await res.body();
         const transformed = tsCompile(source);
         return new Response(new Blob([transformed], { type: 'application/javascript' }));
       }
-      return response;
+      return res;
     } // defaults to `((url, options) => fetch(url, options))`
   }
 </script>
@@ -568,29 +570,23 @@ Streaming support is also provided, for example here is a hook with streaming su
 ```js
 window.esmsInitOptions = {
   shimMode: true,
-  fetch: async function (url) {
-    const response = await fetch(url);
-    if (!response.ok)
-      throw new Error(`${response.status} ${response.statusText} ${response.url}`);
-    const contentType = response.headers.get('content-type');
-    if (!/^application\/json($|;)/.test(contentType))
-      return response;
-    const reader = response.body.getReader();
+  fetch: async function (url, options) {
+    const res = await fetch(url, options);
+    if (!res.ok || !/^application\/json($|;)/.test(res.headers.get('content-type')))
+      return res;
+    const reader = res.body.getReader();
+    const headers = new Headers(res.headers);
+    headers.set('Content-Type', 'application/javascript');
     return new Response(new ReadableStream({
       async start (controller) {
         let done, value;
-        controller.enqueue(new Uint8Array([...'export default '].map(c => c.charCodeAt(0))));
+        controller.enqueue(new TextEncoder.encode('export default '));
         while (({ done, value } = await reader.read()) && !done) {
           controller.enqueue(value);
         }
         controller.close();
       }
-    }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/javascript"
-      }
-    });
+    }), { headers });
   }
 }
 ```

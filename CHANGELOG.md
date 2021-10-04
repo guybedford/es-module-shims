@@ -1,3 +1,6 @@
+ES Module Shims 1.2.0 (2021/10/04)
+* Fix: Bug where fetch hook was renamed to "fetchHook" instead of "fetch" (https://github.com/guybedford/es-module-shims/pull/205)
+
 ES Modules Shims 1.1.0 (2021/09/28)
 * Feature: Enable polyfill when loading a module before the import map. This resolves browser extension issues (https://github.com/WICG/import-maps/issues/248) (https://github.com/guybedford/es-module-shims/pull/203)
 * Fix: Upgrade to es-module-lexer@0.9.1 supporting large source analysis (https://github.com/guybedford/es-module-shims/pull/203)
