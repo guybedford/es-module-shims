@@ -1,0 +1,1 @@
+export { transformed } from './file.jsx';

@@ -379,7 +379,7 @@ window.esmsInitOptions = {
   onerror: (e) => { /*...*/ }, // default noop
   onpolyfill: () => {},
   resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
-  fetch: (url) => fetch(url), // default is native
+  fetch: (url, options) => fetch(url, options), // default is native
   revokeBlobURLs: true, // default false
 }
 </script>
@@ -546,15 +546,15 @@ For example:
 <script>
   window.esmsInitOptions = {
     shimMode: true,
-    fetch: async function (url) {
-      const response = await fetch(url);
+    fetch: async function (url, options) {
+      const response = await fetch(url, options);
       if (response.url.endsWith('.ts')) {
         const source = await response.body();
         const transformed = tsCompile(source);
         return new Response(new Blob([transformed], { type: 'application/javascript' }));
       }
       return response;
-    } // defaults to `(url => fetch(url))`
+    } // defaults to `((url, options) => fetch(url, options))`
   }
 </script>
 <script async src="es-module-shims.js"></script>
