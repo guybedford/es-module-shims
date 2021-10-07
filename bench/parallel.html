@@ -1,0 +1,8 @@
+<!doctype html>
+<script type="module">
+  const { n = 50, port = 8000 } = Object.fromEntries(new URL(location.href).searchParams);
+  let promises = Array(n);
+  for (let i = 1; i <= n; i++)
+    promises.push(import(`/bench/generated/app${i}.js`));
+  Promise.all(promises).then(() => parent.postMessage('done', '*'));
+</script>

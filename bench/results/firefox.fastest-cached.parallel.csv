@@ -1,0 +1,6 @@
+firefox.fastest-cached.parallel-10,firefox.fastest-cached.parallel-20,firefox.fastest-cached.parallel-30,firefox.fastest-cached.parallel-40,firefox.fastest-cached.parallel-50,firefox.fastest-cached.parallel-60,firefox.fastest-cached.parallel-70,firefox.fastest-cached.parallel-80,firefox.fastest-cached.parallel-90,firefox.fastest-cached.parallel-100,firefox.fastest-cached.parallel-1000
+21,36,49,64,82,85,102,112,125,136,1147
+21,36,45,61,72,87,98,114,134,145,1181
+23,38,50,64,80,100,109,116,128,148,1320
+23,38,50,67,82,97,106,122,131,146,1191
+22,38,52,68,83,95,110,132,130,146,1205

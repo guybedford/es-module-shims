@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "rollup -c",
+    "bench": "bash bench/bench.sh",
     "footprint": "npm run build && cat dist/es-module-shims.js | brotli | wc -c",
     "footprint:csp": "npm run build && cat dist/es-module-shims.csp.js | brotli | wc -c",
     "prepublishOnly": "npm run build",
@@ -37,10 +38,16 @@
     "es-module-lexer": "^0.9.3",
     "esm": "^3.2.25",
     "kleur": "^4.1.4",
+    "mime-types": "^2.1.33",
     "mocha": "^9.1.1",
+    "npm-run-all": "^4.1.5",
     "open": "^8.0.8",
+    "preact": "^10.5.14",
     "pretty-ms": "^3.2.0",
-    "rollup": "^2.17.0"
+    "rimraf": "^3.0.2",
+    "rollup": "^2.58.0",
+    "speed-limiter": "^1.0.2",
+    "tachometer": "^0.5.10"
   },
   "directories": {
     "test": "test"
@@ -52,8 +59,5 @@
   "bugs": {
     "url": "https://github.com/guybedford/es-module-shims/issues"
   },
-  "homepage": "https://github.com/guybedford/es-module-shims#readme",
-  "dependencies": {
-    "rimraf": "^3.0.2"
-  }
+  "homepage": "https://github.com/guybedford/es-module-shims#readme"
 }

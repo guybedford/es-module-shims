@@ -1,0 +1,401 @@
+<!doctype html>
+<meta charset="utf8" />
+<style>
+:root {
+  font-family: "Open Sans", Helvetica, Arial, sans-serif;
+  color: #222;
+  font-size: 12px;
+}
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+table {
+  border-spacing: 0;
+  border-collapse: collapse;
+
+}
+table span {
+  font-size: 10px;
+  white-space: nowrap;
+  font-style: italic;
+}
+table td, table th {
+  position: relative;
+  border: 1px solid #999;
+  padding: 0.5em;
+  margin: 0;
+  text-align: center;
+  width: 200px;
+}
+table tr th {
+  font-weight: 200;
+  color: #000;
+  font-size: 1.1em;
+  background-color: #eee;
+  padding-right: 20px;
+}
+table tr th:first-child {
+  width: 100px;
+}
+.cases {
+  z-index: 1000;
+  width: 800px;
+  background-color: #eee;
+  border-left: 1px solid #ccc;
+  padding: 20px;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: calc(100% - 40px);
+}
+.cases input {
+  margin: 10px;
+}
+.cases button {
+  margin: 20px;
+  display: block;
+  cursor: pointer;
+  border: none;
+  background-color: #fee;
+  border: 1px solid #fee;
+  border-radius: 0.5em;
+  padding: 0.5em;
+  line-height: 1em;
+  margin: 0.1em;
+}
+.cases button:hover {
+  background-color: #fad;
+  border: 1px solid #ead;
+}
+.casecode {
+  overflow: scroll;
+  width: 800px;
+  height: 60%;
+}
+.container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  width: calc(100% - 800px);
+  height: 100%;
+  padding: 20px;
+}
+button.delete {
+  top: 12px;
+  right: 15px;
+  display: block;
+  position: absolute;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 0.8em;
+  opacity: 0.8;
+  width: 1em;
+  height: 1em;
+}
+.results {
+  max-width: calc(100% - 40px - 40px);
+  overflow-x: scroll;
+}
+button.delete:hover {
+  opacity: 1;
+}
+button.delete:active {
+  opacity: 0.95;
+}
+input, label {
+  cursor: pointer;
+}
+.graph {
+  margin-top: 20px;
+}
+</style>
+<body>
+  <div class="cases">
+    <select class="case">
+      <option value="parallel">Parallel</option>
+      <option value="parallel-mapped">Parallel Mapped</option>
+      <option value="parallel-mapped-esms">Parallel Mapped ES Module Shims</option>
+      <option value="parallel-allmapped">Parallel All Mapped</option>
+      <option value="parallel-allmapped-esms">Parallel All Mapped ES Module Shims</option>
+    </select>
+    <br /><br />
+    <select class="browser">
+      <option value="chrome">Chrome</option>
+      <option value="firefox">Firefox</option>
+      <option value="safari">Safari</option>
+    </select>
+    <br /><br />
+    <select class="network">
+      <option value="fastest-cached">Cached</option>
+      <option value="fastest">Fastest</option>
+      <option value="slow">Throttled to 750KB/s / 25 ms RTT</option>
+    </select>
+    <br /><br />
+    <button class="addcase">Add Case</button>
+
+    <h2>OR - Interesting Comparisons to see:</h2>
+    <button class="interesting-case" case="passthrough">Polyfill Passthrough Performance in Chrome (cost of loading ES module shims)</button>
+    <button class="interesting-case" case="polyfillvnative">Polyfill v Native Performance</button>
+
+    <h2>Test Case Code (as selected above)</h2>
+    <div class="casecode"><code><pre>
+    </pre></code></div>
+  </div>
+  <div class="container">
+    <div class="results"></div>
+    <div class="graph"></div>
+  </div>
+</body>
+
+<!--
+  JSPM Generator Import Map
+  Edit URL: https://generator.jspm.io/#Y2NgYGBk9M1PKc1JLWZwyE8qTi0qS0zKSc0o1C/IyS9xMNAz0jMAAPJ+Qb0mAA
+-->
+<script type="importmap">
+{
+  "imports": {
+    "@observablehq/plot": "https://ga.jspm.io/npm:@observablehq/plot@0.2.0/src/index.js"
+  },
+  "scopes": {
+    "https://ga.jspm.io/": {
+      "d3": "https://ga.jspm.io/npm:d3@7.0.1/src/index.js",
+      "d3-array": "https://ga.jspm.io/npm:d3-array@3.0.4/src/index.js",
+      "d3-axis": "https://ga.jspm.io/npm:d3-axis@3.0.0/src/index.js",
+      "d3-brush": "https://ga.jspm.io/npm:d3-brush@3.0.0/src/index.js",
+      "d3-chord": "https://ga.jspm.io/npm:d3-chord@3.0.1/src/index.js",
+      "d3-color": "https://ga.jspm.io/npm:d3-color@3.0.1/src/index.js",
+      "d3-contour": "https://ga.jspm.io/npm:d3-contour@3.0.1/src/index.js",
+      "d3-delaunay": "https://ga.jspm.io/npm:d3-delaunay@6.0.2/src/index.js",
+      "d3-dispatch": "https://ga.jspm.io/npm:d3-dispatch@3.0.1/src/index.js",
+      "d3-drag": "https://ga.jspm.io/npm:d3-drag@3.0.0/src/index.js",
+      "d3-dsv": "https://ga.jspm.io/npm:d3-dsv@3.0.1/src/index.js",
+      "d3-ease": "https://ga.jspm.io/npm:d3-ease@3.0.1/src/index.js",
+      "d3-fetch": "https://ga.jspm.io/npm:d3-fetch@3.0.1/src/index.js",
+      "d3-force": "https://ga.jspm.io/npm:d3-force@3.0.0/src/index.js",
+      "d3-format": "https://ga.jspm.io/npm:d3-format@3.0.1/src/index.js",
+      "d3-geo": "https://ga.jspm.io/npm:d3-geo@3.0.1/src/index.js",
+      "d3-hierarchy": "https://ga.jspm.io/npm:d3-hierarchy@3.0.1/src/index.js",
+      "d3-interpolate": "https://ga.jspm.io/npm:d3-interpolate@3.0.1/src/index.js",
+      "d3-path": "https://ga.jspm.io/npm:d3-path@3.0.1/src/index.js",
+      "d3-polygon": "https://ga.jspm.io/npm:d3-polygon@3.0.1/src/index.js",
+      "d3-quadtree": "https://ga.jspm.io/npm:d3-quadtree@3.0.1/src/index.js",
+      "d3-random": "https://ga.jspm.io/npm:d3-random@3.0.1/src/index.js",
+      "d3-scale": "https://ga.jspm.io/npm:d3-scale@4.0.0/src/index.js",
+      "d3-scale-chromatic": "https://ga.jspm.io/npm:d3-scale-chromatic@3.0.0/src/index.js",
+      "d3-selection": "https://ga.jspm.io/npm:d3-selection@3.0.0/src/index.js",
+      "d3-shape": "https://ga.jspm.io/npm:d3-shape@3.0.1/src/index.js",
+      "d3-time": "https://ga.jspm.io/npm:d3-time@3.0.0/src/index.js",
+      "d3-time-format": "https://ga.jspm.io/npm:d3-time-format@4.0.0/src/index.js",
+      "d3-timer": "https://ga.jspm.io/npm:d3-timer@3.0.1/src/index.js",
+      "d3-transition": "https://ga.jspm.io/npm:d3-transition@3.0.1/src/index.js",
+      "d3-zoom": "https://ga.jspm.io/npm:d3-zoom@3.0.0/src/index.js",
+      "delaunator": "https://ga.jspm.io/npm:delaunator@5.0.0/index.js",
+      "internmap": "https://ga.jspm.io/npm:internmap@2.0.3/src/index.js",
+      "isoformat": "https://ga.jspm.io/npm:isoformat@0.1.0/src/index.js",
+      "robust-predicates": "https://ga.jspm.io/npm:robust-predicates@3.0.1/index.js"
+    }
+  }
+}
+</script>
+
+<!-- ES Module Shims: Import maps polyfill for modules browsers without import maps support (all except Chrome 89+) -->
+<script async src="https://ga.jspm.io/npm:es-module-shims@0.12.8/dist/es-module-shims.min.js" crossorigin="anonymous"></script>
+
+<script type="module">
+  const nValues = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 1000];
+  const caseTitles = {
+    'parallel': 'Parallel',
+    'parallel-mapped': 'Parallel Mapped',
+    'parallel-mapped-esms': 'Parallel Mapped ES Module Shims',
+    'parallel-allmapped': 'Parallal All Mapped',
+    'parallel-allmapped-esms': 'Parallel All Mapped ES Module Shims'
+  };
+  const networkNames = {
+    'fastest-cached': 'Cached',
+    'fastest': 'Fastest',
+    'slow': 'Throttled'
+  };
+  const caseCache = {};
+
+  const stored = localStorage.getItem('cases');
+  let cases = stored ? JSON.parse(stored) : [];
+
+  const interestingCases = {
+    passthrough: [
+      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped' },
+      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped-esms' },
+      { browser: 'chrome', network: 'fastest', name: 'parallel-mapped' },
+      { browser: 'chrome', network: 'fastest', name: 'parallel-mapped-esms' }
+    ],
+    polyfillvnative: [
+      { browser: 'chrome', network: 'fastest', name: 'parallel' },
+      { browser: 'chrome', network: 'fastest', name: 'parallel-mapped' },
+      { browser: 'firefox', network: 'fastest', name: 'parallel' },
+      { browser: 'firefox', network: 'fastest', name: 'parallel-mapped-esms' },
+      { browser: 'safari', network: 'fastest', name: 'parallel' },
+      { browser: 'safari', network: 'fastest', name: 'parallel-mapped-esms' }
+    ]
+  };
+  for (const el of document.querySelectorAll('button.interesting-case')) {
+    el.addEventListener('click', async () => {
+      cases = [...interestingCases[el.getAttribute('case')]];
+      if (!await render(cases))
+        cases.pop();
+      localStorage.setItem('cases', JSON.stringify(cases));
+    });
+  }
+
+  document.querySelector('button.addcase').addEventListener('click', async () => {
+    const name = document.querySelector('select.case').value;
+    const browser = document.querySelector('select.browser').value;
+    const network = document.querySelector('select.network').value;
+    if (cases.some(c => JSON.stringify(c) === JSON.stringify({ browser, network, name })))
+      return;
+    cases.push({ browser, network, name });
+    if (!await render(cases))
+      cases.pop();
+    localStorage.setItem('cases', JSON.stringify(cases));
+  });
+
+  document.querySelector('select.case').addEventListener('change', async e => {
+    const name = e.target.value;
+    const code = await getCaseCode(name);
+    document.querySelector('code pre').innerHTML = code.replace(/https:\/\/localhost:8000\//g, '/').replace(/</g, '&lt;');
+  });
+  if (!await render(cases))
+    cases = [];
+  
+  async function render (cases) {
+    const fullNames = cases.map(fullName);
+    const values = cases.length && cases[0].name.startsWith('waterfall') ? dValues : nValues;
+    const testNames = cases.map(({ browser, name, network }) => `${browser[0].toUpperCase()}${browser.slice(1)} ${caseTitles[name]} ${networkNames[network]}`);
+    try {
+      var results = await Promise.all(fullNames.map(async fullName => caseCache[fullName] || (caseCache[fullName] = await loadCsv(`./results/${fullName}.csv`))));
+    }
+    catch (e) {
+      alert('Result not available');
+      return false;
+    }
+    document.querySelector('.results').innerHTML = renderTableHtml(values, testNames, results);
+    drawGraph(values, testNames, results);
+
+    // table events
+    document.querySelector('.results table').addEventListener('click', e => {
+      if (e.target.tagName === 'BUTTON') {
+        const rows = [...document.querySelectorAll('.results table tr th')].slice(1);
+        const idx = rows.indexOf(e.target.parentNode);
+        cases.splice(idx, 1);
+        render(cases);
+        localStorage.setItem('cases', JSON.stringify(cases));
+      }
+    });
+    return true;
+  }
+
+  const caseCodeCache = {};
+  function getCaseCode (name) {
+    if (caseCodeCache[name])
+      return caseCodeCache[name];
+    return caseCodeCache[name] = (async () => {
+      const res = await fetch(`./cases/${name}.html`);
+      if (!res.ok)
+        throw new Error('Unable to fetch case');
+      const source = await res.text();
+      const p = new Promise(resolve => window._s = resolve);
+      const iframe = Object.assign(document.createElement('iframe'), {
+        srcdoc: source + `<${''}script type="module">parent._s(document.querySelector('iframe').srcdoc)<${''}/script>`
+      });
+      document.body.appendChild(iframe);
+      const src = await p;
+      document.body.removeChild(iframe);
+      return src.replace('parent._done', 'done');
+    })();
+  }
+
+  function fullName ({ browser, network, name }) {
+    return `${browser}.${network}.${name}`;
+  }
+
+  async function loadCsv (url) {
+    const res = await fetch(url);
+    if (!res.ok)
+      throw new Error(`Unable to load result ${url}`);
+    const csv = await res.text();
+    return csv.split('\n').slice(0, -1).map(row => row.split(','));
+  }
+
+  function renderTableHtml (nValues, testNames, results) {
+    let html = '<table>\n  <thead>\n    <tr>\n      ';
+    html += '<th>n</th>';
+    for (const name of testNames)
+      html += `<th>${name} <span>(ms)</span><button class="delete">❌</button></th>`;
+    html += '\n    </tr>\n  </thead>\n';
+
+    for (let i = 0; i < nValues.length; i++) {
+      const nValue = nValues[i];
+      html += `  <tr>\n    <th>${nValue} <span>(${Math.round(Number(nValue) / 2)} KB)</span></th>`;
+
+      for (const result of results) {
+        const numbers = result.slice(1).map(row => row[i]);
+
+        const average = msToStr(numbers.reduce((sum, entry) => Number(entry) + sum, 0) / numbers.length);
+        const min = msToStr(Math.min(...numbers));
+        const max = msToStr(Math.max(...numbers));
+        html += `<td>${average} <span>(${min} - ${max})</span></td>`;
+      }
+
+      html += `  </tr>\n`;
+    }
+
+    html += `\n</table>`;
+    return html;
+  }
+
+  function msToStr (num) {
+    if (num > 1000)
+      return Math.floor(num / 1000) + ',' + Math.round(num % 1000);
+    return Math.round(num);
+  }
+
+  import * as Plot from '@observablehq/plot';
+  function drawGraph (nValues, testNames, results) {
+    document.querySelector('.graph').innerHTML = '';
+    
+    const data = testNames.flatMap((name, i) => {
+      const result = results[i];
+      return nValues.slice(0, -1).map((d, i) => ({
+        name,
+        n: nValues[i],
+        value: result.slice(1).map(row => row[i]).reduce((sum, entry) => Number(entry) + sum, 0) / (result.length - 1)
+      }));
+    });
+
+    const plot = Plot.plot({
+      width: 1000,
+      height: 500,
+      marginRight: 300,
+      marginTop: 50,
+      marginLeft: 50,
+      y: {
+        domain: [0, Math.max(...data.map(({ value }) => value))],
+        label: "Time (ms)",
+        grid: true
+      },
+      x: {
+        domain: [0, nValues[nValues.length - 2]],
+        label: 'n',
+        grid: true
+      },
+      marks: [
+        Plot.line(data, { x: "n", y: "value", stroke: "name" }),
+        Plot.dot(data, { x: "n", y: "value", fill: "currentColor" }),
+        Plot.text(data, Plot.selectLast( { x: "n", y: "value", z: "name", text: "name", textAnchor: "start", dx: 3 }))
+      ]
+    });
+    document.querySelector('.graph').appendChild(plot);
+  }
+</script>
