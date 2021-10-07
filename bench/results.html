@@ -140,6 +140,8 @@ input, label {
     <h2>OR - Interesting Comparisons to see:</h2>
     <button class="interesting-case" case="passthrough">Polyfill Passthrough Performance in Chrome (cost of loading ES module shims)</button>
     <button class="interesting-case" case="polyfillvnative">Polyfill v Native Performance</button>
+    <button class="interesting-case" case="polyfillvnativecached">Polyfill v Native Performance Cached</button>
+    <button class="interesting-case" case="polyfillvnativethrottled">Polyfill v Native Performance Throttled</button>
 
     <h2>Test Case Code (as selected above)</h2>
     <div class="casecode"><code><pre>
@@ -238,6 +240,22 @@ input, label {
       { browser: 'firefox', network: 'fastest', name: 'parallel-mapped-esms' },
       { browser: 'safari', network: 'fastest', name: 'parallel' },
       { browser: 'safari', network: 'fastest', name: 'parallel-mapped-esms' }
+    ],
+    polyfillvnativecached: [
+      { browser: 'chrome', network: 'fastest-cached', name: 'parallel' },
+      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped' },
+      { browser: 'firefox', network: 'fastest-cached', name: 'parallel' },
+      { browser: 'firefox', network: 'fastest-cached', name: 'parallel-mapped-esms' },
+      { browser: 'safari', network: 'fastest-cached', name: 'parallel' },
+      { browser: 'safari', network: 'fastest-cached', name: 'parallel-mapped-esms' }
+    ],
+    polyfillvnativethrottled: [
+      { browser: 'chrome', network: 'slow', name: 'parallel' },
+      { browser: 'chrome', network: 'slow', name: 'parallel-mapped' },
+      { browser: 'firefox', network: 'slow', name: 'parallel' },
+      { browser: 'firefox', network: 'slow', name: 'parallel-mapped-esms' },
+      { browser: 'safari', network: 'slow', name: 'parallel' },
+      { browser: 'safari', network: 'slow', name: 'parallel-mapped-esms' }
     ]
   };
   for (const el of document.querySelectorAll('button.interesting-case')) {
@@ -337,7 +355,7 @@ input, label {
 
     for (let i = 0; i < nValues.length; i++) {
       const nValue = nValues[i];
-      html += `  <tr>\n    <th>${nValue} <span>(${Math.round(Number(nValue) / 2)} KB)</span></th>`;
+      html += `  <tr>\n    <th>${nValue} <span>(${Math.round(Number(nValue) * 10)} KB)</span></th>`;
 
       for (const result of results) {
         const numbers = result.slice(1).map(row => row[i]);
