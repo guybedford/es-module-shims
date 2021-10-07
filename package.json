@@ -10,6 +10,7 @@
   "scripts": {
     "build": "rollup -c",
     "bench": "bash bench/bench.sh",
+    "bench:clear": "rm -rf bench/results",
     "footprint": "npm run build && cat dist/es-module-shims.js | brotli | wc -c",
     "footprint:csp": "npm run build && cat dist/es-module-shims.csp.js | brotli | wc -c",
     "prepublishOnly": "npm run build",

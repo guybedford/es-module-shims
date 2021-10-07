@@ -1,6 +1,6 @@
 firefox.slow.parallel-mapped-esms-10,firefox.slow.parallel-mapped-esms-20,firefox.slow.parallel-mapped-esms-30,firefox.slow.parallel-mapped-esms-40,firefox.slow.parallel-mapped-esms-50,firefox.slow.parallel-mapped-esms-60,firefox.slow.parallel-mapped-esms-70,firefox.slow.parallel-mapped-esms-80,firefox.slow.parallel-mapped-esms-90,firefox.slow.parallel-mapped-esms-100
-338,610,904,1155,1421,1701,1972,2227,2506,2776
-341,611,879,1157,1444,1703,1969,2238,2509,2785
-338,626,889,1171,1424,1702,1961,2234,2499,2784
-343,621,886,1156,1436,1706,1971,2241,2502,2783
-341,609,891,1154,1438,1698,1973,2225,2506,2776
+207,360,481,634,762,893,1037,1170,1313,1446
+208,341,493,626,756,900,1029,1175,1311,1435
+214,355,503,626,760,876,1036,1178,1304,1453
+199,355,497,619,774,899,1036,1163,1314,1434
+212,351,502,616,775,895,1041,1161,1313,1443
