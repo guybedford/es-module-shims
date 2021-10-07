@@ -394,24 +394,15 @@ suite('Fetch hook', () => {
     window.fetchHook = async (url, options) => {
       if (!url.endsWith('.jsx'))
         return fetch(url, options);
-      const response = await fetch(url);
-      const reader = response.body.getReader();
-      return new Response(new ReadableStream({
-        async start (resStream) {
-          let done, value;
-          resStream.enqueue(new TextEncoder().encode('export default `'));
-          while (({ done, value } = await reader.read()) && !done)
-            resStream.enqueue(value);
-          resStream.enqueue(new TextEncoder().encode('`'));
-          resStream.close();
-        }
-      }), {
+      const res = await fetch(url);
+      const text = await res.text();
+      return new Response(new Blob(['export default `' + text + '`']), {
         status: 200,
         headers: { 'Content-Type': 'application/javascript' }
       });
     };
 
-    var m = await importShim('./fixtures/transform.js')
+    var m = await importShim('./fixtures/transform.js');
     window.fetchHook = baseFetchHook;
     assert(m.default);
     assert.equal(m.default, 'Totally JSX\n');

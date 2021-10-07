@@ -14,14 +14,14 @@ function dynamicImportScript (url, { errUrl = url } = {}) {
     s.addEventListener('error', cb);
     s.addEventListener('load', cb);
 
-    function cb () {
+    function cb (_err) {
       document.head.removeChild(s);
       if (self._esmsi) {
         resolve(self._esmsi, baseUrl);
         self._esmsi = undefined;
       }
       else {
-        reject(err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
+        reject(!(_err instanceof Event) && _err || err && err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
         err = undefined;
       }
     }
