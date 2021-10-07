@@ -133,7 +133,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
     if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
   }
-  const module = await dynamicImport(load.b, { errUrl: load.u });
+  const module = await dynamicImport((shimMode || load.n) ? load.b : load.u, { errUrl: load.u });
   // if the top-level load is a shell, run its update function
   if (load.s)
     (await dynamicImport(load.s)).u$_(module);
@@ -194,14 +194,6 @@ function resolveDeps (load, seen) {
 
   for (const dep of load.d)
     resolveDeps(dep, seen);
-
-  // use direct native execution when possible
-  // load.n is therefore conservative
-  if (!shimMode && !load.n) {
-    load.b = lastLoad = load.u;
-    load.S = undefined;
-    return;
-  }
 
   const [imports] = load.a;
 
@@ -314,7 +306,7 @@ async function doFetch (url, fetchOpts) {
       JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes, relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
     });export default s;`, t: 'css' };
   else if (wasmContentType.test(contentType))
-    throw new Error('WASM modules not yet supported');
+    throw new Error('WASM modules not supported');
   else
     throw new Error(`Unknown Content-Type "${contentType}"`);
 }
@@ -356,7 +348,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
       ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts)));
       if (t && !shimMode) {
         if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled)
-          throw new Error(`${t}-modules must be enabled to polyfill via: window.esmsInitOptions = { polyfillEnable: ['${t}-modules'] }`);
+          throw new Error(`${t}-modules require <script type="esms-options">{ "polyfillEnable": ["${t}-modules"] }<${''}/script>`);
         if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
           load.n = true;
       }
