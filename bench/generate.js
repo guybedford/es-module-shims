@@ -109,7 +109,8 @@ import rimraf from 'rimraf';
 
   for (const browser of ['safari', 'firefox', 'chrome']) {
     let firefoxProfilePath;
-    if (browser === 'firefox') {
+    if (browser === 'firefox' && process.env.APPDATA) {
+      // TODO: Firefox profile path for other platforms
       const profileDir = join(process.env.APPDATA, 'Mozilla', 'Firefox', 'Profiles');
       const profiles = await readdir(profileDir);
       firefoxProfilePath = profileDir + sep + profiles.sort()[0];
