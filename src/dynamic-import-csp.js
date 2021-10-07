@@ -21,7 +21,7 @@ function dynamicImportScript (url, { errUrl = url } = {}) {
         self._esmsi = undefined;
       }
       else {
-        reject(_err || err && err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
+        reject(!(_err instanceof Event) && _err || err && err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
         err = undefined;
       }
     }
