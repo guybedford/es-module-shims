@@ -484,7 +484,10 @@ function processScript (script) {
   if (isReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).catch(e => {
-    setTimeout(() => { throw e });
+    setTimeout(() => { 
+        console.warn(`Error in script loaded from "${script.src || `${baseUrl}?${id++}`}"\n  Error message is thrown below.`);
+        throw e ;
+    });
     onerror(e);
   });
   if (isReadyScript)
