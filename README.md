@@ -220,7 +220,7 @@ Once we have some existing import map state, we can use `window.getNextImportMap
 
 ```js
 // We can do this whenever we inject a new import map to keep the state up-to-date.
-importMap = window.getNextImportMap(dynamicImportMapScript, importMap)
+importMap = await window.getNextImportMap(dynamicImportMapScript, importMap)
 ```
 
 ### Dynamic Import
