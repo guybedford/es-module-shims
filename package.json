@@ -12,7 +12,7 @@
     "footprint": "npm run build && cat dist/es-module-shims.js | brotli | wc -c",
     "footprint:csp": "npm run build && cat dist/es-module-shims.csp.js | brotli | wc -c",
     "prepublishOnly": "npm run build",
-    "test": "npm run test:test-base-href && npm run test:test-csp && npm run test:test-early-module-load && npm run test:test-polyfill && npm run test:test-polyfill-wasm && npm run test:test-preload-case && npm run test:test-revoke-blob-urls && npm run test:test-shim",
+    "test": "npm run test:test-base-href && npm run test:test-csp && npm run test:test-early-module-load && npm run test:test-polyfill && npm run test:test-polyfill-wasm && npm run test:test-preload-case && npm run test:test-revoke-blob-urls && npm run test:test-shim && npm run test:test-get-import-maps",
     "test:test-base-href": "cross-env TEST_NAME=test-base-href node test/server.mjs",
     "test:test-csp": "cross-env TEST_NAME=test-csp node test/server.mjs",
     "test:test-early-module-load": "cross-env TEST_NAME=test-early-module-load node test/server.mjs",
@@ -20,7 +20,8 @@
     "test:test-polyfill-wasm": "cross-env TEST_NAME=test-polyfill-wasm node test/server.mjs",
     "test:test-preload-case": "cross-env TEST_NAME=test-preload-case node test/server.mjs",
     "test:test-revoke-blob-urls": "cross-env TEST_NAME=test-revoke-blob-urls node test/server.mjs",
-    "test:test-shim": "cross-env TEST_NAME=test-shim node test/server.mjs"
+    "test:test-shim": "cross-env TEST_NAME=test-shim node test/server.mjs",
+    "test:test-get-import-maps": "cross-env TEST_NAME=test-get-import-maps node test/server.mjs"
   },
   "types": "index.d.ts",
   "type": "module",

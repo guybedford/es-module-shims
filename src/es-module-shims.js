@@ -63,7 +63,9 @@ async function loadAll (load, seen) {
     load.n = load.d.some(dep => dep.n);
 }
 
-let importMap = { imports: {}, scopes: {} };
+const emptyImportMap = { imports: {}, scopes: {} }
+
+let importMap = {...emptyImportMap};
 let importMapSrcOrLazy = false;
 let baselinePassthrough;
 
@@ -393,8 +395,12 @@ function processScriptsAndPreloads () {
     processPreload(link);
 }
 
+function getImportMapScripts () {
+  return document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]')
+}
+
 function processImportMaps () {
-  for (const script of document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]'))
+  for (const script of getImportMapScripts())
     processImportMap(script);
 }
 
@@ -446,6 +452,10 @@ function readyStateCompleteCheck () {
     document.dispatchEvent(new Event('readystatechange'));
 }
 
+async function getNextImportMap(script, importMap) {
+  return resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap)
+}
+
 function processImportMap (script) {
   if (script.ep) // ep marker = script processed
     return;
@@ -462,7 +472,7 @@ function processImportMap (script) {
   if (acceptingImportMaps) {
     importMapPromise = importMapPromise
       .then(async () => {
-        importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+        importMap = await getNextImportMap(script, importMap);
       })
       .catch(error => console.error(error));
     if (!shimMode)
@@ -507,4 +517,13 @@ function processPreload (link) {
 
 function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
+}
+
+
+self.getNextImportMap = getNextImportMap
+
+self.getCurrentImportMap = () => {
+  return Array.from(getImportMapScripts()).reduce((gettingPreviousImportMaps, script) => {
+    return gettingPreviousImportMaps.then((importMap) => getNextImportMap(script, importMap))
+  }, Promise.resolve(emptyImportMap))
 }
