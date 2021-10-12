@@ -331,11 +331,36 @@ suite('Errors', function () {
     assert.ok(lodash);
   })
 
+  test('Dynamic import map shim with override attempt', async function () {
+    const consoleErrorFn = console.error;
+
+    let loggedError;
+    console.error = (error) => { 
+      loggedError = error
+    };
+
+    const removeImportMap = insertDynamicImportMap({
+      "imports": {
+        "global1": "data:text/javascript,throw new Error('Shim should not allow dynamic import map to override existing entries');"
+      }
+    });
+
+    // Error doesn't occur synchronously, awaiting an import seems to allow enough time for it to trigger reliably.
+    await importShim('global1');
+
+    removeImportMap();
+    console.error = consoleErrorFn;
+
+    assert(loggedError.message === 'Attempted to override existing import map entry at `global1` from value `http://localhost:8080/test/fixtures/es-modules/global1.js` to `data:text/javascript,throw new Error(\'Shim should not allow dynamic import map to override existing entries\');`.');
+  })
+
   function insertDynamicImportMap(importMap) {
-    document.body.appendChild(Object.assign(document.createElement('script'), {
+    const script = Object.assign(document.createElement('script'), {
       type: 'importmap-shim',
       innerHTML: JSON.stringify(importMap),
-    }));
+    });
+    document.body.appendChild(script);
+    return () => document.body.removeChild(script);
   }
 });
 

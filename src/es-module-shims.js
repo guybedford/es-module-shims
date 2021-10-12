@@ -460,9 +460,11 @@ function processImportMap (script) {
     importMapSrcOrLazy = true;
   }
   if (acceptingImportMaps) {
-    importMapPromise = importMapPromise.then(async () => {
-      importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
-    });
+    importMapPromise = importMapPromise
+      .then(async () => {
+        importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+      })
+      .catch(error => console.error(error));
     if (!shimMode)
       acceptingImportMaps = false;
   }
