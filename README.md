@@ -4,7 +4,7 @@
 
 [93% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules. At the same time Chromium ships modern native module features and import maps support to [67% of users](https://caniuse.com/import-maps).
 
-_It turns out that we can actually polyfill import maps and other new modules features on top of these baseline implementations in a performant 9.5KB shim._
+_It turns out that we can actually polyfill import maps and other new modules features on top of these baseline implementations in a performant 12KB shim._
 
 This includes support for:
 
@@ -15,7 +15,7 @@ This includes support for:
 * [`<link rel="modulepreload">` polyfill](#modulepreload) in non Chromium browsers for both shimmed and unshimmed preloading scenarios.
 * Comprehensive [CSP support](#csp-support) using nonces, no `unsafe-eval` or `blob:` policy being necessary.
 
-In addition a custom [fetch hook](#fetch-hook) can be implemented allowing for streaming in-browser transform workflows to support custom module types.
+In addition custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for streaming in-browser transform workflows to support custom module types.
 
 Because we are still using the native module loader the edge cases work out comprehensively, including:
 
@@ -23,7 +23,7 @@ Because we are still using the native module loader the edge cases work out comp
 * Dynamic import expressions (`import('src/' + varname')`)
 * Circular references, with the execption that live bindings are disabled for the first unexecuted circular parent.
 
-Due to the use of a tiny [Web Assembly JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is very fast, although in complex cases of hundreds of modules it can be a few hundred milliseconds slower than using SystemJS or native ES modules. See the [SystemJS performance comparison](https://github.com/systemjs/systemjs#performance) for a full performance breakdown in a complex loading scenario.
+Due to the use of a tiny [JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is very fast.
 
 ## Usage
 
@@ -40,6 +40,16 @@ For example, from CDN:
 ```
 
 Then there are two ways to use ES Module Shims: Polyfill Mode and [Shim Mode](#shim-mode).
+
+### Benchmarks
+
+ES Module Shims is designed for production performance. A [comprehensive benchmark suite](bench/summary.md) tracks multiple loading scenarios for the project.
+
+Benchmark summary:
+
+* [ES Module Shims Chrome Passthrough](bench/summary.md#chrome-passthrough-performance) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 10KB compressed download as expected.
+* [ES Module Shims Polyfilling](bench/summary.md#native-v-polyfill-performance) is on average 1.4x - 1.5x slower than native module loading, and up to 1.8x slower on slow networks (most likely due to the browser preloader), both for cached and uncached loads, and this result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
+* [Very large import maps](bench/summary.md#large-import-maps-performance) (100s of entries) cost only a few extra milliseconds upfront for the additional loading cost.
 
 ### Polyfill Mode
 

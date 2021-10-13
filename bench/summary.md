@@ -5,8 +5,8 @@ This benchmark suite provides comprehensive performance comparisons of ES Module
 ### Summary
 
 * [ES Module Shims Chrome Passthrough](#chrome-passthrough-performance) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 10.5KB download as expected.
-* [ES Module Shims Polyfilling](#native-v-polyfill-performance) is on average 1.4x - 1.8x slower than native module loading. This result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
-* [Very large import maps](#large-import-maps-performance) (100s of entries) do not result in significantly slower loads, costing only a few extra milliseconds upfront for the additional loading cost.
+* [ES Module Shims Polyfilling](#native-v-polyfill-performance) is on average 1.4x - 1.5x slower than native module loading, and up to 1.8x slower on slow networks (most likely due to the browser preloader), both for cached and uncached loads, and this result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
+* [Very large import maps](#large-import-maps-performance) (100s of entries) cost only a few extra milliseconds upfront for the additional loading cost.
 
 ## Benchmark
 
@@ -97,6 +97,22 @@ To compare native v polyfill performance we compare execution without import map
 | 1000 _(10000 KB)_                          | 1,734 _(1,641 - 1,811)_                    | 2,180 _(2,080 - 2,287)_                     | 447 _(1.26x)_                              |
 
 The 10k test above demonstates these results scale to 20,000 modules in under 2 seconds just fine.
+
+#### Firefox Cached
+
+| n                                          | Firefox Cached (ms)                        | Firefox Cached Import Maps ES Module Shims (ms) | Difference (ms, x)                         |
+|--------------------------------------------|--------------------------------------------|--------------------------------------------|--------------------------------------------|
+| 10 _(100 KB)_                              | 26 _(24 - 32)_                             | 87 _(43 - 212)_                            | 61 _(3.36x)_                               |
+| 20 _(200 KB)_                              | 43 _(39 - 49)_                             | 69 _(65 - 77)_                             | 26 _(1.59x)_                               |
+| 30 _(300 KB)_                              | 63 _(54 - 127)_                            | 92 _(82 - 106)_                            | 29 _(1.45x)_                               |
+| 40 _(400 KB)_                              | 78 _(69 - 88)_                             | 116 _(104 - 142)_                          | 39 _(1.5x)_                                |
+| 50 _(500 KB)_                              | 92 _(88 - 113)_                            | 126 _(113 - 151)_                          | 34 _(1.37x)_                               |
+| 60 _(600 KB)_                              | 107 _(101 - 119)_                          | 160 _(133 - 205)_                          | 53 _(1.49x)_                               |
+| 70 _(700 KB)_                              | 121 _(114 - 132)_                          | 189 _(150 - 265)_                          | 68 _(1.56x)_                               |
+| 80 _(800 KB)_                              | 130 _(121 - 134)_                          | 178 _(172 - 184)_                          | 48 _(1.37x)_                               |
+| 90 _(900 KB)_                              | 144 _(138 - 151)_                          | 196 _(183 - 204)_                          | 52 _(1.36x)_                               |
+| 100 _(1000 KB)_                            | 157 _(145 - 212)_                          | 216 _(206 - 225)_                          | 58 _(1.37x)_                               |
+| 1000 _(10000 KB)_                          | 1,351 _(1,279 - 1,425)_                    | 1,945 _(1,842 - 2,059)_                     | 594 _(1.44x)_                              |
 
 #### Firefox Throttled
 

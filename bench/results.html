@@ -141,6 +141,7 @@ input, label {
     <button class="interesting-case" case="passthrough">Chrome Passthrough</button>
     <button class="interesting-case" case="passthroughThrottled">Chrome Passthrough Throttled</button>
     <button class="interesting-case" case="polyfillvnativeFirefox">Firefox polyfill v native</button>
+    <button class="interesting-case" case="polyfillvnativeFirefox">Firefox polyfill v native cached</button>
     <button class="interesting-case" case="polyfillvnativeFirefoxThrottled">Firefox polyfill v native throttled</button>
     <button class="interesting-case" case="polyfillvnativeSafari">Safari polyfill v native</button>
     <button class="interesting-case" case="polyfillvnativeSafariThrottled">Safari polyfill v native throttled</button>
@@ -251,6 +252,10 @@ input, label {
     polyfillvnativeFirefox: [
       { browser: 'firefox', network: 'fastest', name: 'parallel' },
       { browser: 'firefox', network: 'fastest', name: 'parallel-mapped-esms' },
+    ],
+    polyfillvnativeFirefoxCached: [
+      { browser: 'firefox', network: 'fastest-cached', name: 'parallel' },
+      { browser: 'firefox', network: 'fastest-cached', name: 'parallel-mapped-esms' },
     ],
     polyfillvnativeFirefoxThrottled: [
       { browser: 'firefox', network: 'slow', name: 'parallel' },
