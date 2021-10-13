@@ -20,7 +20,7 @@ Each test includes the full network cost of loading the initial HTML by wrapping
 
 ### Variations
 
-Tests are run via Tachometer which then starts benchmarking of loading an iFrame to a custom HTTP/2 server, to ensure full end-to-end performance is benchmarked.
+Tests are run via [Tachometer](https://github.com/Polymer/tachometer) which then starts benchmarking and loads an IFrame to a custom HTTP/2 server. This ensures full end-to-end performance is benchmarked.
 
 Network variations include:
 
