@@ -1,0 +1,30 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "run-p build:es-module-shims generate:benchmarks generate:cases",
+    "generate:cases": "node generate-cases.js",
+    "generate:cert": "node generate-cert.js",
+    "generate:benchmarks": "node generate-benchmarks.js",
+    "serve": "run-p serve:*",
+    "serve:fastest": "cross-env PORT=8000 node static-server/http2.js",
+    "serve:cached": "cross-env PORT=8001 CACHE=1 node static-server/http2.js",
+    "serve:fastest-brotli": "cross-env PORT=8002 BROTLI=1 node static-server/http2.js",
+    "serve:slow": "cross-env PORT=8003 BANDWIDTH=100 LATENCY=50 node --max-old-space-size=8000 static-server/http2.js",
+    "serve:slow-brotli": "cross-env PORT=8004 BANDWIDTH=100 LATENCY=50 BROTLI=1 node --max-old-space-size=8000 static-server/http2.js",
+    "bench:run": "bash bench.sh",
+    "bench:chrome": "run-p serve:* \"bench:run -- benchmarks/chrome*\"",
+    "bench:firefox": "run -p serve:* \"bench:run -- benchmarks/chrome*\"",
+    "bench:safari": "run -p serve:* \"bench:run -- benchmarks/chrome*\""
+  },
+  "dependencies": {
+    "cross-env": "^7.0.3",
+    "devcert-sanscache": "^0.4.8",
+    "local-web-server": "^5.1.1",
+    "npm-run-all": "^4.1.5",
+    "preact": "^10.5.14",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.56.3",
+    "speed-limiter": "^1.0.2",
+    "tachometer": "^0.5.9"
+  }
+}

@@ -1,0 +1,17 @@
+<!doctype html>
+<script type="importmap">
+{
+  "imports": {
+    "lib/": "/bench/generated/"
+  }
+}
+</script>
+<script async src="/dist/es-module-shims.js"></script>
+<script type="module">
+  import 'lib/app.mapped1.js';
+  const { n = 50, port = 8000 } = Object.fromEntries(new URL(location.href).searchParams);
+  let promises = Array(n);
+  for (let i = 1; i <= n; i++)
+    promises.push(import(`lib/app.mapped${i}.js`));
+  Promise.all(promises).then(() => parent.postMessage('done', '*'));
+</script>

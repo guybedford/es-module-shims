@@ -1,0 +1,15 @@
+<!doctype html>
+<script type="module">
+  import { start, stop } from '/bench.js';
+
+  const { n = 50, port = 8000, type } = Object.fromEntries(new URL(location.href).searchParams);
+
+  const iframe = Object.assign(document.createElement('iframe'), { style: 'display: none' });
+
+  iframe.src = `https://localhost:${port}/bench/${type.includes('allmapped') ? `generated/${type}-${n}` : type}.html?n=${n}`;
+  const donePromise = new Promise(resolve => window.addEventListener('message', evt => { if (evt.data === 'done') resolve() }));
+
+  start();
+  document.body.appendChild(iframe);
+  donePromise.then(stop);
+</script>
