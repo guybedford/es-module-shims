@@ -10,7 +10,7 @@ PORT=8001 CACHE=1 node http2-server.js &
 FAST_SERVE_CACHE_PID=$!
 # PORT=8002 BROTLI=1 node http2-server.js &
 # FAST_SERVE_BROTLI_PID=$!
-PORT=8003 BANDWIDTH=750 LATENCY=25 node --max-old-space-size=8000 http2-server.js &
+PORT=8003 BROTLI=1 BANDWIDTH=750 LATENCY=25 node --max-old-space-size=8000 http2-server.js &
 SLOW_SERVE_PID=$!
 # PORT=8004 BANDWIDTH=750 LATENCY=25 BROTLI=1 node --max-old-space-size=8000 http2-server.js &
 # SLOW_SERVE_BROTLI_PID=$!

@@ -139,14 +139,13 @@ input, label {
 
     <h2>OR - Interesting Comparisons to see:</h2>
     <button class="interesting-case" case="passthrough">Chrome Passthrough</button>
-    <button class="interesting-case" case="passthroughCached">Chrome Passthrough Cached</button>
     <button class="interesting-case" case="passthroughThrottled">Chrome Passthrough Throttled</button>
     <button class="interesting-case" case="polyfillvnativeFirefox">Firefox polyfill v native</button>
-    <button class="interesting-case" case="polyfillvnativeFirefoxCached">Firefox polyfill v native cached</button>
     <button class="interesting-case" case="polyfillvnativeFirefoxThrottled">Firefox polyfill v native throttled</button>
     <button class="interesting-case" case="polyfillvnativeSafari">Safari polyfill v native</button>
-    <button class="interesting-case" case="polyfillvnativeSafariCached">Safari polyfill v native cached</button>
     <button class="interesting-case" case="polyfillvnativeSafariThrottled">Safari polyfill v native throttled</button>
+    <button class="interesting-case" case="mappedvallmappedChrome">Chrome Import Mapped v All Import Mapped</button>
+    <button class="interesting-case" case="mappedvallmappedFirefoxPolyfill">Firefox Polyfill Import Mapped v All Import Mapped</button>
 
     <h2>Test Case Code (as selected above)</h2>
     <div class="casecode"><code><pre>
@@ -245,10 +244,6 @@ input, label {
       { browser: 'chrome', network: 'fastest', name: 'parallel-mapped' },
       { browser: 'chrome', network: 'fastest', name: 'parallel-mapped-esms' }
     ],
-    passthroughCached: [
-      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped' },
-      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped-esms' }
-    ],
     passthroughThrottled: [
       { browser: 'chrome', network: 'slow', name: 'parallel-mapped' },
       { browser: 'chrome', network: 'slow', name: 'parallel-mapped-esms' }
@@ -268,6 +263,14 @@ input, label {
     polyfillvnativeSafariThrottled: [
       { browser: 'safari', network: 'slow', name: 'parallel' },
       { browser: 'safari', network: 'slow', name: 'parallel-mapped-esms' }
+    ],
+    mappedvallmappedChrome: [
+      { browser: 'chrome', network:'slow', name: 'parallel-mapped' },
+      { browser: 'chrome', network:'slow', name: 'parallel-allmapped' }
+    ],
+    mappedvallmappedFirefoxPolyfill: [
+      { browser: 'firefox', network:'slow', name: 'parallel-mapped-esms' },
+      { browser: 'firefox', network:'slow', name: 'parallel-allmapped-esms' }
     ]
   };
   for (const el of document.querySelectorAll('button.interesting-case')) {
@@ -371,8 +374,8 @@ input, label {
       markdown += `| ${name} (ms) `.padEnd(mdp, ' ');
     }
     if (avg) {
-      html += `<th>Difference</th>`;
-      markdown += `| Difference (x) `.padEnd(mdp, ' ');
+      html += `<th>Difference (ms, x)</th>`;
+      markdown += `| Difference (ms, x)`.padEnd(mdp, ' ');
     }
     html += '\n    </tr>\n  </thead>\n';
     markdown += '|\n';
@@ -410,8 +413,8 @@ input, label {
 
       if (avg) {
         const val = Math.round(lastAverage / secondLastAverage * 100) / 100;
-        html += `<td>${val}x</td>`;
-        markdown += `| ${val}x`.padEnd(mdp, ' ');
+        html += `<td> ${msToStr(lastAverage - secondLastAverage)} <span>(${val}x)</span></td>`;
+        markdown += `| ${Math.round(lastAverage - secondLastAverage)} _(${val}x)_`.padEnd(mdp, ' ');
       }
 
       html += `  </tr>\n`;

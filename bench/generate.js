@@ -76,11 +76,12 @@ import rimraf from 'rimraf';
   "imports": ${JSON.stringify(imports)}
 }
 </script>
-<script type="module" src="/dist/es-module-shims.js"></script>
+<script async src="/dist/es-module-shims.js"></script>
 <script type="module">
+  import 'lib/app.mapped1.js';
   let promises = Array(${n});
   for (let i = 1; i <= ${n}; i++)
-    promises.push(importShim(\`lib/app.mapped\${i}.js\`));
+    promises.push(import(\`lib/app.mapped\${i}.js\`));
   Promise.all(promises).then(() => parent.postMessage('done', '*'));
 </script>
 `);
@@ -125,7 +126,7 @@ import rimraf from 'rimraf';
         await writeFile(new URL(`./benchmarks/${fullName}.bench.json`, import.meta.url), `\
         {
           "$schema": "https://raw.githubusercontent.com/Polymer/tachometer/master/config.schema.json",
-          "sampleSize": 5,
+          "sampleSize": 20,
           "timeout": 0,
           "autoSampleConditions": ["0%"],
           "benchmarks": [
