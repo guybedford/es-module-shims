@@ -199,28 +199,18 @@ While in polyfill mode the same restrictions apply that multiple import maps, im
 
 We must take care to avoid overriding existing import map entries when extending import maps dynamically. In fact, es-module-shims will throw an error and abort processing the newly injected importmap when it detects a violation. The [import-map-extensions proposal](https://github.com/guybedford/import-maps-extensions#1-defining-immutable-import-map-extension) describes the rationale behind this restriction in detail for those who want to learn more.
 
-To make it easy to keep track of import map state in order to avoid overrides, es-module-shims provides a set of utility functions exposed as global variables.
-
-Use `window.getCurrentImportMap` to build up an initial import map state by reading all import map scripts on the page:
+To make it easy to keep track of import map state in order to avoid overrides, es-module-shims provides a `importShim.getImportMap` utility function, available only in shim mode.
 
 ```js
-let importMap = await window.getCurrentImportMap()
+const importMap = importShim.getImportMap()
 
-const dynamicImportMapScript = Object.assign(document.createElement('script'), {
-  type: 'importmap',
+document.body.appendChild(Object.assign(document.createElement('script'), {
+  type: 'importmap-shim',
   innerHTML: JSON.stringify({
+    // Filter out existing imports from the set of imports we're trying to inject
     imports: Object.fromEntries(Object.entries(imports).filter(([key]) => !importMap.imports[key]))
   }),
-})
-
-// inject script
-```
-
-Once we have some existing import map state, we can use `window.getNextImportMap` to incrementally build up the next import map state from a newly injected script and the existing import map state:
-
-```js
-// We can do this whenever we inject a new import map to keep the state up-to-date.
-importMap = await window.getNextImportMap(dynamicImportMapScript, importMap)
+}))
 ```
 
 ### Dynamic Import
