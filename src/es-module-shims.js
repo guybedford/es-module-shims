@@ -63,9 +63,7 @@ async function loadAll (load, seen) {
     load.n = load.d.some(dep => dep.n);
 }
 
-const emptyImportMap = { imports: {}, scopes: {} }
-
-let importMap = {...emptyImportMap};
+let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
 let baselinePassthrough;
 
@@ -401,12 +399,8 @@ function processScriptsAndPreloads () {
     processPreload(link);
 }
 
-function getImportMapScripts () {
-  return document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]')
-}
-
 function processImportMaps () {
-  for (const script of getImportMapScripts())
+  for (const script of document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]'))
     processImportMap(script);
 }
 
@@ -520,4 +514,3 @@ function processPreload (link) {
 function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
 }
-
