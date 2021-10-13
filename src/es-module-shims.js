@@ -468,7 +468,7 @@ function processImportMap (script) {
   if (acceptingImportMaps) {
     importMapPromise = importMapPromise
       .then(async () => {
-        importMap = await resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+        importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
       })
       .catch(error => console.error(error));
     if (!shimMode)
