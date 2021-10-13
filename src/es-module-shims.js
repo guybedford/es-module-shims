@@ -176,6 +176,12 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
 
 self.importShim = importShim;
 
+if (shimMode) {
+  self.importShim.getImportMap = () => {
+    return JSON.parse(JSON.stringify(importMap))
+  }
+}
+
 const meta = {};
 
 async function importMetaResolve (id, parentUrl = this.url) {
@@ -452,10 +458,6 @@ function readyStateCompleteCheck () {
     document.dispatchEvent(new Event('readystatechange'));
 }
 
-async function getNextImportMap(script, importMap) {
-  return resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap)
-}
-
 function processImportMap (script) {
   if (script.ep) // ep marker = script processed
     return;
@@ -472,7 +474,7 @@ function processImportMap (script) {
   if (acceptingImportMaps) {
     importMapPromise = importMapPromise
       .then(async () => {
-        importMap = await getNextImportMap(script, importMap);
+        importMap = await resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
       })
       .catch(error => console.error(error));
     if (!shimMode)
@@ -519,11 +521,3 @@ function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
 }
 
-
-self.getNextImportMap = getNextImportMap
-
-self.getCurrentImportMap = () => {
-  return Array.from(getImportMapScripts()).reduce((gettingPreviousImportMaps, script) => {
-    return gettingPreviousImportMaps.then((importMap) => getNextImportMap(script, importMap))
-  }, Promise.resolve(emptyImportMap))
-}
