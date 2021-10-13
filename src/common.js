@@ -127,7 +127,7 @@ function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap) {
   for (let p in packages) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
     if (outPackages[resolvedLhs]) {
-      throw new Error(`Attempted to override existing import map entry at \`${resolvedLhs}\` from value \`${outPackages[resolvedLhs]}\` to \`${packages[resolvedLhs]}\`.`);
+      throw new Error(`Dynamic import map rejected: Attempted to override existing import map entry at \`${resolvedLhs}\` from value \`${outPackages[resolvedLhs]}\` to \`${packages[resolvedLhs]}\`.`);
     }
     let target = packages[p];
     if (typeof target !== 'string') 
