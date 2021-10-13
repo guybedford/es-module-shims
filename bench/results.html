@@ -117,10 +117,10 @@ input, label {
   <div class="cases">
     <select class="case">
       <option value="parallel">Parallel</option>
-      <option value="parallel-mapped">Parallel Mapped</option>
-      <option value="parallel-mapped-esms">Parallel Mapped ES Module Shims</option>
-      <option value="parallel-allmapped">Parallel All Mapped</option>
-      <option value="parallel-allmapped-esms">Parallel All Mapped ES Module Shims</option>
+      <option value="parallel-mapped">Parallel Import Maps</option>
+      <option value="parallel-mapped-esms">Parallel Import Maps ES Module Shims</option>
+      <option value="parallel-allmapped">Parallel All Import Maps</option>
+      <option value="parallel-allmapped-esms">Parallel All Import Maps ES Module Shims</option>
     </select>
     <br /><br />
     <select class="browser">
@@ -138,10 +138,15 @@ input, label {
     <button class="addcase">Add Case</button>
 
     <h2>OR - Interesting Comparisons to see:</h2>
-    <button class="interesting-case" case="passthrough">Polyfill Passthrough Performance in Chrome (cost of loading ES module shims)</button>
-    <button class="interesting-case" case="polyfillvnative">Polyfill v Native Performance</button>
-    <button class="interesting-case" case="polyfillvnativecached">Polyfill v Native Performance Cached</button>
-    <button class="interesting-case" case="polyfillvnativethrottled">Polyfill v Native Performance Throttled</button>
+    <button class="interesting-case" case="passthrough">Chrome Passthrough</button>
+    <button class="interesting-case" case="passthroughCached">Chrome Passthrough Cached</button>
+    <button class="interesting-case" case="passthroughThrottled">Chrome Passthrough Throttled</button>
+    <button class="interesting-case" case="polyfillvnativeFirefox">Firefox polyfill v native</button>
+    <button class="interesting-case" case="polyfillvnativeFirefoxCached">Firefox polyfill v native cached</button>
+    <button class="interesting-case" case="polyfillvnativeFirefoxThrottled">Firefox polyfill v native throttled</button>
+    <button class="interesting-case" case="polyfillvnativeSafari">Safari polyfill v native</button>
+    <button class="interesting-case" case="polyfillvnativeSafariCached">Safari polyfill v native cached</button>
+    <button class="interesting-case" case="polyfillvnativeSafariThrottled">Safari polyfill v native throttled</button>
 
     <h2>Test Case Code (as selected above)</h2>
     <div class="casecode"><code><pre>
@@ -210,50 +215,57 @@ input, label {
 <script type="module">
   const nValues = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 1000];
   const caseTitles = {
-    'parallel': 'Parallel',
-    'parallel-mapped': 'Parallel Mapped',
-    'parallel-mapped-esms': 'Parallel Mapped ES Module Shims',
-    'parallel-allmapped': 'Parallal All Mapped',
-    'parallel-allmapped-esms': 'Parallel All Mapped ES Module Shims'
+    'parallel': '',
+    'parallel-mapped': 'Import Maps',
+    'parallel-mapped-esms': 'Import Maps ES Module Shims',
+    'parallel-allmapped': 'Individual Import Maps',
+    'parallel-allmapped-esms': 'Individual Import Maps ES Module Shims'
   };
   const networkNames = {
     'fastest-cached': 'Cached',
-    'fastest': 'Fastest',
+    'fastest': '',
     'slow': 'Throttled'
   };
   const caseCache = {};
+
+  function copyToClipboard (text) {
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+  }
 
   const stored = localStorage.getItem('cases');
   let cases = stored ? JSON.parse(stored) : [];
 
   const interestingCases = {
     passthrough: [
-      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped' },
-      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped-esms' },
       { browser: 'chrome', network: 'fastest', name: 'parallel-mapped' },
       { browser: 'chrome', network: 'fastest', name: 'parallel-mapped-esms' }
     ],
-    polyfillvnative: [
-      { browser: 'chrome', network: 'fastest', name: 'parallel' },
-      { browser: 'chrome', network: 'fastest', name: 'parallel-mapped' },
+    passthroughCached: [
+      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped' },
+      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped-esms' }
+    ],
+    passthroughThrottled: [
+      { browser: 'chrome', network: 'slow', name: 'parallel-mapped' },
+      { browser: 'chrome', network: 'slow', name: 'parallel-mapped-esms' }
+    ],
+    polyfillvnativeFirefox: [
       { browser: 'firefox', network: 'fastest', name: 'parallel' },
       { browser: 'firefox', network: 'fastest', name: 'parallel-mapped-esms' },
+    ],
+    polyfillvnativeFirefoxThrottled: [
+      { browser: 'firefox', network: 'slow', name: 'parallel' },
+      { browser: 'firefox', network: 'slow', name: 'parallel-mapped-esms' },
+    ],
+    polyfillvnativeSafari: [
       { browser: 'safari', network: 'fastest', name: 'parallel' },
       { browser: 'safari', network: 'fastest', name: 'parallel-mapped-esms' }
     ],
-    polyfillvnativecached: [
-      { browser: 'chrome', network: 'fastest-cached', name: 'parallel' },
-      { browser: 'chrome', network: 'fastest-cached', name: 'parallel-mapped' },
-      { browser: 'firefox', network: 'fastest-cached', name: 'parallel' },
-      { browser: 'firefox', network: 'fastest-cached', name: 'parallel-mapped-esms' },
-      { browser: 'safari', network: 'fastest-cached', name: 'parallel' },
-      { browser: 'safari', network: 'fastest-cached', name: 'parallel-mapped-esms' }
-    ],
-    polyfillvnativethrottled: [
-      { browser: 'chrome', network: 'slow', name: 'parallel' },
-      { browser: 'chrome', network: 'slow', name: 'parallel-mapped' },
-      { browser: 'firefox', network: 'slow', name: 'parallel' },
-      { browser: 'firefox', network: 'slow', name: 'parallel-mapped-esms' },
+    polyfillvnativeSafariThrottled: [
       { browser: 'safari', network: 'slow', name: 'parallel' },
       { browser: 'safari', network: 'slow', name: 'parallel-mapped-esms' }
     ]
@@ -281,8 +293,8 @@ input, label {
 
   document.querySelector('select.case').addEventListener('change', async e => {
     const name = e.target.value;
-    const code = await getCaseCode(name);
-    document.querySelector('code pre').innerHTML = code.replace(/https:\/\/localhost:8000\//g, '/').replace(/</g, '&lt;');
+    // const code = await getCaseCode(name);
+    // document.querySelector('code pre').innerHTML = code.replace(/https:\/\/localhost:8000\//g, '/').replace(/</g, '&lt;');
   });
   if (!await render(cases))
     cases = [];
@@ -290,7 +302,7 @@ input, label {
   async function render (cases) {
     const fullNames = cases.map(fullName);
     const values = cases.length && cases[0].name.startsWith('waterfall') ? dValues : nValues;
-    const testNames = cases.map(({ browser, name, network }) => `${browser[0].toUpperCase()}${browser.slice(1)} ${caseTitles[name]} ${networkNames[network]}`);
+    const testNames = cases.map(({ browser, name, network }) => `${browser[0].toUpperCase()}${browser.slice(1)}${networkNames[network] ? ' ' + networkNames[network] : ''}${caseTitles[name] ? ' ' + caseTitles[name] : ''}`);
     try {
       var results = await Promise.all(fullNames.map(async fullName => caseCache[fullName] || (caseCache[fullName] = await loadCsv(`./results/${fullName}.csv`))));
     }
@@ -311,28 +323,31 @@ input, label {
         localStorage.setItem('cases', JSON.stringify(cases));
       }
     });
+    document.querySelector('.copytable').addEventListener('click', e => {
+      copyToClipboard(JSON.parse(e.target.getAttribute('markdown')));
+    });
     return true;
   }
 
-  const caseCodeCache = {};
-  function getCaseCode (name) {
-    if (caseCodeCache[name])
-      return caseCodeCache[name];
-    return caseCodeCache[name] = (async () => {
-      const res = await fetch(`./cases/${name}.html`);
-      if (!res.ok)
-        throw new Error('Unable to fetch case');
-      const source = await res.text();
-      const p = new Promise(resolve => window._s = resolve);
-      const iframe = Object.assign(document.createElement('iframe'), {
-        srcdoc: source + `<${''}script type="module">parent._s(document.querySelector('iframe').srcdoc)<${''}/script>`
-      });
-      document.body.appendChild(iframe);
-      const src = await p;
-      document.body.removeChild(iframe);
-      return src.replace('parent._done', 'done');
-    })();
-  }
+  // const caseCodeCache = {};
+  // function getCaseCode (name) {
+  //   if (caseCodeCache[name])
+  //     return caseCodeCache[name];
+  //   return caseCodeCache[name] = (async () => {
+  //     const res = await fetch(`./cases/${name}.html`);
+  //     if (!res.ok)
+  //       throw new Error('Unable to fetch case');
+  //     const source = await res.text();
+  //     const p = new Promise(resolve => window._s = resolve);
+  //     const iframe = Object.assign(document.createElement('iframe'), {
+  //       srcdoc: source + `<${''}script type="module">parent._s(document.querySelector('iframe').srcdoc)<${''}/script>`
+  //     });
+  //     document.body.appendChild(iframe);
+  //     const src = await p;
+  //     document.body.removeChild(iframe);
+  //     return src.replace('parent._done', 'done');
+  //   })();
+  // }
 
   function fullName ({ browser, network, name }) {
     return `${browser}.${network}.${name}`;
@@ -347,29 +362,64 @@ input, label {
   }
 
   function renderTableHtml (nValues, testNames, results) {
-    let html = '<table>\n  <thead>\n    <tr>\n      ';
-    html += '<th>n</th>';
-    for (const name of testNames)
+    const avg = results.length === 2;
+    const mdp = 45;
+    let html = '<table>\n  <thead>\n    <tr>\n      <th>n</th>';
+    let markdown = '| n '.padEnd(mdp, ' ');
+    for (const name of testNames) {
       html += `<th>${name} <span>(ms)</span><button class="delete">❌</button></th>`;
+      markdown += `| ${name} (ms) `.padEnd(mdp, ' ');
+    }
+    if (avg) {
+      html += `<th>Difference</th>`;
+      markdown += `| Difference (x) `.padEnd(mdp, ' ');
+    }
     html += '\n    </tr>\n  </thead>\n';
+    markdown += '|\n';
+
+    for (let i = 0; i < testNames.length + (avg ? 2 : 1); i++)
+      markdown += '|'.padEnd(mdp, '-');
+    markdown += '|\n';
 
     for (let i = 0; i < nValues.length; i++) {
       const nValue = nValues[i];
-      html += `  <tr>\n    <th>${nValue} <span>(${Math.round(Number(nValue) * 10)} KB)</span></th>`;
+      const kbValue = Math.round(Number(nValue) * 10);
+      html += `  <tr>\n    <th>${nValue} <span>(${kbValue} KB)</span></th>`;
+      markdown += `| ${nValue} _(${kbValue} KB)_ `.padEnd(mdp, ' ');
+
+      let secondLastAverage;
+      let lastAverage;
 
       for (const result of results) {
         const numbers = result.slice(1).map(row => row[i]);
 
-        const average = msToStr(numbers.reduce((sum, entry) => Number(entry) + sum, 0) / numbers.length);
+        const average = numbers.reduce((sum, entry) => Number(entry) + sum, 0) / numbers.length;
+
+        if (avg && result === results[results.length - 1]) {
+          lastAverage = average;
+        }
+        else if (avg && result === results[results.length - 2]) {
+          secondLastAverage = average;
+        }
+
         const min = msToStr(Math.min(...numbers));
         const max = msToStr(Math.max(...numbers));
-        html += `<td>${average} <span>(${min} - ${max})</span></td>`;
+        html += `<td>${msToStr(average)} <span>(${min} - ${max})</span></td>`;
+        markdown += `| ${msToStr(average)} _(${min} - ${max})_ `.padEnd(mdp, ' ');
+      }
+
+      if (avg) {
+        const val = Math.round(lastAverage / secondLastAverage * 100) / 100;
+        html += `<td>${val}x</td>`;
+        markdown += `| ${val}x`.padEnd(mdp, ' ');
       }
 
       html += `  </tr>\n`;
+      markdown += `|\n`;
     }
 
-    html += `\n</table>`;
+    html += `\n</table><button class="copytable" markdown='${JSON.stringify(markdown)}'>Copy Table Markdown</button>`;
+    markdown += '|\n';
     return html;
   }
 
