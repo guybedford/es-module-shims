@@ -1,0 +1,20 @@
+<!doctype html>
+<script>
+  window.polyfill = () => {
+    window.calledPolyfillHook = true;
+  };
+</script>
+<script type="esms-options">
+{
+  "onpolyfill": "polyfill"
+}
+</script>
+<script async type="module" src="../src/es-module-shims.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "app": "data:text/javascript,if (calledPolyfillHook) fetch('/done')"
+  }
+}
+</script>
+<script type="module">
