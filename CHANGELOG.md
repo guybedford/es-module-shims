@@ -1,3 +1,9 @@
+ES Module Shims 1.3.0 (2021/10/14)
+* Feature: Shim mode function to get import map, dynamic map overrides now throw (https://github.com/guybedford/es-module-shims/pull/213, @lewisl9029)
+* Feature: Upgrade to es-module-lexer@0.9.3 with import / export strings support (https://github.com/guybedford/es-module-shims/pull/210)
+* Performance: Disable subgraph passthrough (https://github.com/guybedford/es-module-shims/pull/208)
+* Fix: Undefined error callbacks for Safari (https://github.com/guybedford/es-module-shims/pull/209)
+
 ES Module Shims 1.2.0 (2021/10/04)
 * Fix: Bug where fetch hook was renamed to "fetchHook" instead of "fetch" (https://github.com/guybedford/es-module-shims/pull/205)
 
