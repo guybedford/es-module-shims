@@ -367,12 +367,11 @@ suite('Errors', function () {
   })
 
   test('Dynamic import map shim with override attempt', async function () {
-    const consoleErrorFn = console.error;
-
-    let loggedError;
-    console.error = (error) => { 
-      loggedError = error
-    };
+    const listeningForError = new Promise((resolve, reject) => {
+      window.addEventListener('error', (event) => resolve(event.error))
+      // ensure we don't wait forever in the test if the error never comes
+      setTimeout(reject, 5000)
+    })
 
     const removeImportMap = insertDynamicImportMap({
       "imports": {
@@ -380,13 +379,11 @@ suite('Errors', function () {
       }
     });
 
-    // Error doesn't occur synchronously, awaiting an import seems to allow enough time for it to trigger reliably.
-    await importShim('global1');
+    const error = await listeningForError;
 
     removeImportMap();
-    console.error = consoleErrorFn;
 
-    assert(loggedError.message === 'Dynamic import map rejected: Attempted to override existing import map entry at `global1` from value `http://localhost:8080/test/fixtures/es-modules/global1.js` to `data:text/javascript,throw new Error(\'Shim should not allow dynamic import map to override existing entries\');`.');
+    assert(error.message === 'Dynamic import map rejected: Attempted to override existing import map entry at `global1` from value `http://localhost:8080/test/fixtures/es-modules/global1.js` to `data:text/javascript,throw new Error(\'Shim should not allow dynamic import map to override existing entries\');`.');
   })
 
   function insertDynamicImportMap(importMap) {

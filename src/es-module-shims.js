@@ -470,7 +470,7 @@ function processImportMap (script) {
       .then(async () => {
         importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
       })
-      .catch(error => console.error(error));
+      .catch(error => setTimeout(() => { throw error }));
     if (!shimMode)
       acceptingImportMaps = false;
   }
