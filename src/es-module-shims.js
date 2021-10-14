@@ -175,9 +175,7 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
 self.importShim = importShim;
 
 if (shimMode) {
-  self.importShim.getImportMap = () => {
-    return JSON.parse(JSON.stringify(importMap))
-  }
+  importShim.getImportMap = () => JSON.parse(JSON.stringify(importMap));
 }
 
 const meta = {};
