@@ -99,7 +99,7 @@ Shim mode is an alternative to polyfill mode and doesn't rely on native modules 
 
 In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES Module Shims instead.
 
-Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute or [dynamicallly injecting import maps](#dynamic-import-maps), which can be useful in certain applications.
+Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute, [dynamically injecting import maps](#dynamic-import-maps), and [reading current import map state](#reading-current-import-map-state), which can be useful in certain applications.
 
 ## Features
 
@@ -204,6 +204,16 @@ is supported in Chromium, provided it is injected before any module loads and th
 Both modes in ES Module Shims support dynamic injection using DOM Mutation Observers.
 
 While in polyfill mode the same restrictions apply that multiple import maps, import maps with a `src` attribute, and import maps loaded after the first module load are not supported, in shim mode all of these behaviours are fully enabled for `"importmap-shim"`.
+
+#### Reading current import map state
+
+To make it easy to keep track of import map state, es-module-shims provides a `importShim.getImportMap` utility function, available only in shim mode.
+
+```js
+const importMap = importShim.getImportMap()
+
+// importMap will be an object in the same shape as the json in a importmap script
+```
 
 ### Dynamic Import
 

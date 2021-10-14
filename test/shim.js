@@ -262,6 +262,41 @@ suite('Export variations', function () {
   });
 });
 
+// These tests are order dependent, as importMap state will change when dynamic import maps are injected in the suite.
+suite('Get import map', () => {
+  test("should get correct import map state", async () => {
+    const importMap = await importShim.getImportMap();
+
+    const sortEntriesByKey = (entries) => [...entries].sort(([key1], [key2]) => key1.localeCompare(key2));
+
+    assert.equal(JSON.stringify(Object.keys(importMap)), JSON.stringify(["imports", "scopes"]));
+    assert.equal(
+      JSON.stringify(sortEntriesByKey(Object.entries(importMap.imports))), 
+      JSON.stringify(sortEntriesByKey(Object.entries({
+        "test": "http://localhost:8080/test/fixtures/es-modules/es6-file.js",
+        "test/": "http://localhost:8080/test/fixtures/",
+        "global1": "http://localhost:8080/test/fixtures/es-modules/global1.js",
+        "bare-dynamic-import": "http://localhost:8080/test/fixtures/es-modules/bare-dynamic-import.js",
+        "react": "https://ga.jspm.io/npm:react@17.0.2/dev.index.js"
+      })))
+    );
+    assert.equal(
+      JSON.stringify(sortEntriesByKey(Object.entries(importMap.scopes))), 
+      JSON.stringify(sortEntriesByKey(Object.entries({
+        "http://localhost:8080/": {
+          "test-dep": "http://localhost:8080/test/fixtures/test-dep.js",
+        },
+        "http://localhost:8080/test/fixtures/es-modules/import-relative-path.js": {
+          "http://localhost:8080/test/fixtures/es-modules/relative-path": "http://localhost:8080/test/fixtures/es-modules/es6-dep.js",
+        },
+        "https://ga.jspm.io/": {
+          "object-assign": "https://ga.jspm.io/npm:object-assign@4.1.1/index.js",
+        }
+      })))
+    );
+  });
+});
+
 suite('Errors', function () {
   async function getImportError(module) {
     try {
@@ -331,11 +366,33 @@ suite('Errors', function () {
     assert.ok(lodash);
   })
 
+  test('Dynamic import map shim with override attempt', async function () {
+    const listeningForError = new Promise((resolve, reject) => {
+      window.addEventListener('error', (event) => resolve(event.error))
+      // ensure we don't wait forever in the test if the error never comes
+      setTimeout(reject, 5000)
+    })
+
+    const removeImportMap = insertDynamicImportMap({
+      "imports": {
+        "global1": "data:text/javascript,throw new Error('Shim should not allow dynamic import map to override existing entries');"
+      }
+    });
+
+    const error = await listeningForError;
+
+    removeImportMap();
+
+    assert(error.message === 'Dynamic import map rejected: Overrides entry "global1" from http://localhost:8080/test/fixtures/es-modules/global1.js to data:text/javascript,throw new Error(\'Shim should not allow dynamic import map to override existing entries\');.');
+  })
+
   function insertDynamicImportMap(importMap) {
-    document.body.appendChild(Object.assign(document.createElement('script'), {
+    const script = Object.assign(document.createElement('script'), {
       type: 'importmap-shim',
       innerHTML: JSON.stringify(importMap),
-    }));
+    });
+    document.body.appendChild(script);
+    return () => document.body.removeChild(script);
   }
 });
 

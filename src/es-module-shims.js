@@ -174,6 +174,10 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
 
 self.importShim = importShim;
 
+if (shimMode) {
+  importShim.getImportMap = () => JSON.parse(JSON.stringify(importMap));
+}
+
 const meta = {};
 
 async function importMetaResolve (id, parentUrl = this.url) {
@@ -460,9 +464,11 @@ function processImportMap (script) {
     importMapSrcOrLazy = true;
   }
   if (acceptingImportMaps) {
-    importMapPromise = importMapPromise.then(async () => {
-      importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
-    });
+    importMapPromise = importMapPromise
+      .then(async () => {
+        importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+      })
+      .catch(error => setTimeout(() => { throw error }));
     if (!shimMode)
       acceptingImportMaps = false;
   }

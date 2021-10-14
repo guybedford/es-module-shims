@@ -126,6 +126,9 @@ export function resolveUrl (relUrl, parentUrl) {
 function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap) {
   for (let p in packages) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
+    if (outPackages[resolvedLhs]) {
+      throw new Error(`Dynamic import map rejected: Overrides entry "${resolvedLhs}" from ${outPackages[resolvedLhs]} to ${packages[resolvedLhs]}.`);
+    }
     let target = packages[p];
     if (typeof target !== 'string') 
       continue;
