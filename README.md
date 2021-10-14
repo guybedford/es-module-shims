@@ -89,7 +89,7 @@ Shim mode is an alternative to polyfill mode and doesn't rely on native modules 
 
 In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES Module Shims instead.
 
-Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute or [dynamically injecting import maps](#dynamic-import-maps), which can be useful in certain applications.
+Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute, [dynamically injecting import maps](#dynamic-import-maps), and [reading current import map state](#reading-current-import-map-state), which can be useful in certain applications.
 
 ## Features
 
@@ -195,22 +195,14 @@ Both modes in ES Module Shims support dynamic injection using DOM Mutation Obser
 
 While in polyfill mode the same restrictions apply that multiple import maps, import maps with a `src` attribute, and import maps loaded after the first module load are not supported, in shim mode all of these behaviours are fully enabled for `"importmap-shim"`.
 
-##### Avoid overriding import map entries
+#### Reading current import map state
 
-We must take care to avoid overriding existing import map entries when extending import maps dynamically. In fact, es-module-shims will throw an error and abort processing the newly injected importmap when it detects a violation. The [import-map-extensions proposal](https://github.com/guybedford/import-maps-extensions#1-defining-immutable-import-map-extension) describes the rationale behind this restriction in detail for those who want to learn more.
-
-To make it easy to keep track of import map state in order to avoid overrides, es-module-shims provides a `importShim.getImportMap` utility function, available only in shim mode.
+To make it easy to keep track of import map state, es-module-shims provides a `importShim.getImportMap` utility function, available only in shim mode.
 
 ```js
 const importMap = importShim.getImportMap()
 
-document.body.appendChild(Object.assign(document.createElement('script'), {
-  type: 'importmap-shim',
-  innerHTML: JSON.stringify({
-    // Filter out existing imports from the set of imports we're trying to inject
-    imports: Object.fromEntries(Object.entries(imports).filter(([key]) => !importMap.imports[key]))
-  }),
-}))
+// importMap will be an object in the same shape as the json in a importmap script
 ```
 
 ### Dynamic Import
