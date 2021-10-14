@@ -383,7 +383,7 @@ suite('Errors', function () {
 
     removeImportMap();
 
-    assert(error.message === 'Dynamic import map rejected: Attempted to override existing import map entry at `global1` from value `http://localhost:8080/test/fixtures/es-modules/global1.js` to `data:text/javascript,throw new Error(\'Shim should not allow dynamic import map to override existing entries\');`.');
+    assert(error.message === 'Dynamic import map rejected: Overrides entry "global1" from http://localhost:8080/test/fixtures/es-modules/global1.js to data:text/javascript,throw new Error(\'Shim should not allow dynamic import map to override existing entries\');.');
   })
 
   function insertDynamicImportMap(importMap) {
