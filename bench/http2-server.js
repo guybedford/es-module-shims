@@ -20,7 +20,7 @@ const cacheControl = process.env.CACHE ? 'public, max-age=3600' : 'no-cache';
 const port = process.env.PORT || 8000;
 const throttleGroup = process.env.BANDWIDTH ? new ThrottleGroup({ rate: Number(process.env.BANDWIDTH) * 1000 }) : null;
 const latencyLimit = process.env.LATENCY && Number(process.env.LATENCY) || 0;
-const brotli = !!process.env.BROTLI;
+const brotli = Number(process.env.BROTLI) || 0;
 
 const POOL_MAX = 16;
 let streamCnt = 0;
@@ -30,14 +30,15 @@ function streamEnd () {
   streamCnt--;
   if (streamCnt === 0) {
     while (streamCnt < POOL_MAX && poolQueue.length) {
-      const { stream, source } = poolQueue.shift();
+      const { stream, entry } = poolQueue.shift();
+      stream.respond({ ':status': 200, 'content-type': entry.contentType, 'content-length': entry.length, 'cache-control': cacheControl, 'Access-Control-Allow-Origin': '*', ...brotli ?  { 'content-encoding': 'br' } : {} });
       if (throttleGroup) {
         const throttle = throttleGroup.throttle();
         throttle.pipe(stream);
-        throttle.end(source);
+        throttle.end(entry.source);
       }
       else {
-        stream.end(source);
+        stream.end(entry.source);
       }
       streamCnt++;
     }
@@ -66,9 +67,11 @@ server.on('stream', async (stream, headers) => {
     entry = {
       contentType: lookup(path),
       source: brotli ? brotliCompressSync(source, {
-        [constants.BROTLI_PARAM_QUALITY]: 9,
-      }) : source
+        [constants.BROTLI_PARAM_QUALITY]: brotli,
+      }) : source,
+      length: null
     };
+    entry.length = entry.source.byteLength;
     if (!path.endsWith('.html'))
       staticFileCache[path] = entry;
   }
@@ -76,10 +79,9 @@ server.on('stream', async (stream, headers) => {
   if (latencyLimit)
     await new Promise(resolve => setTimeout(resolve, latencyLimit));
 
-  stream.respond({ ':status': 200, 'content-type': entry.contentType, 'cache-control': cacheControl, 'Access-Control-Allow-Origin': '*', ...brotli ?  { 'content-encoding': 'br' } : {} });
-
   stream.on('close', streamEnd);
   if (streamCnt !== POOL_MAX) {
+    stream.respond({ ':status': 200, 'content-type': entry.contentType, 'content-length': entry.length, 'cache-control': cacheControl, 'Access-Control-Allow-Origin': '*', ...brotli ?  { 'content-encoding': 'br' } : {} });
     streamCnt++;
     if (throttleGroup) {
       const throttle = throttleGroup.throttle();
@@ -91,7 +93,7 @@ server.on('stream', async (stream, headers) => {
     }
   }
   else {
-    poolQueue.push({ stream, source: entry.source });
+    poolQueue.push({ stream, entry });
   }
 });
 

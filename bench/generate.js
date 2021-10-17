@@ -103,9 +103,8 @@ import rimraf from 'rimraf';
   const ports = {
     'fastest': 8000,
     'fastest-cached': 8001,
-    // 'fastest-brotli': 8002,
-    'slow': 8003,
-    // 'slow-brotli': 8004
+    'slow': 8002,
+    // 'slow-uncompressed': 8003
   };
 
   for (const browser of ['safari', 'firefox', 'chrome']) {
@@ -119,7 +118,9 @@ import rimraf from 'rimraf';
     for (const type of Object.keys(ports)) {
       for (const name of [
         'parallel',
-        ...browser === 'chrome' ? ['parallel-mapped', 'parallel-mapped-esms', 'parallel-allmapped', 'parallel-allmapped-esms'] : ['parallel-mapped-esms', 'parallel-allmapped-esms'],
+        'parallel-mapped-esms',
+        'parallel-allmapped-esms',
+        ...browser === 'chrome' ? ['parallel-mapped', 'parallel-allmapped'] : [],
       ]) {
         const fullName = `${browser}.${type}.${name}`;
         const port = ports[type];

@@ -133,6 +133,7 @@ input, label {
       <option value="fastest-cached">Cached</option>
       <option value="fastest">Fastest</option>
       <option value="slow">Throttled to 750KB/s / 25 ms RTT</option>
+      <option value="slow-brotli">Brotli 11 + Throttled to 750KB/s / 25 ms RTT</option>
     </select>
     <br /><br />
     <button class="addcase">Add Case</button>
@@ -219,12 +220,13 @@ input, label {
     'parallel-mapped': 'Import Maps',
     'parallel-mapped-esms': 'Import Maps ES Module Shims',
     'parallel-allmapped': 'Individual Import Maps',
-    'parallel-allmapped-esms': 'Individual Import Maps ES Module Shims'
+    'parallel-allmapped-esms': 'Individual Import Maps ES Module Shims',
   };
   const networkNames = {
     'fastest-cached': 'Cached',
     'fastest': '',
-    'slow': 'Throttled'
+    'slow': 'Throttled Brotli',
+    // 'slow-uncompressed': 'Throttled Uncompressed',
   };
   const caseCache = {};
 
@@ -270,13 +272,13 @@ input, label {
       { browser: 'safari', network: 'slow', name: 'parallel-mapped-esms' }
     ],
     mappedvallmappedChrome: [
-      { browser: 'chrome', network:'slow', name: 'parallel-mapped' },
-      { browser: 'chrome', network:'slow', name: 'parallel-allmapped' }
+      { browser: 'chrome', network: 'slow', name: 'parallel-mapped' },
+      { browser: 'chrome', network: 'slow', name: 'parallel-allmapped' }
     ],
     mappedvallmappedFirefoxPolyfill: [
-      { browser: 'firefox', network:'slow', name: 'parallel-mapped-esms' },
-      { browser: 'firefox', network:'slow', name: 'parallel-allmapped-esms' }
-    ]
+      { browser: 'firefox', network: 'slow', name: 'parallel-mapped-esms' },
+      { browser: 'firefox', network: 'slow', name: 'parallel-allmapped-esms' }
+    ],
   };
   for (const el of document.querySelectorAll('button.interesting-case')) {
     el.addEventListener('click', async () => {
