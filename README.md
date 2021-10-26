@@ -120,10 +120,12 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | [JSON Modules](#json-modules)      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [CSS Modules](#css-modules)        | :heavy_check_mark:<sup>3</sup>       | :heavy_check_mark:<sup>3</sup>       | :heavy_check_mark:<sup>3</sup>       | :heavy_check_mark:<sup>3</sup>       |
 | [import.meta.resolve](#resolve)    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Top-Level Await](#tla)            | :heavy_check_mark: ~89+              | :heavy_check_mark: ~89+              | :x:<sup>4</sup>                      | :x:<sup>3</sup>                       |
 
 * 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
 * 2: _Module worker support cannot be implemented without dynamic import support in web workers._
 * 3: _CSS module support requires a separate [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme)._
+* 4: _Top-level await support is possible for ES Module Shims to implement, with the feature request tracking in https://github.com/guybedford/es-module-shims/issues/5._
 
 #### Current browser compatibility of modules features without ES module shims:
 
@@ -138,6 +140,7 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 | [JSON Modules](#json-modules)      | :heavy_check_mark: 91+               | :x:                                  | :x:                                  | :x:                                  |
 | [CSS Modules](#css-modules)        | :heavy_check_mark: 95+               | :x:                                  | :x:                                  | :x:                                  |
 | [import.meta.resolve](#resolve)    | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
+| [Top-Level Await](#tla)            | :heavy_check_mark: ~89+              | :heavy_check_mark: ~89+              | :x:<sup>4</sup>                      | :x:<sup>3</sup>                       |
 
 * 1: _Edge executes parallel dependencies in non-deterministic order. ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
 * ~: _Indicates the exact first version support has not yet been determined (PR's welcome!)._
