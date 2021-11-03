@@ -259,9 +259,9 @@ function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  resolvedSource = resolvedSource.replace(/\/\/# sourceMappingURL=(.*)\s*$/, (match, url) => match.replace(url, () => new URL(url, load.r)));
+  resolvedSource = resolvedSource.replace(/\/\/# sourceMappingURL=([^\n]+)\s*$/, (match, url) => match.replace(url, () => new URL(url, load.r)));
   let hasSourceURL = false
-  resolvedSource = resolvedSource.replace(/\/\/# sourceURL=(.*)\s*$/, (match, url) => (hasSourceURL = true, match.replace(url, () => new URL(url, load.r))));
+  resolvedSource = resolvedSource.replace(/\/\/# sourceURL=([^\n]+)\s*$/, (match, url) => (hasSourceURL = true, match.replace(url, () => new URL(url, load.r))));
   if (!hasSourceURL)
     resolvedSource += '\n//# sourceURL=' + load.r;
 
