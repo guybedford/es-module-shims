@@ -19,5 +19,7 @@
 <script type="module-shim">
   if (order.join(', ') === 'script (loading), interactive, dom content loaded, complete, module2, module1, timeout2')
     fetch('/done');
+  else
+    fetch(`/error?${encodeURIComponent(order.join(', '))}`);
 </script>
 <body></body>
