@@ -1,3 +1,8 @@
+ES Module Shims 1.3.1 (2021/11/04)
+* Feature: Support "async" attribute ordering on polyfill and shim scripts (https://github.com/guybedford/es-module-shims/pull/221)
+* Fix: Sourcemap regex fix (https://github.com/guybedford/es-module-shims/pull/218)
+* Fix: Polyfill duplicate instance bug (https://github.com/guybedford/es-module-shims/pull/220)
+
 ES Module Shims 1.3.0 (2021/10/14)
 * Feature: Shim mode function to get import map, dynamic map overrides now throw (https://github.com/guybedford/es-module-shims/pull/213, @lewisl9029)
 * Feature: Upgrade to es-module-lexer@0.9.3 with import / export strings support (https://github.com/guybedford/es-module-shims/pull/210)
