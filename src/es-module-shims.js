@@ -489,11 +489,12 @@ function processScript (script) {
   const isDomContentLoadedScript = domContentLoadedCnt > 0;
   if (isReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
-  const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isReadyScript && lastStaticLoadPromise).catch(e => {
+  const blocks = script.getAttribute('async') === null && isReadyScript;
+  const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(e => {
     setTimeout(() => { throw e });
     onerror(e);
   });
-  if (isReadyScript)
+  if (blocks)
     lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
   if (isDomContentLoadedScript)
     loadPromise.then(domContentLoadedCheck);

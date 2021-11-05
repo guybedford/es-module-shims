@@ -17,6 +17,7 @@
     "test": "npm run test:test-base-href && npm run test:test-csp && npm run test:test-early-module-load && npm run test:test-polyfill && npm run test:test-polyfill-wasm && npm run test:test-preload-case && npm run test:test-revoke-blob-urls && npm run test:test-shim",
     "test:test-base-href": "cross-env TEST_NAME=test-base-href node test/server.mjs",
     "test:test-csp": "cross-env TEST_NAME=test-csp node test/server.mjs",
+    "test:test-dom-order": "cross-env TEST_NAME=test-dom-order node test/server.mjs",
     "test:test-early-module-load": "cross-env TEST_NAME=test-early-module-load node test/server.mjs",
     "test:test-polyfill": "cross-env TEST_NAME=test-polyfill node test/server.mjs",
     "test:test-polyfill-wasm": "cross-env TEST_NAME=test-polyfill-wasm node test/server.mjs",
