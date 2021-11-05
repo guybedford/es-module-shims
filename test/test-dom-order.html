@@ -1,0 +1,23 @@
+<!doctype html>
+<script type="module" src="../src/es-module-shims.js"></script>
+<script>
+  window.order = ['script (' + document.readyState + ')'];
+  document.onreadystatechange = () => order.push(document.readyState);
+  document.addEventListener('DOMContentLoaded', () => order.push('dom content loaded'));
+</script>
+<script type="module-shim" async>
+  import 'https://jspm.dev/react';
+  order.push('module1');
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  order.push('timeout1');
+</script>
+<script type="module-shim">
+  order.push('module2');
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  order.push('timeout2');
+</script>
+<script type="module-shim">
+  if (order.join(', ') === 'script (loading), interactive, dom content loaded, complete, module2, module1, timeout2')
+    fetch('/done');
+</script>
+<body></body>
