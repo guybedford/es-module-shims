@@ -39,4 +39,10 @@ suite('Polyfill tests', () => {
   test('import maps passthrough polyfill mode', async function () {
     await importShim('test');
   });
+
+  test('Shared instances', async function () {
+    const { check } = await importShim('./fixtures/instance-case.js');
+    const result = await check();
+    assert.equal(result, true);
+  });
 });
