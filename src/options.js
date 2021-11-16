@@ -14,7 +14,7 @@ export let nonce = esmsInitOptions.nonce;
 if (!nonce) {
   const nonceElement = document.querySelector('script[nonce]');
   if (nonceElement)
-    nonce = nonceElement.getAttribute('nonce');
+    nonce = nonceElement.nonce;
 }
 
 export const onerror = globalHook(esmsInitOptions.onerror || noop);
