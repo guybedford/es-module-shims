@@ -85,7 +85,7 @@ If using CSS modules or JSON modules, since these features are relatively new, t
 
 ```html
 <script>
-window.esmsInitOptions = { enable: ['css-modules', 'json-modules'] }
+window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules'] }
 </script>
 ```
 
