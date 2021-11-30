@@ -30,8 +30,7 @@ export const featureDetectionPromise = Promise.resolve(supportsDynamicImportChec
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       document.head.appendChild(iframe);
-      // we use document.write here because eg Weixin built-in browser doesn't support setting srcdoc
-      iframe.contentWindow.document.write(`<script type=importmap nonce="${nonce}">{"imports":{"x":"data:text/javascript,"}}<${''}/script><script nonce="${nonce}">import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`);
+      iframe.src = createBlob(`<script type=importmap nonce="${nonce}">{"imports":{"x":"data:text/javascript,"}}<${''}/script><script nonce="${nonce}">import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`, 'text/html')
     })
   ]);
 });
