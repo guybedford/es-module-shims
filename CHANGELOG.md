@@ -1,3 +1,6 @@
+ES Module Shims 1.3.3 (2021/11/30))
+* Remove use of document.write (https://github.com/guybedford/es-module-shims/pull/227, @lewisl9029)
+
 ES Module Shims 1.3.2 (2021/11/16)
 * Fix CSP nonce detection (https://github.com/guybedford/es-module-shims/pull/223, @MathiasWP)
 

@@ -1,6 +1,6 @@
 {
   "name": "es-module-shims",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Shims for the latest ES module features",
   "main": "dist/es-module-shims.js",
   "exports": {
