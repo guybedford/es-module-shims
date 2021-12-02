@@ -1,3 +1,6 @@
+ES Module Shims 1.3.4 (2021/12/02)
+* Support source mapping normalization with trailing comments (https://github.com/guybedford/es-module-shims/pull/229)
+
 ES Module Shims 1.3.3 (2021/11/30))
 * Remove use of document.write (https://github.com/guybedford/es-module-shims/pull/227, @lewisl9029)
 
