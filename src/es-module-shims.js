@@ -260,15 +260,16 @@ function resolveDeps (load, seen) {
   }
 
   // ; and // trailer support added for Ruby 7 source maps compatibility
-  resolvedSource = resolvedSource.replace(/\n\/\/# sourceMappingURL=([^\n]+)\s*((;|\/\/[^\n]+)\s*)*$/, (match, url) => match.replace(url, () => new URL(url, load.r)));
-  let hasSourceURL = false
-  resolvedSource = resolvedSource.replace(/\n\/\/# sourceURL=([^\n]+)\s*$/, (match, url) => (hasSourceURL = true, match.replace(url, () => new URL(url, load.r))));
+  let hasSourceURL = false;
+  resolvedSource = resolvedSource.replace(sourceMapURLRegEx, (match, isMapping, url) => (hasSourceURL = !isMapping, match.replace(url, () => new URL(url, load.r))));
   if (!hasSourceURL)
     resolvedSource += '\n//# sourceURL=' + load.r;
 
   load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
 }
+
+const sourceMapURLRegEx = /\n\/\/# source(Mapping)?URL=([^\n]+)\s*((;|\/\/[^#][^\n]+)\s*)*$/;
 
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
 const jsonContentType = /^(text|application)\/json(;|$)/;
