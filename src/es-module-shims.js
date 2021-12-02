@@ -259,7 +259,8 @@ function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  resolvedSource = resolvedSource.replace(/\n\/\/# sourceMappingURL=([^\n]+)\s*$/, (match, url) => match.replace(url, () => new URL(url, load.r)));
+  // ; and // trailer support added for Ruby 7 source maps compatibility
+  resolvedSource = resolvedSource.replace(/\n\/\/# sourceMappingURL=([^\n]+)\s*((;|\/\/[^\n]+)\s*)*$/, (match, url) => match.replace(url, () => new URL(url, load.r)));
   let hasSourceURL = false
   resolvedSource = resolvedSource.replace(/\n\/\/# sourceURL=([^\n]+)\s*$/, (match, url) => (hasSourceURL = true, match.replace(url, () => new URL(url, load.r))));
   if (!hasSourceURL)
