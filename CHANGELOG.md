@@ -1,3 +1,6 @@
+ES Module Shims 1.3.5 (2021/12/02)
+* Fix trailing comment regex for source mapping normalization with trailling comments (https://github.com/guybedford/es-module-shims/pull/231)
+
 ES Module Shims 1.3.4 (2021/12/02)
 * Support source mapping normalization with trailing comments (https://github.com/guybedford/es-module-shims/pull/229)
 
