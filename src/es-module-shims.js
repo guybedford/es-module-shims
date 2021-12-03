@@ -269,7 +269,7 @@ function resolveDeps (load, seen) {
   load.S = undefined;
 }
 
-const sourceMapURLRegEx = /\n\/\/# source(Mapping)?URL=([^\n]+)\s*((;|\/\/[^#][^\n]+)\s*)*$/;
+const sourceMapURLRegEx = /\n\/\/# source(Mapping)?URL=([^\n]+)\s*((;|\/\/[^#][^\n]*)\s*)*$/;
 
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
 const jsonContentType = /^(text|application)\/json(;|$)/;
