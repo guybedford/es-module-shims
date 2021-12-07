@@ -32,11 +32,11 @@ import {
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 
-async function defaultResolve(id, parentUrl) {
+async function defaultResolve (id, parentUrl) {
   return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl);
 }
 
-async function _resolve(id, parentUrl) {
+async function _resolve (id, parentUrl) {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
   return {
     r: resolveImportMap(importMap, urlResolved || id, parentUrl),
@@ -53,7 +53,7 @@ if (self.ESMS_DEBUG) {
   self._esmsr = registry;
 }
 
-async function loadAll(load, seen) {
+async function loadAll (load, seen) {
   if (load.b || seen[load.u])
     return;
   seen[load.u] = 1;
@@ -110,7 +110,7 @@ const initPromise = featureDetectionPromise.then(() => {
 let importMapPromise = initPromise;
 
 let acceptingImportMaps = true;
-async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
+async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
   if (!shimMode)
     acceptingImportMaps = false;
   await importMapPromise;
@@ -160,7 +160,7 @@ function revokeObjectURLs(registryKeys) {
   }
 }
 
-async function importShim(id, parentUrl = pageBaseUrl, _assertion) {
+async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   // needed for shim check
   await initPromise;
   if (acceptingImportMaps || shimMode || !baselinePassthrough) {
@@ -180,18 +180,18 @@ if (shimMode) {
 
 const meta = {};
 
-async function importMetaResolve(id, parentUrl = this.url) {
+async function importMetaResolve (id, parentUrl = this.url) {
   return (await resolve(id, `${parentUrl}`)).r || throwUnresolved(id, parentUrl);
 }
 
 self._esmsm = meta;
 
-function urlJsString(url) {
+function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;
 }
 
 let lastLoad;
-function resolveDeps(load, seen) {
+function resolveDeps (load, seen) {
   if (load.b || !seen[load.u])
     return;
   seen[load.u] = 0;
@@ -222,13 +222,15 @@ function resolveDeps(load, seen) {
         if (!blobUrl) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
-            blobUrl = depLoad.s = createBlob(`export function u$_(m){${depLoad.a[1].map(
-              name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
-            ).join(',')
-              }}${depLoad.a[1].map(name =>
+            blobUrl = depLoad.s = createBlob(`export function u$_(m){${
+              depLoad.a[1].map(
+                name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
+              ).join(',')
+            }}${
+              depLoad.a[1].map(name =>
                 name === 'default' ? `let $_default;export{$_default as default}` : `export let ${name}`
               ).join(';')
-              }\n//# sourceURL=${depLoad.r}?cycle`);
+            }\n//# sourceURL=${depLoad.r}?cycle`);
           }
         }
         // circular shell execution
@@ -279,17 +281,17 @@ const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\
 // restrict in-flight fetches to a pool of 100
 let p = [];
 let c = 0;
-function pushFetchPool() {
+function pushFetchPool () {
   if (++c > 100)
     return new Promise(r => p.push(r));
 }
-function popFetchPool() {
+function popFetchPool () {
   c--;
   if (p.length)
     p.shift()();
 }
 
-async function doFetch(url, fetchOpts) {
+async function doFetch (url, fetchOpts) {
   const poolQueue = pushFetchPool();
   if (poolQueue) await poolQueue;
   try {
@@ -306,17 +308,16 @@ async function doFetch(url, fetchOpts) {
   else if (jsonContentType.test(contentType))
     return { r: res.url, s: `export default ${await res.text()}`, t: 'json' };
   else if (cssContentType.test(contentType))
-    return {
-      r: res.url, s: `var s=new CSSStyleSheet();s.replaceSync(${JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes, relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
-        });export default s;`, t: 'css'
-    };
+    return { r: res.url, s: `var s=new CSSStyleSheet();s.replaceSync(${
+      JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes, relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
+    });export default s;`, t: 'css' };
   else if (wasmContentType.test(contentType))
     throw new Error('WASM modules not supported');
   else
     throw new Error(`Unknown Content-Type "${contentType}"`);
 }
 
-function getOrCreateLoad(url, fetchOpts, source) {
+function getOrCreateLoad (url, fetchOpts, source) {
   let load = registry[url];
   if (load)
     return load;
@@ -391,19 +392,19 @@ function getOrCreateLoad(url, fetchOpts, source) {
   return load;
 }
 
-function processScriptsAndPreloads() {
+function processScriptsAndPreloads () {
   for (const script of document.querySelectorAll(shimMode ? 'script[type="module-shim"]' : 'script[type="module"]'))
     processScript(script);
   for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
     processPreload(link);
 }
 
-function processImportMaps() {
+function processImportMaps () {
   for (const script of document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]'))
     processImportMap(script);
 }
 
-function getFetchOpts(script) {
+function getFetchOpts (script) {
   const fetchOpts = {};
   if (script.integrity)
     fetchOpts.integrity = script.integrity;
@@ -421,7 +422,7 @@ function getFetchOpts(script) {
 let lastStaticLoadPromise = Promise.resolve();
 
 let domContentLoadedCnt = 1;
-function domContentLoadedCheck() {
+function domContentLoadedCheck () {
   if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('DOMContentLoaded'));
 }
@@ -446,12 +447,12 @@ else {
     readyStateCompleteCheck();
   });
 }
-function readyStateCompleteCheck() {
+function readyStateCompleteCheck () {
   if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('readystatechange'));
 }
 
-function processImportMap(script) {
+function processImportMap (script) {
   if (script.ep) // ep marker = script processed
     return;
   // empty inline scripts sometimes show before domready
@@ -475,7 +476,7 @@ function processImportMap(script) {
   }
 }
 
-function processScript(script) {
+function processScript (script) {
   if (script.ep) // ep marker = script processed
     return;
   if (script.getAttribute('noshim') !== null)
@@ -502,7 +503,7 @@ function processScript(script) {
 }
 
 const fetchCache = {};
-function processPreload(link) {
+function processPreload (link) {
   if (link.ep) // ep marker = processed
     return;
   link.ep = true;
@@ -511,6 +512,6 @@ function processPreload(link) {
   fetchCache[link.href] = doFetch(link.href, getFetchOpts(link));
 }
 
-function throwUnresolved(id, parentUrl) {
+function throwUnresolved (id, parentUrl) {
   throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
 }
