@@ -45,7 +45,7 @@ async function _resolve (id, parentUrl) {
   };
 }
 
-const resolve = resolveHook ? async (id, parentUrl) => ({ r: await esmsInitOptions.resolve(id, parentUrl, defaultResolve), b: false }) : _resolve;
+const resolve = resolveHook ? async (id, parentUrl) => ({ r: await resolveHook(id, parentUrl, defaultResolve), b: false }) : _resolve;
 
 let id = 0;
 const registry = {};
