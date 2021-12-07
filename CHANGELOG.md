@@ -1,3 +1,6 @@
+ES Module Shims 1.3.6 (2021/12/07)
+* Fix resolve hook via esms options (#233, @ffortier)
+
 ES Module Shims 1.3.5 (2021/12/02)
 * Fix trailing comment regex for source mapping normalization with trailling comments (https://github.com/guybedford/es-module-shims/pull/231)
 
