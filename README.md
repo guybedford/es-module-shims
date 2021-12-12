@@ -24,14 +24,12 @@ Because we are still using the native module loader the edge cases work out comp
 
 ## Usage
 
-Include ES Module Shims with a `async` attribute on the script, then include modules normally:
+Include ES Module Shims with a `async` attribute on the script, then include an import map and module scripts normally:
 
 ```html
 <script async src="https://ga.jspm.io/npm:es-module-shims@1.3.6/dist/es-module-shims.js"></script>
-<!--
-  JSPM Generator Import Map
-  Edit URL: https://generator.jspm.io/#U2NhYGBkDM0rySzJSU1hKEpNTC5xMLTQM9Az0C1K1jMAAKFS5w0gAA
--->
+
+<!-- https://generator.jspm.io/#U2NhYGBkDM0rySzJSU1hKEpNTC5xMLTQM9Az0C1K1jMAAKFS5w0gAA -->
 <script type="importmap">
 {
   "imports": {
@@ -44,15 +42,14 @@ Include ES Module Shims with a `async` attribute on the script, then include mod
   }
 }
 </script>
+
 <script type="module">
-import react from 'react';
-console.log(react);
+  import react from 'react';
+  console.log(react);
 </script>
 ```
 
-> `<script type="importmap">` should always be placed before any `<script type="module">` as per native support in browsers.
-
-You will see a console error in browsers without import maps support like:
+In browsers without import maps support, a console error will be given:
 
 ```
 Uncaught TypeError: Failed to resolve module specifier "app". Relative references must start with either "/", "./", or "../".
