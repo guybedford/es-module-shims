@@ -6,7 +6,7 @@ When running in polyfill mode, [the 67% of users](https://caniuse.com/import-map
 
 In for the remaining 30% of users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
 
-In addition the following features are also polyfilled:
+The following modules features are polyfilled:
 
 * [Import Maps](#import-maps) support.
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
