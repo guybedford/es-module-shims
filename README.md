@@ -1,21 +1,20 @@
 # ES Module Shims
 
-[Release Notes](CHANGELOG.md)
+Shims modern ES Modules features like import maps on top of the baseline modules support in browsers supported by [95% of users](https://caniuse.com/#feat=es6-module).
 
-[93% of users](https://caniuse.com/#feat=es6-module) are now running browsers with baseline support for ES modules. At the same time Chromium ships modern native module features and import maps support to [67% of users](https://caniuse.com/import-maps).
+When running in polyfill mode, [the 67% of users](https://caniuse.com/import-maps) with import maps entirely bypass the shim code entirely.
 
-_It turns out that we can actually polyfill import maps and other new modules features on top of these baseline implementations in a performant 12KB shim._
+In for the remaining 30% of users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
 
-This includes support for:
+In addition the following features are also polyfilled:
 
 * [Import Maps](#import-maps) support.
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
-* [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions.
+* [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions (when enabled).
 * [`<link rel="modulepreload">` polyfill](#modulepreload) in non Chromium browsers for both shimmed and unshimmed preloading scenarios.
-* Comprehensive [CSP support](#csp-support) using nonces, no `unsafe-eval` or `blob:` policy being necessary.
 
-In addition custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for streaming in-browser transform workflows to support custom module types.
+When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
 
 Because we are still using the native module loader the edge cases work out comprehensively, including:
 
@@ -23,50 +22,33 @@ Because we are still using the native module loader the edge cases work out comp
 * Dynamic import expressions (`import('src/' + varname')`)
 * Circular references, with the execption that live bindings are disabled for the first unexecuted circular parent.
 
-Due to the use of a tiny [JS tokenizer for ES module syntax only](https://github.com/guybedford/es-module-lexer), with very simple rewriting rules, transformation is very fast.
-
 ## Usage
 
-Include ES Module Shims with a `async` attribute on the script:
-
-For example, from CDN:
+Include ES Module Shims with a `async` attribute on the script, then include modules normally:
 
 ```html
-<!-- UNPKG -->
-<script async src="https://unpkg.com/es-module-shims@1.3.0/dist/es-module-shims.js"></script>
-
-<!-- JSPM.IO -->
-<script async src="https://ga.jspm.io/npm:es-module-shims@1.3.0/dist/es-module-shims.js"></script>
-```
-
-Then there are two ways to use ES Module Shims: Polyfill Mode and [Shim Mode](#shim-mode).
-
-### Benchmarks
-
-ES Module Shims is designed for production performance. A [comprehensive benchmark suite](bench/README.md) tracks multiple loading scenarios for the project.
-
-Benchmark summary:
-
-* [ES Module Shims Chrome Passthrough](bench/README.md#chrome-passthrough-performance) (for [70% of users](https://caniuse.com/import-maps)) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 10KB compressed download as expected.
-* [ES Module Shims Polyfilling](bench/README.md#native-v-polyfill-performance) (for the remaining [30% of users](https://caniuse.com/import-maps)) is on average 1.4x - 1.5x slower than native module loading, and up to 1.8x slower on slow networks (most likely due to the browser preloader), both for cached and uncached loads, and this result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
-* [Very large import maps](bench/README.md#large-import-maps-performance) (100s of entries) cost only a few extra milliseconds upfront for the additional loading cost.
-
-### Polyfill Mode
-
-Write your HTML modules like you would in the latest Chrome:
-
-```html
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+<!--
+  JSPM Generator Import Map
+  Edit URL: https://generator.jspm.io/#U2NhYGBkDM0rySzJSU1hKEpNTC5xMLTQM9Az0C1K1jMAAKFS5w0gAA
+-->
 <script type="importmap">
 {
   "imports": {
-    "app": "./src/app.js"
+    "react": "https://ga.jspm.io/npm:react@18.0.0-rc.0/index.js"
+  },
+  "scopes": {
+    "https://ga.jspm.io/npm:react@18.0.0-rc.0/": {
+      "object-assign": "https://ga.jspm.io/npm:object-assign@4.1.1/index.js"
+    }
   }
 }
 </script>
-<script type="module">import 'app'</script>
+<script type="module">
+import react from 'react';
+console.log(react);
+</script>
 ```
-
-and ES Module Shims will make it work in [all browsers with any ES Module Support](#browser-support).
 
 > `<script type="importmap">` should always be placed before any `<script type="module">` as per native support in browsers.
 
@@ -81,25 +63,23 @@ This execution failure is a feature - it avoids the polyfill causing double exec
 
 This is because the polyfill cannot disable the native loader - instead it will only execute modules that would otherwise fail resolving or parsing to avoid duplicate fetches or executions that would cause performance and reliability issues.
 
-If using CSS modules or JSON modules, since these features are relatively new, they require manually enabling using the initialization option:
-
-```html
-<script>
-window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules'] }
-</script>
-```
-
-To verify when the polyfill is actively engaging as opposed to relying on the native loader, [a `polyfill` hook](#polyfill-hook) is provided.
-
-See the [Polyfill Mode Details](#polyfill-mode-details) section for more information about how the polyfill works and what options are available.
-
 ### Shim Mode
 
 Shim mode is an alternative to polyfill mode and doesn't rely on native modules erroring - instead it is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly setting the [`shimMode` init option](#shim-mode-option).
 
-In shim mode, normal module scripts and import maps are entirely ignored and only the above shim tags will be parsed and executed by ES Module Shims instead.
+In shim mode, only the above `importmap-shim` and `module-shim` tags will be parsed and executed by ES Module Shims.
 
 Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute, [dynamically injecting import maps](#dynamic-import-maps), and [reading current import map state](#reading-current-import-map-state), which can be useful in certain applications.
+
+## Benchmarks
+
+ES Module Shims is designed for production performance. A [comprehensive benchmark suite](bench/README.md) tracks multiple loading scenarios for the project.
+
+Benchmark summary:
+
+* [ES Module Shims Chrome Passthrough](bench/README.md#chrome-passthrough-performance) (for [70% of users](https://caniuse.com/import-maps)) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 10KB compressed download as expected.
+* [ES Module Shims Polyfilling](bench/README.md#native-v-polyfill-performance) (for the remaining [30% of users](https://caniuse.com/import-maps)) is on average 1.4x - 1.5x slower than native module loading, and up to 1.8x slower on slow networks (most likely due to the browser preloader), both for cached and uncached loads, and this result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
+* [Very large import maps](bench/README.md#large-import-maps-performance) (100s of entries) cost only a few extra milliseconds upfront for the additional loading cost.
 
 ## Features
 
@@ -351,7 +331,15 @@ In browsers with variable feature support, sources are analyzed with module spec
 
 The current default native baseline for the ES module shims polyfill mode is browsers supporting import maps.
 
-If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`polyfillEnable` init option](#polyfill-enable-option) to raise the native baseline to only browsers supporting these features.
+If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`polyfillEnable` init option](#polyfill-enable-option) to raise the native baseline to only browsers supporting these features:
+
+```html
+<script>
+window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules'] }
+</script>
+```
+
+To verify when the polyfill is actively engaging as opposed to relying on the native loader, [a `polyfill` hook](#polyfill-hook) is also provided.
 
 #### Polyfill Edge Case: Dynamic Import
 
