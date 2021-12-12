@@ -84,7 +84,7 @@ Benchmark summary:
 
 Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
 
-#### Browser Compatibility with ES Module Shims:
+Browser Compatibility **with ES Module Shims**:
 
 | ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       | Edge (17+)                           |
 | ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
@@ -104,7 +104,7 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 * 3: _CSS module support requires a separate [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme)._
 * 4: _Top-level await support is possible for ES Module Shims to implement, with the feature request tracking in https://github.com/guybedford/es-module-shims/issues/5._
 
-#### Current browser compatibility of modules features without ES module shims:
+Browser compatibility **without ES module shims**:
 
 | ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       | Edge (17+)                           |
 | ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
