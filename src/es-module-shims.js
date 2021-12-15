@@ -71,7 +71,7 @@ let baselinePassthrough;
 const initPromise = featureDetectionPromise.then(() => {
   // shim mode is determined on initialization, no late shim mode
   if (!shimMode) {
-    if (document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload]').length) {
+    if (document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]').length) {
       setShimMode();
     }
     else {
