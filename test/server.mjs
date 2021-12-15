@@ -64,6 +64,8 @@ http.createServer(async function (req, res) {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end('');
     console.log(kleur.green('Tests completed successfully.'));
+    if (browserTimeout)
+      clearTimeout(browserTimeout);
     const message = new URL(req.url, rootURL).searchParams.get('message');
     if (message) console.log(message);
     if (shouldExit) {
