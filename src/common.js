@@ -1,4 +1,6 @@
-export const edge = navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
+const uaMatch = navigator.userAgent.match(/(Edge|Safari)\/\d+\.\d+/);
+export const edge = uaMatch && uaMatch[1] === 'Edge';
+export const safari = uaMatch && uaMatch[1] === 'Safari';
 
 export let baseUrl;
 
