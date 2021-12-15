@@ -500,7 +500,8 @@ function processScript (script) {
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   const blocks = script.getAttribute('async') === null && isReadyScript;
   const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(e => {
-    setTimeout(() => { throw e });
+    // This used to be a setTimeout(() => { throw e }) but this breaks Safari stacks
+    console.error(e);
     onerror(e);
   });
   if (blocks)
