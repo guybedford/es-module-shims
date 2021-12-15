@@ -42,7 +42,7 @@ function setBrowserTimeout () {
     clearTimeout(browserTimeout);
   browserTimeout = setTimeout(() => {
     retry += 1;
-    if (retry >= 1) {
+    if (retry > 1) {
       console.log('No browser requests made to server for 10s, closing.');
       process.exit(failTimeout || process.env.CI_BROWSER ? 1 : 0);
     }
