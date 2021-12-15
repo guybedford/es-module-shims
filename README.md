@@ -427,7 +427,7 @@ window.esmsInitOptions = {
   noLoadEventRetriggers: true, // default false
   skip: /^https:\/\/cdn\.com/, // defaults to null
   onerror: (e) => { /*...*/ }, // default noop
-  onpolyfill: () => {},
+  onpolyfill: () => {}, // default logs to the console
   resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
   fetch: (url, options) => fetch(url, options), // default is native
   revokeBlobURLs: true, // default false
@@ -569,6 +569,8 @@ window.polyfilling = () => console.log('The polyfill is actively applying');
 }
 </script>
 ```
+
+The default hook will log a message to the console with `console.info` noting that polyfill mode is enabled and that the native error can be ignored.
 
 In the above, running in latest Chromium browsers, nothing will be logged, while running in an older browser that does not support newer features
 like import maps the console log will be output.

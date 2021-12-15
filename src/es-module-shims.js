@@ -4,6 +4,7 @@ import {
   resolveAndComposeImportMap,
   resolveUrl,
   edge,
+  firefox,
   resolveImportMap,
   resolveIfNotPlainOrUrl,
   isURL,
@@ -89,7 +90,6 @@ const initPromise = featureDetectionPromise.then(() => {
     }
   }
   baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
-  if (!baselinePassthrough) onpolyfill();
   if (shimMode || !baselinePassthrough) {
     new MutationObserver(mutations => {
       for (const mutation of mutations) {
@@ -112,8 +112,9 @@ const initPromise = featureDetectionPromise.then(() => {
   }
 });
 let importMapPromise = initPromise;
-
+let firstPolyfillLoad = true;
 let acceptingImportMaps = true;
+
 async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
   if (!shimMode)
     acceptingImportMaps = false;
@@ -136,6 +137,10 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
     const module = await dynamicImport(createBlob(source), { errUrl: source });
     if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
+  }
+  if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
+    onpolyfill();
+    firstPolyfillLoad = false;
   }
   const module = await dynamicImport(!shimMode && !load.n && nativelyLoaded ? load.u : load.b, { errUrl: load.u });
   // if the top-level load is a shell, run its update function
