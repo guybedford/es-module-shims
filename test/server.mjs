@@ -23,6 +23,8 @@ const mimes = {
 const shouldExit = process.env.WATCH_MODE !== 'true';
 const testName = process.env.TEST_NAME ?? 'test';
 
+let retry = 0;
+
 // Dont run Chrome tests on Firefox
 if (testName.startsWith('test-chrome') && process.env.CI_BROWSER && !process.env.CI_BROWSER.includes('chrome'))
   process.exit(0);
@@ -39,8 +41,15 @@ function setBrowserTimeout () {
   if (browserTimeout)
     clearTimeout(browserTimeout);
   browserTimeout = setTimeout(() => {
-    console.log('No browser requests made to server for 10s, closing.');
-    process.exit(failTimeout || process.env.CI_BROWSER ? 1 : 0);
+    retry += 1;
+    if (retry >= 1) {
+      console.log('No browser requests made to server for 10s, closing.');
+      process.exit(failTimeout || process.env.CI_BROWSER ? 1 : 0);
+    }
+    else {
+      console.log('Retrying...');
+      start();
+    }
   }, 20000);
 }
 
@@ -119,12 +128,16 @@ http.createServer(async function (req, res) {
   res.end();
 }).listen(port);
 
-let spawnPs;
-if (process.env.CI_BROWSER) {
-  const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
-  console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
-  spawnPs = spawn(process.env.CI_BROWSER, [...args, `http://localhost:${port}/test/${testName}.html`]);
+function start () {
+  let spawnPs;
+  if (process.env.CI_BROWSER) {
+    const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
+    console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
+    spawnPs = spawn(process.env.CI_BROWSER, [...args, `http://localhost:${port}/test/${testName}.html`]);
+  }
+  else {
+    open(`http://localhost:${port}/test/${testName}.html`, { app: { name: open.apps.chrome } });
+  }
 }
-else {
-  open(`http://localhost:${port}/test/${testName}.html`, { app: { name: open.apps.chrome } });
-}
+
+start();
