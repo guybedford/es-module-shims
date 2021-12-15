@@ -1,3 +1,8 @@
+ES Module Shims 1.4.0 (2021/12/14)
+* Feature: "enforceIntegrity" option and "modulepreload-shim" support for secure shim mode with integrity (https://github.com/guybedford/es-module-shims/pull/236)
+* Fix: Safari parse error stacks (https://github.com/guybedford/es-module-shims/pull/238)
+* Note: Polyfill mode console note when expected native errors are present (https://github.com/guybedford/es-module-shims/pull/237)
+
 ES Module Shims 1.3.6 (2021/12/07)
 * Fix resolve hook via esms options (#233, @ffortier)
 

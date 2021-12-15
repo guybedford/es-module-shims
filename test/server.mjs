@@ -128,8 +128,8 @@ http.createServer(async function (req, res) {
   res.end();
 }).listen(port);
 
+let spawnPs;
 function start () {
-  let spawnPs;
   if (process.env.CI_BROWSER) {
     const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
     console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
