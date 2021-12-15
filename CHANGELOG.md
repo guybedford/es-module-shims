@@ -1,3 +1,6 @@
+ES Module Shims 1.4.1 (2021/12/15)
+* Fix: Firefox parse error stacks (https://github.com/guybedford/es-module-shims/pull/239)
+
 ES Module Shims 1.4.0 (2021/12/14)
 * Feature: "enforceIntegrity" option and "modulepreload-shim" support for secure shim mode with integrity (https://github.com/guybedford/es-module-shims/pull/236)
 * Fix: Safari parse error stacks (https://github.com/guybedford/es-module-shims/pull/238)
