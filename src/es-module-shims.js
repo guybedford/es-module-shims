@@ -20,6 +20,7 @@ import {
   cssModulesEnabled,
   jsonModulesEnabled,
   onpolyfill,
+  enforceIntegrity,
 } from './options.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
@@ -70,17 +71,20 @@ let baselinePassthrough;
 const initPromise = featureDetectionPromise.then(() => {
   // shim mode is determined on initialization, no late shim mode
   if (!shimMode) {
-    let seenScript = false;
-    for (const script of document.querySelectorAll('script[type="module-shim"],script[type="importmap-shim"],script[type="module"],script[type="importmap"]')) {
-      if (!seenScript && script.type === 'module')
-        seenScript = true;
-      if (script.type.endsWith('-shim')) {
-        setShimMode();
-        break;
-      }
-      if (seenScript && script.type === 'importmap') {
-        importMapSrcOrLazy = true;
-        break;
+    if (document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload]').length) {
+      setShimMode();
+    }
+    else {
+      let seenScript = false;
+      for (const script of document.querySelectorAll('script[type=module],script[type=importmap]')) {
+        if (!seenScript) {
+          if (script.type === 'module')
+            seenScript = true;
+        }
+        else if (script.type === 'importmap') {
+          importmapSrcOrLazy = true;
+          break;
+        }
       }
     }
   }
@@ -92,12 +96,12 @@ const initPromise = featureDetectionPromise.then(() => {
         if (mutation.type !== 'childList') continue;
         for (const node of mutation.addedNodes) {
           if (node.tagName === 'SCRIPT') {
-            if (!shimMode && node.type === 'module' || shimMode && node.type === 'module-shim')
+            if (node.type === (shimMode ? 'module-shim' : 'module'))
               processScript(node);
-            if (!shimMode && node.type === 'importmap' || shimMode && node.type === 'importmap-shim')
+            if (node.type === (shimMode ? 'importmap-shim' : 'importmap'))
               processImportMap(node);
           }
-          else if (node.tagName === 'LINK' && node.rel === 'modulepreload')
+          else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload'))
             processPreload(node);
         }
       }
@@ -274,7 +278,6 @@ const sourceMapURLRegEx = /\n\/\/# source(Mapping)?URL=([^\n]+)\s*((;|\/\/[^#][^
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
 const jsonContentType = /^(text|application)\/json(;|$)/;
 const cssContentType = /^(text|application)\/css(;|$)/;
-const wasmContentType = /^application\/wasm(;|$)/;
 
 const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\])+))\s*\)/g;
 
@@ -292,6 +295,8 @@ function popFetchPool () {
 }
 
 async function doFetch (url, fetchOpts) {
+  if (enforceIntegrity && !fetchOpts.integrity)
+    throw Error(`No integrity for ${url}`);
   const poolQueue = pushFetchPool();
   if (poolQueue) await poolQueue;
   try {
@@ -301,7 +306,7 @@ async function doFetch (url, fetchOpts) {
     popFetchPool();
   }
   if (!res.ok)
-    throw new Error(`${res.status} ${res.statusText} ${res.url}`);
+    throw Error(`${res.status} ${res.statusText} ${res.url}`);
   const contentType = res.headers.get('content-type');
   if (jsContentType.test(contentType))
     return { r: res.url, s: await res.text(), t: 'js' };
@@ -311,10 +316,8 @@ async function doFetch (url, fetchOpts) {
     return { r: res.url, s: `var s=new CSSStyleSheet();s.replaceSync(${
       JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes, relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
     });export default s;`, t: 'css' };
-  else if (wasmContentType.test(contentType))
-    throw new Error('WASM modules not supported');
   else
-    throw new Error(`Unknown Content-Type "${contentType}"`);
+    throw Error(`Unsupported Content-Type "${contentType}"`);
 }
 
 function getOrCreateLoad (url, fetchOpts, source) {
@@ -354,7 +357,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
       ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts)));
       if (t && !shimMode) {
         if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled)
-          throw new Error(`${t}-modules require <script type="esms-options">{ "polyfillEnable": ["${t}-modules"] }<${''}/script>`);
+          throw Error(`${t}-modules require <script type="esms-options">{ "polyfillEnable": ["${t}-modules"] }<${''}/script>`);
         if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
           load.n = true;
       }
@@ -393,9 +396,9 @@ function getOrCreateLoad (url, fetchOpts, source) {
 }
 
 function processScriptsAndPreloads () {
-  for (const script of document.querySelectorAll(shimMode ? 'script[type="module-shim"]' : 'script[type="module"]'))
+  for (const script of document.querySelectorAll(shimMode ? 'script[type=module-shim]' : 'script[type=module]'))
     processScript(script);
-  for (const link of document.querySelectorAll('link[rel="modulepreload"]'))
+  for (const link of document.querySelectorAll(shimMode ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]'))
     processPreload(link);
 }
 

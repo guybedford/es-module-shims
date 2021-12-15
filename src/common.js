@@ -127,17 +127,17 @@ function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap) {
   for (let p in packages) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
     if (outPackages[resolvedLhs]) {
-      throw new Error(`Dynamic import map rejected: Overrides entry "${resolvedLhs}" from ${outPackages[resolvedLhs]} to ${packages[resolvedLhs]}.`);
+      throw Error(`Rejected map override "${resolvedLhs}" from ${outPackages[resolvedLhs]} to ${packages[resolvedLhs]}.`);
     }
     let target = packages[p];
-    if (typeof target !== 'string') 
+    if (typeof target !== 'string')
       continue;
     const mapped = resolveImportMap(parentMap, resolveIfNotPlainOrUrl(target, baseUrl) || target, baseUrl);
     if (mapped) {
       outPackages[resolvedLhs] = mapped;
       continue;
     }
-    targetWarning(p, packages[p], 'bare specifier did not resolve');
+    console.warn(`Mapping "${p}" -> "${packages[p]}" does not resolve`);
   }
 }
 
@@ -172,15 +172,8 @@ function applyPackages (id, packages) {
   if (pkgName) {
     const pkg = packages[pkgName];
     if (pkg === null) return;
-    if (id.length > pkgName.length && pkg[pkg.length - 1] !== '/')
-      targetWarning(pkgName, pkg, "should have a trailing '/'");
-    else
-      return pkg + id.slice(pkgName.length);
+    return pkg + id.slice(pkgName.length);
   }
-}
-
-function targetWarning (match, target, msg) {
-  console.warn("Package target " + msg + ", resolving target '" + target + "' for " + match);
 }
 
 export function resolveImportMap (importMap, resolvedOrPlain, parentUrl) {
