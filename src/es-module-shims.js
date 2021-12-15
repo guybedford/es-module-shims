@@ -82,7 +82,7 @@ const initPromise = featureDetectionPromise.then(() => {
             seenScript = true;
         }
         else if (script.type === 'importmap') {
-          importmapSrcOrLazy = true;
+          importMapSrcOrLazy = true;
           break;
         }
       }
