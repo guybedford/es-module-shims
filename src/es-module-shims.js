@@ -4,7 +4,6 @@ import {
   resolveAndComposeImportMap,
   resolveUrl,
   edge,
-  firefox,
   resolveImportMap,
   resolveIfNotPlainOrUrl,
   isURL,
