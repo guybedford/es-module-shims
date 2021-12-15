@@ -20,7 +20,7 @@ if (!nonce) {
 export const onerror = globalHook(esmsInitOptions.onerror || noop);
 export const onpolyfill = globalHook(esmsInitOptions.onpolyfill || noop);
 
-export const { revokeBlobURLs, noLoadEventRetriggers } = esmsInitOptions;
+export const { revokeBlobURLs, noLoadEventRetriggers, enforceIntegrity } = esmsInitOptions;
 
 export const fetchHook = esmsInitOptions.fetch ? globalHook(esmsInitOptions.fetch) : fetch;
 

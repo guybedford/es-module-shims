@@ -406,6 +406,18 @@ Adding the `"noshim"` attribute to the script tag will also ensure that ES Modul
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
 
+* [shimMode](#shim-mode-option)
+* [polyfillEnable](#polyfill-enable-option)
+* [enforceIntegrity](#enforce-integrity)
+* [nonce](#nonce)
+* [noLoadEventRetriggers](#no-load-event-retriggers)
+* [skip](#skip-processing)
+* [onerror](#error-hook)
+* [onpolyfill](#polyfill-hook)
+* [resolve](#resolve-hook)
+* [fetch](#fetch-hook)
+* [revokeBlobURLs](#revoke-blob-urls)
+
 ```html
 <script>
 window.esmsInitOptions = {
@@ -419,6 +431,7 @@ window.esmsInitOptions = {
   resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
   fetch: (url, options) => fetch(url, options), // default is native
   revokeBlobURLs: true, // default false
+  enforceIntegrity: true, // default true
 }
 </script>
 <script async src="es-module-shims.js"></script>
@@ -472,6 +485,26 @@ Currently this option supports just `"css-modules"` and `"json-modules"`.
 }
 </script>
 ```
+
+### Enforce Integrity
+
+When enabled, `enforceIntegrity` will ensure that all modules loaded through ES Module Shims must have integrity defined either on a `<link rel="modulepreload" integrity="...">` or on
+a `<link rel="modulepreload-shim" integrity="...">` preload tag in shim mode. Modules without integrity will throw at fetch time.
+
+For example in the following, only the listed `app.js` and `dep.js` modules will be able to execute with the provided integrity:
+
+```html
+<script type="esms-options">{ "enforceIntegrity": true }</script>
+<link rel="modulepreload-shim" href="/app.js" integrity="sha384-..." />\
+<link rel="modulepreload-shim" href="/dep.js" integrity="sha384-..." />
+<script type="module-shim">
+  import '/app.js';
+</script>
+```
+
+Strong execution guarantees are only possible in shim mode since in polyfill mode it is not possible to stop the native loader from executing code without an integrity.
+
+Future versions of this option may provide support for origin-specific allow lists.
 
 ### Nonce
 
