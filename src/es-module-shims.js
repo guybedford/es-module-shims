@@ -268,7 +268,6 @@ function resolveDeps (load, seen) {
     resolvedSource += source.slice(lastIndex);
   }
 
-  // ; and // trailer support added for Ruby 7 source maps compatibility
   let hasSourceURL = false;
   resolvedSource = resolvedSource.replace(sourceMapURLRegEx, (match, isMapping, url) => (hasSourceURL = !isMapping, match.replace(url, () => new URL(url, load.r))));
   if (!hasSourceURL)
@@ -278,6 +277,7 @@ function resolveDeps (load, seen) {
   load.S = undefined;
 }
 
+// ; and // trailer support added for Ruby 7 source maps compatibility
 const sourceMapURLRegEx = /\n\/\/# source(Mapping)?URL=([^\n]+)\s*((;|\/\/[^#][^\n]*)\s*)*$/;
 
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
