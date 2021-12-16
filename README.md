@@ -431,7 +431,7 @@ window.esmsInitOptions = {
   resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
   fetch: (url, options) => fetch(url, options), // default is native
   revokeBlobURLs: true, // default false
-  enforceIntegrity: true, // default true
+  enforceIntegrity: true, // default false
 }
 </script>
 <script async src="es-module-shims.js"></script>
