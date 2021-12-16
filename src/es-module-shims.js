@@ -277,7 +277,8 @@ function resolveDeps (load, seen) {
   load.S = undefined;
 }
 
-// ; and // trailer support added for Ruby 7 source maps compatibility
+// ; and // trailer support added for Ruby on Rails 7 source maps compatibility
+// https://github.com/guybedford/es-module-shims/issues/228
 const sourceMapURLRegEx = /\n\/\/# source(Mapping)?URL=([^\n]+)\s*((;|\/\/[^#][^\n]*)\s*)*$/;
 
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
