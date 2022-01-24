@@ -1,5 +1,5 @@
 ES Module Shims 1.4.2 (2022/01/24)
-* Fix: optional catch binding in `isUrl` function
+* Fix: optional catch binding in `isUrl` function (@thepassle, https://github.com/guybedford/es-module-shims/pull/246)
 
 ES Module Shims 1.4.1 (2021/12/15)
 * Fix: Firefox parse error stacks (https://github.com/guybedford/es-module-shims/pull/239)
