@@ -26,7 +26,7 @@ export function isURL (url) {
     new URL(url);
     return true;
   }
-  catch {
+  catch(_) {
     return false;
   }
 }
