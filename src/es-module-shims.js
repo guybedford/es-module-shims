@@ -223,7 +223,7 @@ function resolveDeps (load, seen) {
     // once all deps have loaded we can inline the dependency resolution blobs
     // and define this blob
     let lastIndex = 0, depIndex = 0;
-    for (const { s: start, se: end, d: dynamicImportIndex } of imports) {
+    for (const { s: start, se: end, d: dynamicImportIndex, n: importName } of imports) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
         const depLoad = load.d[depIndex++];
@@ -260,7 +260,9 @@ function resolveDeps (load, seen) {
       }
       // dynamic import
       else {
-        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, end)}, ${load.r && urlJsString(load.r)}`;
+        const assertionStart = start + importName.length + 2;
+        const assertion = source.slice(assertionStart, end);
+        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, assertionStart)}, ${load.r && urlJsString(load.r)}${assertion}`;
         lastIndex = end;
       }
     }
