@@ -386,6 +386,24 @@ suite('Errors', function () {
     assert(error.message === 'Rejected map override "global1" from http://localhost:8080/test/fixtures/es-modules/global1.js to data:text/javascript,throw new Error(\'Shim should not allow dynamic import map to override existing entries\');.');
   })
 
+  test('Dynamic import map shim with override to the same mapping is allowed', async function () {
+    const expectingNoError = new Promise((resolve, reject) => {
+      window.addEventListener('error', (event) => reject(event.error))
+      // waiting for 1 sec should be enough to make sure the error didn't happen.
+      setTimeout(resolve, 1000)
+    })
+
+    const removeImportMap = insertDynamicImportMap({
+      "imports": {
+        "global1": "http://localhost:8080/test/fixtures/es-modules/global1.js"
+      }
+    });
+
+    await expectingNoError;
+
+    removeImportMap();
+  })
+
   function insertDynamicImportMap(importMap) {
     const script = Object.assign(document.createElement('script'), {
       type: 'importmap-shim',
