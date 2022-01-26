@@ -1,3 +1,7 @@
+ES Module Shims 1.4.3 (2022/01/25)
+* Feature: Support import map overrides when existing resolution matches new resolution (https://github.com/guybedford/es-module-shims/pull/249, @vovacodes)
+* Fix: Import assertions support with dynamic imports (https://github.com/guybedford/es-module-shims/pull/248)
+
 ES Module Shims 1.4.2 (2022/01/24)
 * Fix: optional catch binding in `isUrl` function (@thepassle, https://github.com/guybedford/es-module-shims/pull/246)
 
