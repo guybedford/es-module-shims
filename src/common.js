@@ -71,8 +71,8 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
         if (segmented[i] === '/') {
           output.push(segmented.slice(segmentIndex, i + 1));
           segmentIndex = -1;
-          continue;
         }
+        continue;
       }
       // new segment - check if it is relative
       else if (segmented[i] === '.') {
