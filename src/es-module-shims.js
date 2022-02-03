@@ -49,7 +49,6 @@ async function _resolve (id, parentUrl) {
 
 const resolve = resolveHook ? async (id, parentUrl) => ({ r: await resolveHook(id, parentUrl, defaultResolve), b: false }) : _resolve;
 
-let id = 0;
 const registry = {};
 if (self.ESMS_DEBUG) {
   self._esmsr = registry;
@@ -260,7 +259,7 @@ function resolveDeps (load, seen) {
       }
       // dynamic import
       else {
-        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, end)}, ${load.r && urlJsString(load.r)}${source.slice(end, statementEnd)}`;
+        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, end)}, ${urlJsString(load.r)}${source.slice(end, statementEnd)}`;
         lastIndex = statementEnd;
       }
     }
@@ -328,14 +327,14 @@ async function doFetch (url, fetchOpts) {
 
 function getOrCreateLoad (url, fetchOpts, source) {
   let load = registry[url];
-  if (load)
+  if (load && !source)
     return load;
 
-  load = registry[url] = {
+  load = {
     // url
     u: url,
     // response url
-    r: undefined,
+    r: source ? url : undefined,
     // fetchPromise
     f: undefined,
     // source
@@ -355,6 +354,12 @@ function getOrCreateLoad (url, fetchOpts, source) {
     // type
     t: null
   };
+  if (registry[url]) {
+    let i = 0;
+    while (registry[load.u + ++i]);
+    load.u += i;
+  }
+  registry[load.u] = load;
 
   load.f = (async () => {
     if (!source) {
@@ -501,7 +506,7 @@ function processScript (script) {
   if (isReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   const blocks = script.getAttribute('async') === null && isReadyScript;
-  const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(e => {
+  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(e => {
     // Safari only gives error via console.error
     if (safari)
       console.error(e);
