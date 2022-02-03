@@ -287,7 +287,7 @@ import sheet from 'https://site.com/sheet.css' assert { type: 'css' };
 To support the polyfill or shim of this feature, the [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme) must be separately included in browsers not supporting [Constructable Stylesheets](https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleSheet/CSSStyleSheet) eg via:
 
 ```html
-<script async src="https://unpkg.com/construct-style-sheets-polyfill@3.0.0/dist/adoptedStyleSheets.js"></script>
+<script async src="https://unpkg.com/construct-style-sheets-polyfill@3.1.0/dist/adoptedStyleSheets.js"></script>
 ```
 
 For more information see the [web.dev article](https://web.dev/css-module-scripts/).
