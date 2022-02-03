@@ -128,6 +128,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
     return dynamicImport(source ? createBlob(source) : url, { errUrl: url || source });
   }
   const load = getOrCreateLoad(url, fetchOpts, source);
+  load.r = pageBaseUrl;
   const seen = {};
   await loadAll(load, seen);
   lastLoad = undefined;
@@ -260,7 +261,7 @@ function resolveDeps (load, seen) {
       }
       // dynamic import
       else {
-        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, end)}, ${load.r && urlJsString(load.r)}${source.slice(end, statementEnd)}`;
+        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, end)}, ${urlJsString(load.r)}${source.slice(end, statementEnd)}`;
         lastIndex = statementEnd;
       }
     }

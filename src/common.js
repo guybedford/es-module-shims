@@ -1,25 +1,13 @@
-const uaMatch = navigator.userAgent.match(/(Edge|Safari)\/\d+\.\d+/);
-export const edge = uaMatch && uaMatch[1] === 'Edge';
-export const safari = uaMatch && uaMatch[1] === 'Safari';
+export const edge = !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
+export const safari = !!window.safari;
 
-export let baseUrl;
+export const baseUrl = document.baseURI;
 
 export function createBlob (source, type = 'text/javascript') {
   return URL.createObjectURL(new Blob([source], { type }));
 }
 
 export const noop = () => {};
-
-const baseEl = document.querySelector('base[href]');
-if (baseEl)
-  baseUrl = baseEl.href;
-
-if (!baseUrl && typeof location !== 'undefined') {
-  baseUrl = location.href.split('#')[0].split('?')[0];
-  const lastSepIndex = baseUrl.lastIndexOf('/');
-  if (lastSepIndex !== -1)
-    baseUrl = baseUrl.slice(0, lastSepIndex + 1);
-}
 
 export function isURL (url) {
   try {
@@ -92,20 +80,17 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
         if (segmented[i + 1] === '.' && (segmented[i + 2] === '/' || i + 2 === segmented.length)) {
           output.pop();
           i += 2;
+          continue;
         }
         // ./ segment
         else if (segmented[i + 1] === '/' || i + 1 === segmented.length) {
           i += 1;
-        }
-        else {
-          // the start of a new segment as below
-          segmentIndex = i;
+          continue;
         }
       }
       // it is the start of a new segment
-      else {
-        segmentIndex = i;
-      }
+      while (segmented[i] === '/') i++;
+      segmentIndex = i;
     }
     // finish reading out the last segment
     if (segmentIndex !== -1)
