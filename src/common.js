@@ -21,7 +21,6 @@ export function isURL (url) {
 
 const backslashRegEx = /\\/g;
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
-  console.log(relUrl, parentUrl);
   // strip off any trailing query params or hashes
   parentUrl = parentUrl && parentUrl.split('#')[0].split('?')[0];
   if (relUrl.indexOf('\\') !== -1)
@@ -96,7 +95,6 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
     // finish reading out the last segment
     if (segmentIndex !== -1)
       output.push(segmented.slice(segmentIndex));
-    console.log('-> ' + parentUrl.slice(0, parentUrl.length - pathname.length) + output.join(''));
     return parentUrl.slice(0, parentUrl.length - pathname.length) + output.join('');
   }
 }
