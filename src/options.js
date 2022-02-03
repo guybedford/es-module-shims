@@ -18,7 +18,7 @@ if (!nonce) {
 }
 
 export const onerror = globalHook(esmsInitOptions.onerror || noop);
-export const onpolyfill = esmsInitOptions.onpolyfill ? globalHook(esmsInitOptions.onpolyfill) : () => console.info(`OK: "Uncaught TypeError" module failure has been polyfilled`);
+export const onpolyfill = esmsInitOptions.onpolyfill ? globalHook(esmsInitOptions.onpolyfill) : () => console.info(`OK: ^ TypeError module failure has been polyfilled`);
 
 export const { revokeBlobURLs, noLoadEventRetriggers, enforceIntegrity } = esmsInitOptions;
 
