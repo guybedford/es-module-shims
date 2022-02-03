@@ -317,10 +317,11 @@ async function doFetch (url, fetchOpts) {
     return { r: res.url, s: await res.text(), t: 'js' };
   else if (jsonContentType.test(contentType))
     return { r: res.url, s: `export default ${await res.text()}`, t: 'json' };
-  else if (cssContentType.test(contentType))
+  else if (cssContentType.test(contentType)) {
     return { r: res.url, s: `var s=new CSSStyleSheet();s.replaceSync(${
-      JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes, relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
+      JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes = '', relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
     });export default s;`, t: 'css' };
+  }
   else
     throw Error(`Unsupported Content-Type "${contentType}"`);
 }
