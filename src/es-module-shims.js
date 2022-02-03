@@ -49,7 +49,6 @@ async function _resolve (id, parentUrl) {
 
 const resolve = resolveHook ? async (id, parentUrl) => ({ r: await resolveHook(id, parentUrl, defaultResolve), b: false }) : _resolve;
 
-let id = 0;
 const registry = {};
 if (self.ESMS_DEBUG) {
   self._esmsr = registry;
@@ -128,7 +127,6 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
     return dynamicImport(source ? createBlob(source) : url, { errUrl: url || source });
   }
   const load = getOrCreateLoad(url, fetchOpts, source);
-  load.r = pageBaseUrl;
   const seen = {};
   await loadAll(load, seen);
   lastLoad = undefined;
@@ -329,14 +327,14 @@ async function doFetch (url, fetchOpts) {
 
 function getOrCreateLoad (url, fetchOpts, source) {
   let load = registry[url];
-  if (load)
+  if (load && !source)
     return load;
 
-  load = registry[url] = {
+  load = {
     // url
     u: url,
     // response url
-    r: undefined,
+    r: source ? url : undefined,
     // fetchPromise
     f: undefined,
     // source
@@ -356,6 +354,12 @@ function getOrCreateLoad (url, fetchOpts, source) {
     // type
     t: null
   };
+  if (registry[url]) {
+    let i = 0;
+    while (registry[load.u + ++i]);
+    load.u += i;
+  }
+  registry[load.u] = load;
 
   load.f = (async () => {
     if (!source) {
@@ -502,7 +506,7 @@ function processScript (script) {
   if (isReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   const blocks = script.getAttribute('async') === null && isReadyScript;
-  const loadPromise = topLevelLoad(script.src || `${pageBaseUrl}?${id++}`, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(e => {
+  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(e => {
     // Safari only gives error via console.error
     if (safari)
       console.error(e);
