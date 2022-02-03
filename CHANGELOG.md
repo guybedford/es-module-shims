@@ -1,3 +1,8 @@
+ES Module Shims 1.4.4
+* Fix: import.meta.resolve support for inline scripts (https://github.com/guybedford/es-module-shims/pull/251)
+* Fix: CSS imports unquoted URL normalization (https://github.com/guybedford/es-module-shims/pull/252)
+* Fix: Reword polyfill info message (https://github.com/guybedford/es-module-shims/pull/253)
+
 ES Module Shims 1.4.3 (2022/01/25)
 * Feature: Support import map overrides when existing resolution matches new resolution (https://github.com/guybedford/es-module-shims/pull/249, @vovacodes)
 * Fix: Import assertions support with dynamic imports (https://github.com/guybedford/es-module-shims/pull/248)
