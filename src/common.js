@@ -7,8 +7,6 @@ export function createBlob (source, type = 'text/javascript') {
   return URL.createObjectURL(new Blob([source], { type }));
 }
 
-export const noop = () => {};
-
 export function isURL (url) {
   try {
     new URL(url);

@@ -1,4 +1,4 @@
-import { noop } from './common.js';
+import noop from './noop.js';
 
 const optionsScript = document.querySelector('script[type=esms-options]');
 
