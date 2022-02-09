@@ -1,3 +1,5 @@
+import { override, shimMode } from "./options.js";
+
 export const edge = !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
 export const safari = !!window.safari;
 
@@ -111,7 +113,7 @@ export function resolveUrl (relUrl, parentUrl) {
 function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap) {
   for (let p in packages) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
-    if (outPackages[resolvedLhs] && (outPackages[resolvedLhs] !== packages[resolvedLhs])) {
+    if ((!shimMode || !override) && outPackages[resolvedLhs] && (outPackages[resolvedLhs] !== packages[resolvedLhs])) {
       throw Error(`Rejected map override "${resolvedLhs}" from ${outPackages[resolvedLhs]} to ${packages[resolvedLhs]}.`);
     }
     let target = packages[p];
