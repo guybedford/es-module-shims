@@ -23,7 +23,9 @@
     "test:test-polyfill-wasm": "cross-env TEST_NAME=test-polyfill-wasm node test/server.mjs",
     "test:test-preload-case": "cross-env TEST_NAME=test-preload-case node test/server.mjs",
     "test:test-revoke-blob-urls": "cross-env TEST_NAME=test-revoke-blob-urls node test/server.mjs",
-    "test:test-shim": "cross-env TEST_NAME=test-shim node test/server.mjs"
+    "test:test-shim": "cross-env TEST_NAME=test-shim node test/server.mjs",
+    "test:test-shim-override": "cross-env TEST_NAME=test-shim-override node test/server.mjs"
+
   },
   "types": "index.d.ts",
   "type": "module",
