@@ -126,7 +126,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
     await lastStaticLoadPromise;
     return dynamicImport(source ? createBlob(source) : url, { errUrl: url || source });
   }
-  const load = getOrCreateLoad(url, fetchOpts, source);
+  const load = getOrCreateLoad(url, fetchOpts, null, source);
   const seen = {};
   await loadAll(load, seen);
   lastLoad = undefined;
@@ -299,13 +299,17 @@ function popFetchPool () {
     p.shift()();
 }
 
-async function doFetch (url, fetchOpts) {
+async function doFetch (url, fetchOpts, parent) {
   if (enforceIntegrity && !fetchOpts.integrity)
     throw Error(`No integrity for ${url}`);
   const poolQueue = pushFetchPool();
   if (poolQueue) await poolQueue;
   try {
     var res = await fetchHook(url, fetchOpts);
+  }
+  catch (e) {
+    e.message = `Unable to fetch ${url}${parent ? ` imported by ${parent}` : ''} - see network log for details.\n` + e.message;
+    throw e;
   }
   finally {
     popFetchPool();
@@ -326,7 +330,7 @@ async function doFetch (url, fetchOpts) {
     throw Error(`Unsupported Content-Type "${contentType}"`);
 }
 
-function getOrCreateLoad (url, fetchOpts, source) {
+function getOrCreateLoad (url, fetchOpts, parent, source) {
   let load = registry[url];
   if (load && !source)
     return load;
@@ -366,7 +370,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
     if (!source) {
       // preload fetch options override fetch options (race)
       let t;
-      ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts)));
+      ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts, parent)));
       if (t && !shimMode) {
         if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled)
           throw Error(`${t}-modules require <script type="esms-options">{ "polyfillEnable": ["${t}-modules"] }<${''}/script>`);
@@ -400,7 +404,7 @@ function getOrCreateLoad (url, fetchOpts, source) {
       if (skip && skip.test(r)) return { b: r };
       if (childFetchOpts.integrity)
         childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
-      return getOrCreateLoad(r, childFetchOpts).f;
+      return getOrCreateLoad(r, childFetchOpts, load.r).f;
     }))).filter(l => l);
   });
 
