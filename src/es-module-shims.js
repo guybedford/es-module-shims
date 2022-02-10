@@ -10,8 +10,6 @@ import {
   isURL,
 } from './common.js';
 import {
-  setShimMode,
-  shimMode,
   resolveHook,
   fetchHook,
   skip,
@@ -70,37 +68,32 @@ let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
   // shim mode is determined on initialization, no late shim mode
-  if (!shimMode) {
-    if (document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]').length) {
-      setShimMode();
-    }
-    else {
-      let seenScript = false;
-      for (const script of document.querySelectorAll('script[type=module],script[type=importmap]')) {
-        if (!seenScript) {
-          if (script.type === 'module')
-            seenScript = true;
-        }
-        else if (script.type === 'importmap') {
-          importMapSrcOrLazy = true;
-          break;
-        }
+  if (!self.SHIM_MODE) {
+    let seenScript = false;
+    for (const script of document.querySelectorAll('script[type=module],script[type=importmap]')) {
+      if (!seenScript) {
+        if (script.type === 'module')
+          seenScript = true;
+      }
+      else if (script.type === 'importmap') {
+        importMapSrcOrLazy = true;
+        break;
       }
     }
   }
   baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
-  if (shimMode || !baselinePassthrough) {
+  if (self.SHIM_MODE || !baselinePassthrough) {
     new MutationObserver(mutations => {
       for (const mutation of mutations) {
         if (mutation.type !== 'childList') continue;
         for (const node of mutation.addedNodes) {
           if (node.tagName === 'SCRIPT') {
-            if (node.type === (shimMode ? 'module-shim' : 'module'))
+            if (node.type === (self.SHIM_MODE ? 'module-shim' : 'module'))
               processScript(node);
-            if (node.type === (shimMode ? 'importmap-shim' : 'importmap'))
+            if (node.type === (self.SHIM_MODE ? 'importmap-shim' : 'importmap'))
               processImportMap(node);
           }
-          else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload'))
+          else if (node.tagName === 'LINK' && node.rel === (self.SHIM_MODE ? 'modulepreload-shim' : 'modulepreload'))
             processPreload(node);
         }
       }
@@ -115,11 +108,11 @@ let firstPolyfillLoad = true;
 let acceptingImportMaps = true;
 
 async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
-  if (!shimMode)
+  if (!self.SHIM_MODE)
     acceptingImportMaps = false;
   await importMapPromise;
   // early analysis opt-out - no need to even fetch if we have feature support
-  if (!shimMode && baselinePassthrough) {
+  if (!self.SHIM_MODE && baselinePassthrough) {
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded)
       return null;
@@ -132,16 +125,16 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   lastLoad = undefined;
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
-  if (source && !shimMode && !load.n && !self.ESMS_DEBUG) {
+  if (source && !self.SHIM_MODE && !load.n && !self.ESMS_DEBUG) {
     const module = await dynamicImport(createBlob(source), { errUrl: source });
     if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return module;
   }
-  if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
+  if (firstPolyfillLoad && !self.SHIM_MODE && load.n && nativelyLoaded) {
     onpolyfill();
     firstPolyfillLoad = false;
   }
-  const module = await dynamicImport(!shimMode && !load.n && nativelyLoaded ? load.u : load.b, { errUrl: load.u });
+  const module = await dynamicImport(!self.SHIM_MODE && !load.n && nativelyLoaded ? load.u : load.b, { errUrl: load.u });
   // if the top-level load is a shell, run its update function
   if (load.s)
     (await dynamicImport(load.s)).u$_(module);
@@ -171,9 +164,9 @@ function revokeObjectURLs(registryKeys) {
 async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
   // needed for shim check
   await initPromise;
-  if (acceptingImportMaps || shimMode || !baselinePassthrough) {
+  if (acceptingImportMaps || self.SHIM_MODE || !baselinePassthrough) {
     processImportMaps();
-    if (!shimMode)
+    if (!self.SHIM_MODE)
       acceptingImportMaps = false;
   }
   await importMapPromise;
@@ -182,7 +175,7 @@ async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
 
 self.importShim = importShim;
 
-if (shimMode) {
+if (self.SHIM_MODE) {
   importShim.getImportMap = () => JSON.parse(JSON.stringify(importMap));
 }
 
@@ -371,7 +364,7 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
       // preload fetch options override fetch options (race)
       let t;
       ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts, parent)));
-      if (t && !shimMode) {
+      if (t && !self.SHIM_MODE) {
         if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled)
           throw Error(`${t}-modules require <script type="esms-options">{ "polyfillEnable": ["${t}-modules"] }<${''}/script>`);
         if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
@@ -412,14 +405,14 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
 }
 
 function processScriptsAndPreloads () {
-  for (const script of document.querySelectorAll(shimMode ? 'script[type=module-shim]' : 'script[type=module]'))
+  for (const script of document.querySelectorAll(self.SHIM_MODE ? 'script[type=module-shim]' : 'script[type=module]'))
     processScript(script);
-  for (const link of document.querySelectorAll(shimMode ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]'))
+  for (const link of document.querySelectorAll(self.SHIM_MODE ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]'))
     processPreload(link);
 }
 
 function processImportMaps () {
-  for (const script of document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]'))
+  for (const script of document.querySelectorAll(self.SHIM_MODE ? 'script[type="importmap-shim"]' : 'script[type="importmap"]'))
     processImportMap(script);
 }
 
@@ -449,7 +442,7 @@ function domContentLoadedCheck () {
 document.addEventListener('DOMContentLoaded', async () => {
   await initPromise;
   domContentLoadedCheck();
-  if (shimMode || !baselinePassthrough) {
+  if (self.SHIM_MODE || !baselinePassthrough) {
     processImportMaps();
     processScriptsAndPreloads();
   }
@@ -480,7 +473,7 @@ function processImportMap (script) {
   script.ep = true;
   // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
   if (script.src) {
-    if (!shimMode)
+    if (!self.SHIM_MODE)
       return;
     importMapSrcOrLazy = true;
   }
@@ -490,7 +483,7 @@ function processImportMap (script) {
         importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
       })
       .catch(error => setTimeout(() => { throw error }));
-    if (!shimMode)
+    if (!self.SHIM_MODE)
       acceptingImportMaps = false;
   }
 }
@@ -511,7 +504,7 @@ function processScript (script) {
   if (isReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   const blocks = script.getAttribute('async') === null && isReadyScript;
-  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(e => {
+  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !self.SHIM_MODE, blocks && lastStaticLoadPromise).catch(e => {
     // Safari only gives error via console.error
     if (safari)
       console.error(e);
