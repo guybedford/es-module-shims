@@ -417,6 +417,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [resolve](#resolve-hook)
 * [fetch](#fetch-hook)
 * [revokeBlobURLs](#revoke-blob-urls)
+* [override](#overriding-import-map-entries)
 
 ```html
 <script>
@@ -432,6 +433,7 @@ window.esmsInitOptions = {
   fetch: (url, options) => fetch(url, options), // default is native
   revokeBlobURLs: true, // default false
   enforceIntegrity: true, // default false
+  override: true, // default false
 }
 </script>
 <script async src="es-module-shims.js"></script>
@@ -686,6 +688,37 @@ You can do that by enabling the `revokeBlobURLs` init option:
 
 NOTE: revoking object URLs is not entirely free, while we are trying to be smart about it and make sure it doesn't
 cause janks, we recommend enabling this option only if you have done the measurements and identified that you really need it.
+
+### Overriding import map entries
+
+When [dynamically injecting import maps](#dynamic-import-maps), an error will be thrown in both polyfill and shim modes if the new import map would override existing entries with a different value.
+
+It is possible to disable this behavior in shim mode by setting the `overrides` option:
+
+```js
+<script type="esms-options">
+{
+  "shimMode": true,
+  "overrides": true
+}
+</script>
+<script type="importmap-shim">
+{
+  "imports": {
+    "x": "/x.js"
+  }
+}
+</script>
+<script>
+// No error will be thrown here
+document.body.appendChild(Object.assign(document.createElement('script'), {
+  type: 'importmap',
+  innerHTML: JSON.stringify({ imports: { x: './y.js' } }),
+}));
+</script>
+```
+
+This can be useful for HMR workflows.
 
 ## Implementation Details
 
