@@ -1,14 +1,16 @@
 import {
   baseUrl as pageBaseUrl,
   createBlob,
-  resolveAndComposeImportMap,
-  resolveUrl,
   edge,
   safari,
-  resolveImportMap,
-  resolveIfNotPlainOrUrl,
   isURL,
 } from './common.js';
+import {
+  resolveAndComposeImportMap,
+  resolveUrl,
+  resolveImportMap,
+  resolveIfNotPlainOrUrl,
+} from './resolve.js'
 import {
   setShimMode,
   shimMode,

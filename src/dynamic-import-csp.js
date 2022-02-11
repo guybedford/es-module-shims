@@ -1,6 +1,5 @@
 import { nonce } from './options.js';
-import { createBlob, baseUrl } from './common.js';
-import noop from './noop.js';
+import { createBlob, baseUrl, noop } from './common.js';
 
 let err;
 window.addEventListener('error', _err => err = _err);
