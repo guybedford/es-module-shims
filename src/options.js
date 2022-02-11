@@ -11,7 +11,7 @@ export const skip = esmsInitOptions.skip ? new RegExp(esmsInitOptions.skip) : nu
 
 export let nonce = esmsInitOptions.nonce;
 
-export const override = esmsInitOptions.override;
+export const mapOverrides = esmsInitOptions.mapOverrides;
 
 if (!nonce) {
   const nonceElement = document.querySelector('script[nonce]');

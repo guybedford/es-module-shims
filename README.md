@@ -693,13 +693,13 @@ cause janks, we recommend enabling this option only if you have done the measure
 
 When [dynamically injecting import maps](#dynamic-import-maps), an error will be thrown in both polyfill and shim modes if the new import map would override existing entries with a different value.
 
-It is possible to disable this behavior in shim mode by setting the `overrides` option:
+It is possible to disable this behavior in shim mode by setting the `mapOverrides` option:
 
 ```js
 <script type="esms-options">
 {
   "shimMode": true,
-  "overrides": true
+  "mapOverrides": true
 }
 </script>
 <script type="importmap-shim">

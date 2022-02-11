@@ -1,4 +1,4 @@
-import { override, shimMode } from "./options.js";
+import { mapOverrides, shimMode } from "./options.js";
 
 const backslashRegEx = /\\/g;
 
@@ -142,7 +142,7 @@ export function resolveImportMap (importMap, resolvedOrPlain, parentUrl) {
 function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap) {
   for (let p in packages) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
-    if ((!shimMode || !override) && outPackages[resolvedLhs] && (outPackages[resolvedLhs] !== packages[resolvedLhs])) {
+    if ((!shimMode || !mapOverrides) && outPackages[resolvedLhs] && (outPackages[resolvedLhs] !== packages[resolvedLhs])) {
       throw Error(`Rejected map override "${resolvedLhs}" from ${outPackages[resolvedLhs]} to ${packages[resolvedLhs]}.`);
     }
     let target = packages[p];
