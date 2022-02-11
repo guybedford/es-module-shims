@@ -417,7 +417,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [resolve](#resolve-hook)
 * [fetch](#fetch-hook)
 * [revokeBlobURLs](#revoke-blob-urls)
-* [override](#overriding-import-map-entries)
+* [mapOverrides](#overriding-import-map-entries)
 
 ```html
 <script>
@@ -433,7 +433,7 @@ window.esmsInitOptions = {
   fetch: (url, options) => fetch(url, options), // default is native
   revokeBlobURLs: true, // default false
   enforceIntegrity: true, // default false
-  override: true, // default false
+  mapOverrides: true, // default false
 }
 </script>
 <script async src="es-module-shims.js"></script>
