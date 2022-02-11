@@ -14,7 +14,7 @@
     "footprint": "npm run build ; cat dist/es-module-shims.js | terser -mc | brotli | wc -c",
     "footprint:wasm": "npm run build ; cat dist/es-module-shims.wasm.js | terser -mc | brotli | wc -c",
     "prepublishOnly": "npm run build",
-    "test": "npm run test:test-base-href ; npm run test:test-csp ; npm run test:test-dom-order ; npm run test:test-early-module-load ; npm run test:test-polyfill ; npm run test:test-polyfill-wasm ; npm run test:test-preload-case ; npm run test:test-revoke-blob-urls ; npm run test:test-shim",
+    "test": "npm run test:test-base-href ; npm run test:test-csp ; npm run test:test-dom-order ; npm run test:test-early-module-load ; npm run test:test-polyfill ; npm run test:test-polyfill-wasm ; npm run test:test-preload-case ; npm run test:test-revoke-blob-urls ; npm run test:test-shim ; npm run test:test-shim-map-overrides",
     "test:test-base-href": "cross-env TEST_NAME=test-base-href node test/server.mjs",
     "test:test-csp": "cross-env TEST_NAME=test-csp node test/server.mjs",
     "test:test-dom-order": "cross-env TEST_NAME=test-dom-order node test/server.mjs",
@@ -23,7 +23,9 @@
     "test:test-polyfill-wasm": "cross-env TEST_NAME=test-polyfill-wasm node test/server.mjs",
     "test:test-preload-case": "cross-env TEST_NAME=test-preload-case node test/server.mjs",
     "test:test-revoke-blob-urls": "cross-env TEST_NAME=test-revoke-blob-urls node test/server.mjs",
-    "test:test-shim": "cross-env TEST_NAME=test-shim node test/server.mjs"
+    "test:test-shim": "cross-env TEST_NAME=test-shim node test/server.mjs",
+    "test:test-shim-map-overrides": "cross-env TEST_NAME=test-shim-map-overrides node test/server.mjs"
+
   },
   "types": "index.d.ts",
   "type": "module",
@@ -49,7 +51,8 @@
     "rimraf": "^3.0.2",
     "rollup": "^2.58.0",
     "speed-limiter": "^1.0.2",
-    "tachometer": "^0.5.10"
+    "tachometer": "^0.5.10",
+    "terser": "^5.10.0"
   },
   "directories": {
     "test": "test"

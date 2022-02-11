@@ -1,5 +1,5 @@
 import { dynamicImport, supportsDynamicImportCheck } from './dynamic-import-csp.js';
-import { noop, createBlob } from './common.js';
+import { createBlob, noop } from './common.js';
 import { nonce, cssModulesEnabled, jsonModulesEnabled } from './options.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
