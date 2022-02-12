@@ -170,7 +170,12 @@ function revokeObjectURLs(registryKeys) {
   }
 }
 
-async function importShim (id, parentUrl = pageBaseUrl, _assertion) {
+async function importShim (id, ...args) {
+  // parentUrl if present will be the last argument
+  let parentUrl = args[args.length - 1];
+  if (typeof parentUrl !== 'string') {
+    parentUrl = pageBaseUrl;
+  }
   // needed for shim check
   await initPromise;
   if (acceptingImportMaps || shimMode || !baselinePassthrough) {
@@ -261,7 +266,7 @@ function resolveDeps (load, seen) {
       }
       // dynamic import
       else {
-        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, end)}, ${urlJsString(load.r)}${source.slice(end, statementEnd)}`;
+        resolvedSource += `${source.slice(lastIndex, dynamicImportIndex + 6)}Shim(${source.slice(start, statementEnd)}, ${load.r && urlJsString(load.r)}`;
         lastIndex = statementEnd;
       }
     }
