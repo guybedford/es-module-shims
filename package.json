@@ -1,6 +1,6 @@
 {
   "name": "es-module-shims",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "description": "Shims for the latest ES module features",
   "main": "dist/es-module-shims.js",
   "exports": {
@@ -25,7 +25,6 @@
     "test:test-revoke-blob-urls": "cross-env TEST_NAME=test-revoke-blob-urls node test/server.mjs",
     "test:test-shim": "cross-env TEST_NAME=test-shim node test/server.mjs",
     "test:test-shim-map-overrides": "cross-env TEST_NAME=test-shim-map-overrides node test/server.mjs"
-
   },
   "types": "index.d.ts",
   "type": "module",
