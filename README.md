@@ -227,6 +227,10 @@ This tag just initiates a fetch request in the browser and thus works equally as
 Unlike the browser specification, the modulepreload polyfill does not request dependency modules by default, in order to avoid unnecessary
 code analysis in the polyfill scenarios. **It is recommended to preload deep imports anyway so that this feature shouldn't be necessary.**
 
+#### Preload shim
+
+When in shim mode, `<link rel="modulepreload-shim" href="/module.js" />` must be used to properly cache the preloaded modules.
+
 ### CSP Support
 
 By default ES Module Shims provides full support for CSP by using the asm.js ES Module Lexer build. This is absolutely identical in performance to the Wasm version in Firefox and Chrome, while in Safari the asm.js version is actually faster than Wasm making this build preferable.
