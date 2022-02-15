@@ -1,4 +1,6 @@
-import { mapOverrides, shimMode } from "./options.js";
+import { mapOverrides, shimMode } from './env.js';
+
+export let importMap = { imports: {}, scopes: {} };
 
 const backslashRegEx = /\\/g;
 

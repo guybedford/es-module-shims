@@ -1,30 +1,27 @@
 import {
-  baseUrl as pageBaseUrl,
-  createBlob,
-  edge,
-  safari,
-  isURL,
-} from './common.js';
-import {
   resolveAndComposeImportMap,
   resolveUrl,
   resolveImportMap,
   resolveIfNotPlainOrUrl,
 } from './resolve.js'
 import {
+  baseUrl as pageBaseUrl,
+  createBlob,
+  edge,
+  isURL,
+  throwError,
   setShimMode,
   shimMode,
   resolveHook,
   fetchHook,
   skip,
-  onerror,
   revokeBlobURLs,
   noLoadEventRetriggers,
   cssModulesEnabled,
   jsonModulesEnabled,
   onpolyfill,
   enforceIntegrity,
-} from './options.js';
+} from './env.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
   featureDetectionPromise,
@@ -306,23 +303,32 @@ function popFetchPool () {
     p.shift()();
 }
 
+function fromParent (parent) {
+  return parent ? ` imported from ${parent}` : '';
+}
+
 async function doFetch (url, fetchOpts, parent) {
   if (enforceIntegrity && !fetchOpts.integrity)
-    throw Error(`No integrity for ${url}`);
+    throw Error(`No integrity for ${url}${fromParent(parent)}.`);
   const poolQueue = pushFetchPool();
   if (poolQueue) await poolQueue;
   try {
     var res = await fetchHook(url, fetchOpts);
   }
   catch (e) {
-    e.message = `Unable to fetch ${url}${parent ? ` imported by ${parent}` : ''} - see network log for details.\n` + e.message;
+    e.message = `Unable to fetch ${url}${fromParent(parent)} - see network log for details.\n` + e.message;
     throw e;
   }
   finally {
     popFetchPool();
   }
   if (!res.ok)
-    throw Error(`${res.status} ${res.statusText} ${res.url}`);
+    throw Error(`${res.status} ${res.statusText} ${res.url}${fromParent(parent)}`);
+  return res;
+}
+
+async function fetchModule (url, fetchOpts, parent) {
+  const res = await doFetch(url, fetchOpts, parent);
   const contentType = res.headers.get('content-type');
   if (jsContentType.test(contentType))
     return { r: res.url, s: await res.text(), t: 'js' };
@@ -334,7 +340,7 @@ async function doFetch (url, fetchOpts, parent) {
     });export default s;`, t: 'css' };
   }
   else
-    throw Error(`Unsupported Content-Type "${contentType}" loading ${url}${parent ? ` imported by ${parent}` : ''}. Modules can only be loaded when served with a valid MIME type like application/javascript.`);
+    throw Error(`Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`);
 }
 
 function getOrCreateLoad (url, fetchOpts, parent, source) {
@@ -377,7 +383,7 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
     if (!source) {
       // preload fetch options override fetch options (race)
       let t;
-      ({ r: load.r, s: source, t } = await (fetchCache[url] || doFetch(url, fetchOpts, parent)));
+      ({ r: load.r, s: source, t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
       if (t && !shimMode) {
         if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled)
           throw Error(`${t}-modules require <script type="esms-options">{ "polyfillEnable": ["${t}-modules"] }<${''}/script>`);
@@ -494,9 +500,9 @@ function processImportMap (script) {
   if (acceptingImportMaps) {
     importMapPromise = importMapPromise
       .then(async () => {
-        importMap = resolveAndComposeImportMap(script.src ? await (await fetchHook(script.src)).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
+        importMap = resolveAndComposeImportMap(script.src ? await (await doFetch(script.src, getFetchOpts(script))).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
       })
-      .catch(error => setTimeout(() => { throw error }));
+      .catch(throwError);
     if (!shimMode)
       acceptingImportMaps = false;
   }
@@ -518,15 +524,7 @@ function processScript (script) {
   if (isReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   const blocks = script.getAttribute('async') === null && isReadyScript;
-  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(e => {
-    // Safari only gives error via console.error
-    if (safari)
-      console.error(e);
-    // Firefox only gives error stack via setTimeout
-    else
-      setTimeout(() => { throw e});
-    onerror(e);
-  });
+  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(throwError);
   if (blocks)
     lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
   if (isDomContentLoadedScript)
@@ -540,9 +538,9 @@ function processPreload (link) {
   link.ep = true;
   if (fetchCache[link.href])
     return;
-  fetchCache[link.href] = doFetch(link.href, getFetchOpts(link));
+  fetchCache[link.href] = fetchModule(link.href, getFetchOpts(link));
 }
 
 function throwUnresolved (id, parentUrl) {
-  throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
+  throw Error(`Unable to resolve specifier '${id}'${fromParent(parentUrl)}`);
 }

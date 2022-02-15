@@ -1,4 +1,5 @@
-import { noop } from './common.js';
+
+export const noop = () => {};
 
 const optionsScript = document.querySelector('script[type=esms-options]');
 
@@ -36,4 +37,26 @@ export const jsonModulesEnabled = enable.includes('json-modules');
 
 export function setShimMode () {
   shimMode = true;
+}
+
+export const edge = !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
+
+export const baseUrl = document.baseURI;
+
+export function createBlob (source, type = 'text/javascript') {
+  return URL.createObjectURL(new Blob([source], { type }));
+}
+
+const eoop = err => setTimeout(() => { throw err });
+
+export const throwError = err => { (window.reportError || window.safari && console.error || eoop)(err), void onerror(err) };
+
+export function isURL (url) {
+  try {
+    new URL(url);
+    return true;
+  }
+  catch (_) {
+    return false;
+  }
 }

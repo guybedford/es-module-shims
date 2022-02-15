@@ -1,5 +1,4 @@
-import { nonce } from './options.js';
-import { createBlob, baseUrl, noop } from './common.js';
+import { createBlob, baseUrl, noop, nonce } from './env.js';
 
 let err;
 window.addEventListener('error', _err => err = _err);

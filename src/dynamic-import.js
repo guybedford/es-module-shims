@@ -1,4 +1,4 @@
-import { createBlob, baseUrl } from './common.js';
+import { createBlob, baseUrl } from './env.js';
 
 export let supportsDynamicImportCheck = false;
 
