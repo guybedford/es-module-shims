@@ -40,7 +40,6 @@ export function setShimMode () {
 }
 
 export const edge = !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
-export const safari = !!window.safari;
 
 export const baseUrl = document.baseURI;
 
@@ -48,22 +47,16 @@ export function createBlob (source, type = 'text/javascript') {
   return URL.createObjectURL(new Blob([source], { type }));
 }
 
-export function throwError (err) {
-  if (typeof reportError !== 'undefined')
-    reportError(err);
-  else if (safari)
-    console.error(err);
-  else
-    setTimeout(() => { throw error });
-  onerror(err);
-}
+const eoop = err => setTimeout(() => { throw err });
+
+export const throwError = err => { (window.reportError || window.safari && console.error || eoop)(err), void onerror(err) };
 
 export function isURL (url) {
   try {
     new URL(url);
     return true;
   }
-  catch(_) {
+  catch (_) {
     return false;
   }
 }

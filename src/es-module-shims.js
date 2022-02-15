@@ -304,7 +304,7 @@ function popFetchPool () {
 }
 
 function fromParent (parent) {
-  return parent ? ` imported by ${parent}` : '';
+  return parent ? ` imported from ${parent}` : '';
 }
 
 async function doFetch (url, fetchOpts, parent) {
@@ -340,7 +340,7 @@ async function fetchModule (url, fetchOpts, parent) {
     });export default s;`, t: 'css' };
   }
   else
-    throw Error(`Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules can only be loaded when served with a valid MIME type like application/javascript.`);
+    throw Error(`Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`);
 }
 
 function getOrCreateLoad (url, fetchOpts, parent, source) {
@@ -542,5 +542,5 @@ function processPreload (link) {
 }
 
 function throwUnresolved (id, parentUrl) {
-  throw Error("Unable to resolve specifier '" + id + (parentUrl ? "' from " + parentUrl : "'"));
+  throw Error(`Unable to resolve specifier '${id}'${fromParent(parentUrl)}`);
 }
