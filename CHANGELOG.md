@@ -1,4 +1,14 @@
-ES Module Shims 1.4.4
+ES Module Shims 1.4.6 (2022/02/15)
+* Feat: Improve fetch content type error failure context (https://github.com/guybedford/es-module-shims/pull/263)
+* Feat: Refactor error handling paths, use `reportError` when possible (https://github.com/guybedford/es-module-shims/pull/264)
+
+ES Module Shims 1.4.5 (2022/02/12)
+* Feat: Allow import map overrides with option (https://github.com/guybedford/es-module-shims/pull/257, @lewisl@9029)
+* Feat: Additional fetch error context (https://github.com/guybedford/es-module-shims/pull/256)
+* Fix: dynamic import context with import assertions (https://github.com/guybedford/es-module-shims/pull/260, @ICodeMyOwnLife)
+* Docs: Clarify modulepreload-shim (https://github.com/guybedford/es-module-shims/pull/261, @LarsDenBakker)
+
+ES Module Shims 1.4.4 (2022/02/03)
 * Fix: import.meta.resolve support for inline scripts (https://github.com/guybedford/es-module-shims/pull/251)
 * Fix: CSS imports unquoted URL normalization (https://github.com/guybedford/es-module-shims/pull/252)
 * Fix: Reword polyfill info message (https://github.com/guybedford/es-module-shims/pull/253)
