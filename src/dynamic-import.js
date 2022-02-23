@@ -1,4 +1,4 @@
-import { createBlob, baseUrl } from './env.js';
+import { createBlob, baseUrl, nonce } from './env.js';
 
 export let supportsDynamicImportCheck = false;
 
@@ -17,6 +17,7 @@ if (!supportsDynamicImportCheck) {
     const src = createBlob(`import*as m from'${url}';self._esmsi=m;`);
     const s = Object.assign(document.createElement('script'), { type: 'module', src });
     s.setAttribute('noshim', '');
+    s.setAttribute('nonce', nonce);
     document.head.appendChild(s);
     return new Promise((resolve, reject) => {
       s.addEventListener('load', () => {
