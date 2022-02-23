@@ -31,7 +31,9 @@ export const featureDetectionPromise = Promise.resolve(supportsDynamicImportChec
       document.head.appendChild(iframe);
       const doc = iframe.contentDocument;
       doc.head.appendChild(Object.assign(doc.createElement('script'), { type: 'importmap', innerHTML: '{"imports":{"x":"data:text/javascript,"}}' }));
-      doc.head.appendChild(Object.assign(doc.createElement('script'), { innerHTML: 'import("x").then(()=>1,()=>0).then(v=>parent._$s(v))' }));
+      const script = Object.assign(doc.createElement('script'), { innerHTML: 'import("x").then(()=>1,()=>0).then(v=>parent._$s(v))' });
+      script.setAttribute('nonce', nonce);
+      doc.head.appendChild(script);
     })
   ]);
 });
