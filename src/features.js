@@ -29,11 +29,7 @@ export const featureDetectionPromise = Promise.resolve(supportsDynamicImportChec
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       document.head.appendChild(iframe);
-      const doc = iframe.contentDocument;
-      doc.head.appendChild(Object.assign(doc.createElement('script'), { type: 'importmap', innerHTML: '{"imports":{"x":"data:text/javascript,"}}' }));
-      const script = Object.assign(doc.createElement('script'), { innerHTML: 'import("x").then(()=>1,()=>0).then(v=>parent._$s(v))' });
-      script.setAttribute('nonce', nonce);
-      doc.head.appendChild(script);
+      iframe.srcdoc = `<script type=importmap nonce="${nonce}">{"imports":{"x":"data:text/javascript,"}}<${''}/script><script nonce="${nonce}">import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`;
     })
   ]);
 });
