@@ -28,8 +28,8 @@ export const featureDetectionPromise = Promise.resolve(supportsDynamicImportChec
       };
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
+      iframe.srcdoc = `<script type=importmap nonce="${nonce}">{"imports":{"x":"data:text/javascript,"}}<${''}/script><script nonce="${nonce}">import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`;
       document.head.appendChild(iframe);
-      iframe.src = createBlob(`<script type=importmap nonce="${nonce}">{"imports":{"x":"data:text/javascript,"}}<${''}/script><script nonce="${nonce}">import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`, 'text/html')
     })
   ]);
 });

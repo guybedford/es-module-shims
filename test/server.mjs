@@ -21,16 +21,12 @@ const mimes = {
 };
 
 const shouldExit = process.env.WATCH_MODE !== 'true';
-const testName = process.env.TEST_NAME ?? 'test';
+const testName = process.argv[2] ?? 'test';
 
 let retry = 0;
 
 // Dont run Chrome tests on Firefox
 if (testName.startsWith('test-chrome') && process.env.CI_BROWSER && !process.env.CI_BROWSER.includes('chrome'))
-  process.exit(0);
-
-// Dont run CSP tests on old Firefox
-if (testName.startsWith('test-csp') && process.env.CI_BROWSER && process.env.CI_BROWSER.includes('firefox') && (process.env.CI_BROWSER.includes('60') || process.env.CI_BROWSER.includes('67')))
   process.exit(0);
 
 let failTimeout, browserTimeout;
