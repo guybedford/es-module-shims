@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Chomp
-        uses: guybedford/chomp-action@main
+        uses: guybedford/chomp-action@v1
       - name: Setup Node.js ${{ matrix.node }}
         uses: actions/setup-node@v2
         with:
@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Chomp
-        uses: guybedford/chomp-action@main
+        uses: guybedford/chomp-action@v1
       - name: Setup Node.js ${{ matrix.node }}
         uses: actions/setup-node@v2
         with:
