@@ -21,7 +21,7 @@ const mimes = {
 };
 
 const shouldExit = process.env.WATCH_MODE !== 'true';
-const testName = process.env.TEST_NAME ?? 'test';
+const testName = process.argv[2] ?? 'test';
 
 let retry = 0;
 
