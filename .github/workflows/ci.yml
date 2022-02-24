@@ -58,7 +58,7 @@ jobs:
       - name: Use Chomp
         run: cargo install chompbuild
       - name: Chomp Test
-      - run: chomp test
+        run: chomp test
         env:
           CI_BROWSER: C:\hostedtoolcache\windows\chromium\${{ matrix.chrome }}\x64\chrome.exe
           CI_BROWSER_FLAGS: 
