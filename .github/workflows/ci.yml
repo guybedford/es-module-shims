@@ -28,7 +28,7 @@ jobs:
         with:
           firefox-version: ${{ matrix.firefox }}
       - name: Use Chomp
-        run: cargo install chompbuild
+        uses: guybedford/chomp-action@main
       - name: Chomp Test
         run: chomp test
         env:
@@ -56,7 +56,7 @@ jobs:
         with:
           chrome-version: ${{ matrix.chrome }}
       - name: Use Chomp
-        run: cargo install chompbuild
+        uses: guybedford/chomp-action@main
       - name: Chomp Test
         run: chomp test
         env:
