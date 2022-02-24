@@ -27,12 +27,10 @@ jobs:
         uses: browser-actions/setup-firefox@latest
         with:
           firefox-version: ${{ matrix.firefox }}
-      - name: npm install
-        run: npm install
-      - name: npm run build
-        run: npm run build
-      - name: npm run test
-        run: npm run test
+      - name: Use Chomp
+        run: cargo install chompbuild
+      - name: Chomp Test
+        run: chomp test
         env:
           CI_BROWSER: /opt/hostedtoolcache/firefox/${{ matrix.firefox }}/x64/firefox
           CI_BROWSER_FLAGS: -headless
@@ -57,12 +55,10 @@ jobs:
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: ${{ matrix.chrome }}
-      - name: npm install
-        run: npm install
-      - name: npm run build
-        run: npm run build
-      - name: npm run test
-        run: npm run test
+      - name: Use Chomp
+        run: cargo install chompbuild
+      - name: Chomp Test
+      - run: chomp test
         env:
           CI_BROWSER: C:\hostedtoolcache\windows\chromium\${{ matrix.chrome }}\x64\chrome.exe
           CI_BROWSER_FLAGS: 
