@@ -128,7 +128,6 @@ suite('Basic loading tests', () => {
     const url = window.location.href.split('#')[0].split('?')[0]
       .replace('/test-shim.html', '/fixtures/es-modules/no-imports.js')
       .replace(/^http(s)?:/, '');
-    console.log(url);
     assert.equal(url.slice(0, 2), '//');
     var m = await importShim(url);
     assert(m);
