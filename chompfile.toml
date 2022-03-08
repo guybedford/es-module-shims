@@ -4,6 +4,9 @@ extensions = ['chomp@0.1:footprint', 'chomp@0.1:npm']
 
 default-task = 'test'
 
+[server]
+port = 8080
+
 [[task]]
 name = 'bench'
 run = 'bash bench/bench.sh'
@@ -30,5 +33,5 @@ dep = 'test:'
 [[task]]
 name = 'test:#'
 serial = true
-deps = ['test/test-#.html', 'npm:install', 'dist/es-module-shims.js', 'dist/es-module-shims.wasm.js']
+deps = ['npm:install', 'dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'test/test-#.html']
 run = 'node test/server.mjs test-${{ MATCH }}'

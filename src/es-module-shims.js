@@ -3,17 +3,19 @@ import {
   resolveUrl,
   resolveImportMap,
   resolveIfNotPlainOrUrl,
+  isURL
 } from './resolve.js'
 import {
   baseUrl as pageBaseUrl,
   createBlob,
   edge,
-  isURL,
   throwError,
   setShimMode,
   shimMode,
   resolveHook,
   fetchHook,
+  importHook,
+  metaHook,
   skip,
   revokeBlobURLs,
   noLoadEventRetriggers,
@@ -21,6 +23,8 @@ import {
   jsonModulesEnabled,
   onpolyfill,
   enforceIntegrity,
+  fromParent,
+  esmsInitOptions,
 } from './env.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
@@ -33,25 +37,68 @@ import {
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 
-async function defaultResolve (id, parentUrl) {
-  return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl);
-}
-
 async function _resolve (id, parentUrl) {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
   return {
-    r: resolveImportMap(importMap, urlResolved || id, parentUrl),
+    r: resolveImportMap(importMap, urlResolved || id, parentUrl) || throwUnresolved(id, parentUrl),
     // b = bare specifier
     b: !urlResolved && !isURL(id)
   };
 }
 
-const resolve = resolveHook ? async (id, parentUrl) => ({ r: await resolveHook(id, parentUrl, defaultResolve), b: false }) : _resolve;
+const resolve = resolveHook ? async (id, parentUrl) => {
+  let result = resolveHook(id, parentUrl, defaultResolve);
+  // will be deprecated in next major
+  if (result && result.then)
+    result = await result;
+  return result ? { r: result, b: !resolveIfNotPlainOrUrl(id, parentUrl) && !isURL(id) } : _resolve(id, parentUrl);
+} : _resolve;
 
-const registry = {};
-if (self.ESMS_DEBUG) {
-  self._esmsr = registry;
+// importShim('mod');
+// importShim('mod', { opts });
+// importShim('mod', { opts }, parentUrl);
+// importShim('mod', parentUrl);
+async function importShim (id, ...args) {
+  // parentUrl if present will be the last argument
+  let parentUrl = args[args.length - 1];
+  if (typeof parentUrl !== 'string')
+    parentUrl = pageBaseUrl;
+  // needed for shim check
+  await initPromise;
+  if (importHook) await importHook(id, typeof args[1] !== 'string' ? args[1] : {}, parentUrl);
+  if (acceptingImportMaps || shimMode || !baselinePassthrough) {
+    processImportMaps();
+    if (!shimMode)
+      acceptingImportMaps = false;
+  }
+  await importMapPromise;
+  return topLevelLoad((await resolve(id, parentUrl)).r, { credentials: 'same-origin' });
 }
+
+self.importShim = importShim;
+
+function defaultResolve (id, parentUrl) {
+  return resolveImportMap(importMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl) || throwUnresolved(id, parentUrl);
+}
+
+function throwUnresolved (id, parentUrl) {
+  throw Error(`Unable to resolve specifier '${id}'${fromParent(parentUrl)}`);
+}
+
+const resolveSync = (id, parentUrl = pageBaseUrl) => {
+  parentUrl = `${parentUrl}`;
+  const result = resolveHook && resolveHook(id, parentUrl, defaultResolve);
+  return result && !result.then ? result : defaultResolve(id, parentUrl);
+};
+
+function metaResolve (id, parentUrl = this.url) {
+  return resolveSync(id, parentUrl);
+}
+
+importShim.resolve = resolveSync;
+importShim.getImportMap = () => JSON.parse(JSON.stringify(importMap));
+
+const registry = importShim._r = {};
 
 async function loadAll (load, seen) {
   if (load.b || seen[load.u])
@@ -87,7 +134,7 @@ const initPromise = featureDetectionPromise.then(() => {
       }
     }
   }
-  baselinePassthrough = supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
+  baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
   if (shimMode || !baselinePassthrough) {
     new MutationObserver(mutations => {
       for (const mutation of mutations) {
@@ -117,6 +164,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   if (!shimMode)
     acceptingImportMaps = false;
   await importMapPromise;
+  if (importHook) await importHook(id, typeof args[1] !== 'string' ? args[1] : {}, parentUrl);
   // early analysis opt-out - no need to even fetch if we have feature support
   if (!shimMode && baselinePassthrough) {
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
@@ -166,37 +214,6 @@ function revokeObjectURLs(registryKeys) {
     schedule(cleanup);
   }
 }
-
-async function importShim (id, ...args) {
-  // parentUrl if present will be the last argument
-  let parentUrl = args[args.length - 1];
-  if (typeof parentUrl !== 'string') {
-    parentUrl = pageBaseUrl;
-  }
-  // needed for shim check
-  await initPromise;
-  if (acceptingImportMaps || shimMode || !baselinePassthrough) {
-    processImportMaps();
-    if (!shimMode)
-      acceptingImportMaps = false;
-  }
-  await importMapPromise;
-  return topLevelLoad((await resolve(id, parentUrl)).r || throwUnresolved(id, parentUrl), { credentials: 'same-origin' });
-}
-
-self.importShim = importShim;
-
-if (shimMode) {
-  importShim.getImportMap = () => JSON.parse(JSON.stringify(importMap));
-}
-
-const meta = {};
-
-async function importMetaResolve (id, parentUrl = this.url) {
-  return (await resolve(id, `${parentUrl}`)).r || throwUnresolved(id, parentUrl);
-}
-
-self._esmsm = meta;
 
 function urlJsString (url) {
   return `'${url.replace(/'/g, "\\'")}'`;
@@ -257,8 +274,9 @@ function resolveDeps (load, seen) {
       }
       // import.meta
       else if (dynamicImportIndex === -2) {
-        meta[load.r] = { url: load.r, resolve: importMetaResolve };
-        resolvedSource += `${source.slice(lastIndex, start)}self._esmsm[${urlJsString(load.r)}]`;
+        load.m = { url: load.r, resolve: metaResolve };
+        metaHook(load.m, load.u);
+        resolvedSource += `${source.slice(lastIndex, start)}importShim._r[${urlJsString(load.u)}].m`;
         lastIndex = statementEnd;
       }
       // dynamic import
@@ -301,10 +319,6 @@ function popFetchPool () {
   c--;
   if (p.length)
     p.shift()();
-}
-
-function fromParent (parent) {
-  return parent ? ` imported from ${parent}` : '';
 }
 
 async function doFetch (url, fetchOpts, parent) {
@@ -370,7 +384,9 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
     // needsShim
     n: false,
     // type
-    t: null
+    t: null,
+    // meta
+    m: null
   };
   if (registry[url]) {
     let i = 0;
@@ -412,8 +428,6 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
       if (b && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
       if (d !== -1) return;
-      if (!r)
-        throwUnresolved(n, load.r || load.u);
       if (skip && skip.test(r)) return { b: r };
       if (childFetchOpts.integrity)
         childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
@@ -539,8 +553,4 @@ function processPreload (link) {
   if (fetchCache[link.href])
     return;
   fetchCache[link.href] = fetchModule(link.href, getFetchOpts(link));
-}
-
-function throwUnresolved (id, parentUrl) {
-  throw Error(`Unable to resolve specifier '${id}'${fromParent(parentUrl)}`);
 }
