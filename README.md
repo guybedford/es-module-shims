@@ -302,25 +302,24 @@ Checks for assertion failures are not currently included.
 
 ### Resolve
 
-> Stability: No current browser standard
+> Stability: Draft HTML PR
 
-`import.meta.resolve` provides a contextual resolver within modules. It is asynchronous, like the Node.js implementation, to support waiting on any in-flight
-import map loads when import maps are [loaded dynamically](#dynamic-import-map-updates).
+`import.meta.resolve` provides a contextual resolver within modules. It is synchronous, changed from being formerly asynchronous due to following the [browser specification PR](https://github.com/whatwg/html/pull/5572).
 
-The second argument to `import.meta.resolve` permits a custom parent URL scope for the resolution, which defaults to `import.meta.url`.
+The second argument to `import.meta.resolve` permits a custom parent URL scope for the resolution (not currently in the browser spec), which defaults to `import.meta.url`.
 
 ```js
 // resolve a relative path to a module
-var resolvedUrl = await import.meta.resolve('./relative.js');
+var resolvedUrl = import.meta.resolve('./relative.js');
 // resolve a dependency from a module
-var resolvedUrl = await import.meta.resolve('dep');
+var resolvedUrl = import.meta.resolve('dep');
 // resolve a path
-var resolvedUrlPath = await import.meta.resolve('dep/');
+var resolvedUrlPath = import.meta.resolve('dep/');
 // resolve with a custom parent scope
-var resolvedUrl = await import.meta.resolve('dep', 'https://site.com/another/scope');
+var resolvedUrl = import.meta.resolve('dep', 'https://site.com/another/scope');
 ```
 
-This implementation is as provided experimentally in Node.js - https://nodejs.org/dist/latest-v14.x/docs/api/esm.html#esm_no_require_resolve.
+Node.js also implements a similar API, although it's in the process of shifting to a synchronous resolver.
 
 ## Polyfill Mode Details
 
@@ -426,24 +425,42 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 ```html
 <script>
 window.esmsInitOptions = {
+  // Enable Shim Mode
   shimMode: true, // default false
+  // Enable newer modules features
   polyfillEnable: ['css-modules', 'json-modules'], // default empty
-  nonce: 'n0nce', // default null
+  // Custom CSP nonce
+  nonce: 'n0nce', // default is automatic detection
+  // Don't retrigger load events on module scripts
   noLoadEventRetriggers: true, // default false
+  // Skip source analysis of certain URLs for full native passthrough
   skip: /^https:\/\/cdn\.com/, // defaults to null
-  onerror: (e) => { /*...*/ }, // default noop
-  onpolyfill: () => {}, // default logs to the console
-  resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
-  fetch: (url, options) => fetch(url, options), // default is native
+  // Clean up blob URLs after execution
   revokeBlobURLs: true, // default false
+  // Secure mode to not support loading modules without integrity (integrity is always verified though)
   enforceIntegrity: true, // default false
+  // Permit overrides to import maps
   mapOverrides: true, // default false
+
+  // -- Hooks --
+  // Module load error
+  onerror: (e) => { /*...*/ }, // default noop
+  // Called when polyfill mode first engages
+  onpolyfill: () => {}, // default logs to the console
+  // Hook all module resolutions
+  resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
+  // Hook source fetch function
+  fetch: (url, options) => fetch(url, options), // default is native
+  // Hook import.meta construction
+  meta: (meta, url) => void // default is noop
+  // Hook top-level imports
+  onimport: (url, options, parentUrl) => void // default is noop
 }
 </script>
 <script async src="es-module-shims.js"></script>
 ```
 
-If only setting JSON-compatible options, the `<script type="esms-options">` can be used instead:
+`<script type="esms-options">` can also be used:
 
 ```html
 <script type="esms-options">
@@ -456,11 +473,7 @@ If only setting JSON-compatible options, the `<script type="esms-options">` can 
 </script>
 ```
 
-This can be convenient when using a CSP policy.
-
-Function strings correspond to global function names.
-
-See below for a detailed description of each of these options.
+This can be convenient when using a CSP policy. Function strings correspond to global function names.
 
 ### Shim Mode Option
 
@@ -491,6 +504,16 @@ Currently this option supports just `"css-modules"` and `"json-modules"`.
 }
 </script>
 ```
+
+The above is necessary to enable CSS modules and JSON modules.
+
+#### Baseline Support Analysis Opt-Out
+
+The reason the `polyfillEnable` option is needed is because ES Module Shims implements a performance optimization where if a browser supports modern modules features to an expected baseline of import maps support, it will skip all polyfill source analysis resulting in full native passthrough performance.
+
+If the application code then tries to use modern features like CSS modules beyond this baseline it won't support those features. As a result all modules features which are considered newer or beyond the recommended baseline require explicit enabling. This common baseline itself will change to track the common future modules baseline supported by this project for each release cycle.
+
+This option can also be set to `true` to entirely disable the native passthrough system and ensure all sources are fetched and analyzed through ES Module Shims. This will still avoid duplicate execution since module graphs are still only reexecuted when they use unsupported native features, but there is a small extra cost in doing the analysis.
 
 ### Enforce Integrity
 
@@ -553,121 +576,10 @@ This can be configured by providing a URL regular expression for the `skip` opti
 ```js
 <script type="esms-options">
 {
-  "skip": "/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//`
+  "skip": "/^https?:\/\/(cdn\.skypack\.dev|jspm\.dev)\//"
 }
 </script>
 <script async src="es-module-shims.js"></script>
-```
-
-#### Polyfill hook
-
-The polyfill hook is called when running in polyfill mode and the polyfill is kicking in instead of passing through to the native loader.
-
-This can be a useful way to verify that the native passthrough is working correctly in latest browsers for performance, while also allowing eg the ability to analyze or get metrics reports of how many users are getting the polyfill actively applying to their browser application loads.
-
-```js
-<script>
-window.polyfilling = () => console.log('The polyfill is actively applying');
-</script>
-<script type="esms-options">
-{
-  "onpolyfill": "polyfilling"
-}
-</script>
-```
-
-The default hook will log a message to the console with `console.info` noting that polyfill mode is enabled and that the native error can be ignored.
-
-In the above, running in latest Chromium browsers, nothing will be logged, while running in an older browser that does not support newer features
-like import maps the console log will be output.
-
-#### Error hook
-
-You can provide a function to handle errors during the module loading process by providing an `onerror` option:
-
-```js
-<script>
-  window.esmsInitOptions = {
-    onerror: error => console.log(error) // defaults to `((e) => { throw e; })`
-  }
-</script>
-<script async src="es-module-shims.js"></script>
-```
-
-#### Resolve Hook
-
-The resolve hook is supported for shim mode only and allows full customization of the resolver, while still having access to the original resolve function.
-
-```js
-<script>
-  window.esmsInitOptions = {
-    shimMode: true,
-    resolve: async function (id, parentUrl, defaultResolve) {
-      if (id === 'custom' && parentUrl.startsWith('https://custom.com/'))
-        return 'https://custom.com/custom.js';
-
-      // Default resolve will handle the typical URL and import map resolution
-      return defaultResolve(id, parentUrl);
-    }
-  }
-</script>
-```
-
-### Fetch Hook
-
-The fetch hook is supported for shim mode only.
-
-The ES Module Shims fetch hook can be used to implement transform plugins.
-
-For example:
-
-```js
-<script>
-  window.esmsInitOptions = {
-    shimMode: true,
-    fetch: async function (url, options) {
-      const res = await fetch(url, options);
-      if (!res.ok)
-        return res;
-      if (res.url.endsWith('.ts')) {
-        const source = await res.body();
-        const transformed = tsCompile(source);
-        return new Response(new Blob([transformed], { type: 'application/javascript' }));
-      }
-      return res;
-    } // defaults to `((url, options) => fetch(url, options))`
-  }
-</script>
-<script async src="es-module-shims.js"></script>
-```
-
-Because the dependency analysis applies by ES Module Shims takes care of ensuring all dependencies run through the same fetch hook,
-the above is all that is needed to implement custom plugins.
-
-Streaming support is also provided, for example here is a hook with streaming support for JSON:
-
-```js
-window.esmsInitOptions = {
-  shimMode: true,
-  fetch: async function (url, options) {
-    const res = await fetch(url, options);
-    if (!res.ok || !/^application\/json($|;)/.test(res.headers.get('content-type')))
-      return res;
-    const reader = res.body.getReader();
-    const headers = new Headers(res.headers);
-    headers.set('Content-Type', 'application/javascript');
-    return new Response(new ReadableStream({
-      async start (controller) {
-        let done, value;
-        controller.enqueue(new TextEncoder.encode('export default '));
-        while (({ done, value } = await reader.read()) && !done) {
-          controller.enqueue(value);
-        }
-        controller.close();
-      }
-    }), { headers });
-  }
-}
 ```
 
 ### Revoke Blob URLs
@@ -723,6 +635,142 @@ document.body.appendChild(Object.assign(document.createElement('script'), {
 ```
 
 This can be useful for HMR workflows.
+
+### Hooks
+
+#### Polyfill hook
+
+The polyfill hook is called when running in polyfill mode and the polyfill is kicking in instead of passing through to the native loader.
+
+This can be a useful way to verify that the native passthrough is working correctly in latest browsers for performance, while also allowing eg the ability to analyze or get metrics reports of how many users are getting the polyfill actively applying to their browser application loads.
+
+```js
+<script>
+window.polyfilling = () => console.log('The polyfill is actively applying');
+</script>
+<script type="esms-options">
+{
+  "onpolyfill": "polyfilling"
+}
+</script>
+```
+
+The default hook will log a message to the console with `console.info` noting that polyfill mode is enabled and that the native error can be ignored.
+
+In the above, running in latest Chromium browsers, nothing will be logged, while running in an older browser that does not support newer features
+like import maps the console log will be output.
+
+#### Error hook
+
+You can provide a function to handle errors during the module loading process by providing an `onerror` option:
+
+```js
+<script>
+  window.esmsInitOptions = {
+    onerror: error => console.log(error) // defaults to `((e) => { throw e; })`
+  }
+</script>
+<script async src="es-module-shims.js"></script>
+```
+
+#### Resolve Hook
+
+The resolve hook is supported for both shim and polyfill modes and allows full customization of the resolver, while still having access to the original resolve function.
+
+Note that in polyfill mode the resolve hook may not be called for all modules when native passthrough is occurring and that it still will not affect
+the native passthrough executions.
+
+If the resolve hook should apply for all modules in the entire module graph, make sure to set `polyfillEnable: true` to [disable the baseline support analysis opt-out](#baseline-support-analysis-opt-out).
+
+```js
+<script>
+  window.esmsInitOptions = {
+    shimMode: true,
+    resolve: function (id, parentUrl, defaultResolve) {
+      if (id === 'custom' && parentUrl.startsWith('https://custom.com/'))
+        return 'https://custom.com/custom.js';
+
+      // Default resolve will handle the typical URL and import map resolution
+      return defaultResolve(id, parentUrl);
+    }
+  }
+</script>
+```
+
+Support for an asynchronous resolve hook has been deprecated as of 1.5.0 and will be removed in the next major.
+
+Instead async work should be done with the import hook.
+
+#### Import Hook
+
+The import hook is supported for both shim and polyfill modes and provides an async hook which can ensure any necessary work is done before a top-level module import or dynamic `import()` starts further processing.
+
+```js
+<script>
+  window.esmsInitOptions = {
+    onimport: function (url, options, parentUrl) {
+      console.log(`Top-level import for ${url}`);
+    }
+  }
+</script>
+```
+
+#### Fetch Hook
+
+The fetch hook is supported for shim mode only.
+
+The ES Module Shims fetch hook can be used to implement transform plugins.
+
+For example TypeScript support:
+
+```js
+<script>
+  window.esmsInitOptions = {
+    shimMode: true,
+    fetch: async function (url, options) {
+      const res = await fetch(url, options);
+      if (!res.ok)
+        return res;
+      if (res.url.endsWith('.ts')) {
+        const source = await res.body();
+        const transformed = tsCompile(source);
+        return new Response(new Blob([transformed], { type: 'application/javascript' }));
+      }
+      return res;
+    } // defaults to `((url, options) => fetch(url, options))`
+  }
+</script>
+<script async src="es-module-shims.js"></script>
+```
+
+Because the dependency analysis applies by ES Module Shims takes care of ensuring all dependencies run through the same fetch hook,
+the above is all that is needed to implement custom plugins.
+
+Streaming support is also provided, for example here is a hook with streaming support for JSON:
+
+```js
+window.esmsInitOptions = {
+  shimMode: true,
+  fetch: async function (url, options) {
+    const res = await fetch(url, options);
+    if (!res.ok || !/^application\/json($|;)/.test(res.headers.get('content-type')))
+      return res;
+    const reader = res.body.getReader();
+    const headers = new Headers(res.headers);
+    headers.set('Content-Type', 'application/javascript');
+    return new Response(new ReadableStream({
+      async start (controller) {
+        let done, value;
+        controller.enqueue(new TextEncoder.encode('export default '));
+        while (({ done, value } = await reader.read()) && !done) {
+          controller.enqueue(value);
+        }
+        controller.close();
+      }
+    }), { headers });
+  }
+}
+```
 
 ## Implementation Details
 

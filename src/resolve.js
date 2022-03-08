@@ -4,6 +4,17 @@ export let importMap = { imports: {}, scopes: {} };
 
 const backslashRegEx = /\\/g;
 
+export function isURL (url) {
+  if (url.indexOf(':') === -1) return false;
+  try {
+    new URL(url);
+    return true;
+  }
+  catch (_) {
+    return false;
+  }
+}
+
 /*
  * Import maps implementation
  *
@@ -12,12 +23,14 @@ const backslashRegEx = /\\/g;
  *
  */
 export function resolveUrl (relUrl, parentUrl) {
-  return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (relUrl.indexOf(':') !== -1 ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
+  return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (isURL(relUrl) ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
   // strip off any trailing query params or hashes
-  parentUrl = parentUrl && parentUrl.split('#')[0].split('?')[0];
+  const queryHashIndex = parentUrl.indexOf('?', parentUrl.indexOf('#') === -1 ? parentUrl.indexOf('#') : parentUrl.length);
+  if (queryHashIndex !== -1)
+    parentUrl = parentUrl.slice(0, queryHashIndex);
   if (relUrl.indexOf('\\') !== -1)
     relUrl = relUrl.replace(backslashRegEx, '/');
   // protocol-relative
