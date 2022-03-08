@@ -657,8 +657,7 @@ window.polyfilling = () => console.log('The polyfill is actively applying');
 
 The default hook will log a message to the console with `console.info` noting that polyfill mode is enabled and that the native error can be ignored.
 
-In the above, running in latest Chromium browsers, nothing will be logged, while running in an older browser that does not support newer features
-like import maps the console log will be output.
+In the above, running in latest Chromium browsers, nothing will be logged, while running in an older browser that does not support newer features like import maps the console log will be output.
 
 #### Error hook
 
@@ -671,6 +670,20 @@ You can provide a function to handle errors during the module loading process by
   }
 </script>
 <script async src="es-module-shims.js"></script>
+```
+
+#### Import Hook
+
+The import hook is supported for both shim and polyfill modes and provides an async hook which can ensure any necessary work is done before a top-level module import or dynamic `import()` starts further processing.
+
+```js
+<script>
+  window.esmsInitOptions = {
+    onimport: function (url, options, parentUrl) {
+      console.log(`Top-level import for ${url}`);
+    }
+  }
+</script>
 ```
 
 #### Resolve Hook
@@ -701,18 +714,30 @@ Support for an asynchronous resolve hook has been deprecated as of 1.5.0 and wil
 
 Instead async work should be done with the import hook.
 
-#### Import Hook
+#### Meta Hook
 
-The import hook is supported for both shim and polyfill modes and provides an async hook which can ensure any necessary work is done before a top-level module import or dynamic `import()` starts further processing.
+The meta hook allows customizing the `import.meta` object in each module scope.
+
+The function takes as arguments the `import.meta` object itself (with `import.meta.url` an `import.meta.resolve` already present), and the URL of the module as its second argument.
+
+Example:
 
 ```js
 <script>
   window.esmsInitOptions = {
-    onimport: function (url, options, parentUrl) {
-      console.log(`Top-level import for ${url}`);
+    shimMode: true,
+    meta: function (metaObj, url) {
+      metaObj.custom = `custom value for ${url}`;
     }
   }
 </script>
+```
+
+Where within the module the following would be supported:
+
+```js
+import assert from 'assert';
+assert.ok(import.meta.custom.startsWith('custom value'));
 ```
 
 #### Fetch Hook
