@@ -36,6 +36,10 @@
   "directories": {
     "test": "test"
   },
+  "scripts": {
+    "build": "cargo install chompbuild ; chomp build",
+    "test": "cargo install chompbuild ; chomp test"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/guybedford/es-module-shims.git"
