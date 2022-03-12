@@ -22,6 +22,8 @@ Because we are still using the native module loader the edge cases work out comp
 * Dynamic import expressions (`import('src/' + varname')`)
 * Circular references, with the execption that live bindings are disabled for the first unexecuted circular parent.
 
+> [Built with](https://github.com/guybedford/es-module-shims/blob/main/chompfile.toml) [Chomp](https://chompbuild.com/)
+
 ## Usage
 
 Include ES Module Shims with a `async` attribute on the script, then include an import map and module scripts normally:
