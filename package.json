@@ -18,7 +18,7 @@
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-replace": "^2.4.2",
-    "es-module-lexer": "^0.10.2",
+    "es-module-lexer": "^0.10.3",
     "esm": "^3.2.25",
     "kleur": "^4.1.4",
     "mime-types": "^2.1.33",
