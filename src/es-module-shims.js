@@ -411,8 +411,8 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
       load.a = lexer.parse(source, load.u);
     }
     catch (e) {
-      console.warn(e);
-      load.a = [[], []];
+      throwError(e);
+      load.a = [[], [], false];
     }
     load.S = source;
     return load;
