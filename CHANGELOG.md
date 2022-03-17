@@ -1,3 +1,6 @@
+ES Module Shims 1.5.1 (2022/03/17)
+* Deps: Update to es-module-lexer@0.10.4 (#273)
+
 ES Module Shims 1.5.0 (2022/03/17)
 * Feat: Import hook, meta hook, sync resolver implementation, deprecating async resolver (#268)
 * Deps: Update to es-module-lexer@0.10.3 (#272)
