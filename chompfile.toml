@@ -6,6 +6,7 @@ default-task = 'test'
 
 [server]
 port = 8080
+root = "."
 
 [[task]]
 name = 'bench'
