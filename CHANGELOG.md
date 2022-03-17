@@ -1,5 +1,9 @@
+ES Module Shims 1.5.0 (2022/03/17)
+* Feat: Import hook, meta hook, sync resolver implementation, deprecating async resolver (#268)
+* Deps: Update to es-module-lexer@0.10.3 (#272)
+
 ES Module Shims 1.4.7 (2022/02/23)
-* Feat: Alternative IFrame injection to avoid navigation event on Android (@265)
+* Feat: Alternative IFrame injection to avoid navigation event on Android (#265)
 * Deps: Update to es-module-lexer@0.10.0 (#266)
 
 ES Module Shims 1.4.6 (2022/02/15)
