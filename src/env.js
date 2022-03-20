@@ -26,7 +26,7 @@ if (!nonce) {
 }
 
 export const onerror = globalHook(esmsInitOptions.onerror || noop);
-export const onpolyfill = esmsInitOptions.onpolyfill ? globalHook(esmsInitOptions.onpolyfill) : () => console.info(`YOU MAY IGNORE THE MODULE "TypeError" ABOVE, AS IT HAS BEEN POLYFILLED`);
+export const onpolyfill = esmsInitOptions.onpolyfill ? globalHook(esmsInitOptions.onpolyfill) : () => console.info(`YOU MAY IGNORE THE MODULE "TypeError" ABOVE AS IT HAS BEEN POLYFILLED`);
 
 export const { revokeBlobURLs, noLoadEventRetriggers, enforceIntegrity } = esmsInitOptions;
 
