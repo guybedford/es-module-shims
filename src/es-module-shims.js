@@ -234,7 +234,7 @@ function resolveDeps (load, seen) {
   const source = load.S;
 
   // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
-  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';
+  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';  
 
   if (!imports.length) {
     resolvedSource += source;
@@ -242,7 +242,16 @@ function resolveDeps (load, seen) {
   else {
     // once all deps have loaded we can inline the dependency resolution blobs
     // and define this blob
-    let lastIndex = 0, depIndex = 0;
+    let lastIndex = 0, depIndex = 0, dynamicImportEndStack = [];
+    function pushStringTo (originalIndex) {
+      while (dynamicImportEndStack[dynamicImportEndStack.length - 1] < originalIndex) {
+        const dynamicImportEnd = dynamicImportEndStack.pop();
+        resolvedSource += `${source.slice(lastIndex, dynamicImportEnd)}, ${urlJsString(load.r)}`;
+        lastIndex = dynamicImportEnd;
+      }
+      resolvedSource += source.slice(lastIndex, originalIndex);
+      lastIndex = originalIndex;
+    }
     for (const { s: start, ss: statementStart, se: statementEnd, d: dynamicImportIndex } of imports) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
@@ -264,29 +273,34 @@ function resolveDeps (load, seen) {
         }
         // circular shell execution
         else if (depLoad.s) {
-          resolvedSource += `${source.slice(lastIndex, start - 1)}/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)};import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
+          pushStringTo(start - 1);
+          resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)};import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
           lastIndex = statementEnd;
           depLoad.s = undefined;
           continue;
         }
-        resolvedSource += `${source.slice(lastIndex, start - 1)}/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)}`;
+        pushStringTo(start - 1);
+        resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)}`;
         lastIndex = statementEnd;
       }
       // import.meta
       else if (dynamicImportIndex === -2) {
         load.m = { url: load.r, resolve: metaResolve };
         metaHook(load.m, load.u);
-        resolvedSource += `${source.slice(lastIndex, start)}importShim._r[${urlJsString(load.u)}].m`;
+        pushStringTo(start);
+        resolvedSource += `importShim._r[${urlJsString(load.u)}].m`;
         lastIndex = statementEnd;
       }
       // dynamic import
       else {
-        resolvedSource += `${source.slice(lastIndex, statementStart + 6)}Shim(${source.slice(start, statementEnd - 1)}, ${urlJsString(load.r)})`;
-        lastIndex = statementEnd;
+        pushStringTo(statementStart + 6);
+        resolvedSource += `Shim(`;
+        dynamicImportEndStack.push(statementEnd - 1);
+        lastIndex = start;
       }
     }
 
-    resolvedSource += source.slice(lastIndex);
+    pushStringTo(source.length);
   }
 
   let hasSourceURL = false;

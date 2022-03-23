@@ -116,6 +116,16 @@ suite('Basic loading tests', () => {
     await p;
   });
 
+  test('should support relative dynamic import', async function () {
+    const result = await (await importShim('./fixtures/test-rel-dynamic.js')).default;
+    assert.equal(result.hello, 'world');
+  });
+
+  test('should support nested import.meta.url in dynamic import', async function () {
+    const result = await (await importShim('./fixtures/test-nested-dynamic.js')).default;
+    assert.ok(result.default.endsWith('test-nested-dynamic.js'));
+  });
+
   test('Should import a module via a full url, with scheme', async function () {
     const url = window.location.href.replace('/test-shim.html', '/fixtures/es-modules/no-imports.js');
     assert.equal(url.slice(0, 4), 'http');
@@ -126,7 +136,7 @@ suite('Basic loading tests', () => {
 
   test('Should import a module via a full url, without scheme', async function () {
     const url = window.location.href.split('#')[0].split('?')[0]
-      .replace('/test-shim.html', '/fixtures/es-modules/no-imports.js')
+      .replace('/test-shim.html', '/fixtures/es-modules/no-imports.js') 
       .replace(/^http(s)?:/, '');
     assert.equal(url.slice(0, 2), '//');
     var m = await importShim(url);
