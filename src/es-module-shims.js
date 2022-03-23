@@ -255,32 +255,30 @@ function resolveDeps (load, seen) {
     for (const { s: start, ss: statementStart, se: statementEnd, d: dynamicImportIndex } of imports) {
       // dependency source replacements
       if (dynamicImportIndex === -1) {
-        const depLoad = load.d[depIndex++];
-        let blobUrl = depLoad.b;
-        if (!blobUrl) {
+        let depLoad = load.d[depIndex++], blobUrl = depLoad.b, cycleShell = !blobUrl;
+        if (cycleShell) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
               depLoad.a[1].map(
-                name => name === 'default' ? `$_default=m.default` : `${name}=m.${name}`
+                name => name === 'default' ? `d$_=m.default` : `${name}=m.${name}`
               ).join(',')
             }}${
               depLoad.a[1].map(name =>
-                name === 'default' ? `let $_default;export{$_default as default}` : `export let ${name}`
+                name === 'default' ? `let d$_;export{d$_ as default}` : `export let ${name}`
               ).join(';')
             }\n//# sourceURL=${depLoad.r}?cycle`);
           }
         }
-        // circular shell execution
-        else if (depLoad.s) {
-          pushStringTo(start - 1);
-          resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)};import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
-          lastIndex = statementEnd;
-          depLoad.s = undefined;
-          continue;
-        }
+
         pushStringTo(start - 1);
         resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)}`;
+
+        // circular shell execution
+        if (!cycleShell && depLoad.s) {          
+          resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
+          depLoad.s = undefined;
+        }
         lastIndex = statementEnd;
       }
       // import.meta
