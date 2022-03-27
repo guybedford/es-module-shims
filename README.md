@@ -70,6 +70,106 @@ In shim mode, only the above `importmap-shim` and `module-shim` tags will be par
 
 Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute, [dynamically injecting import maps](#dynamic-import-maps), and [reading current import map state](#reading-current-import-map-state), which can be useful in certain applications.
 
+## Polyfill Mode Details
+
+In polyfill mode, feature detections are performed for ES modules features. In browsers with full feature support no further processing is done.
+
+In browsers with variable feature support, sources are analyzed with module specifiers rewritten using the very fast Wasm / asm.js lexer while sharing the source network fetch cache with the native loader.
+
+#### Polyfill Features
+
+The current default native baseline for the ES module shims polyfill mode is browsers supporting import maps.
+
+If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`polyfillEnable` init option](#polyfill-enable-option) to raise the native baseline to only browsers supporting these features:
+
+```html
+<script>
+window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules'] }
+</script>
+```
+
+To verify when the polyfill is actively engaging as opposed to relying on the native loader, [a `polyfill` hook](#polyfill-hook) is also provided.
+
+#### Polyfill Edge Case: Dynamic Import
+
+The guarantee of the polyfill is that any module graph that would have failed will be reexecuted through the shim layer. This leaves any edge case where execution succeeds but not as expected. For example when using dynamic imports:
+
+```html
+<script type="module">
+  console.log('Executing');
+  const dynamic = 'bare-specifier';
+  import(dynamic).then(x => {
+    console.log('Ok');
+  }, err => {
+    console.log('Fail');
+  });
+</script>
+```
+
+The native browser loader without import maps support will execute the above module fine, but fail on the lazy dynamic import.
+
+ES Module Shims will not reexecute the above in browsers without import maps support though because it will see that the execution did complete successfully therefore it will not attempt reexecution and as a result, `"Ok"` is never logged.
+
+Other examples include dynamically injecting import maps, or using import maps with a `"src"` attribute, which aren't supported in native Chrome.
+
+This is why it is advisable to always ensure modules use syntax that will fail early to avoid non-execution.
+
+If a static failure is not possible and dynamic import must be used, rather use the `importShim` ES Module Shims top-level loader:
+
+```html
+<script type="module">
+  console.log('Executing');
+  const dynamic = 'bare-specifier';
+  importShim(dynamic).then(x => {
+    console.log('Ok');
+  }, err => {
+    console.log('Fail');
+  });
+</script>
+```
+
+`importShim` will automatically pass-through to native dynamic import or polyfill as necessary, just like it does for script tags.
+
+#### Polyfill Edge Case: Instance Sharing
+
+When running in polyfill mode, it can be thought of that are effectively two loaders running on the page - the ES Module Shims polyfill loader, and the native loader.
+
+Note that instances are not shared between these loaders for consistency and performance.
+
+As a result, if you have two module graphs - one native and one polyfilled, they will not share the same dependency instance, for example:
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "dep": "/dep.js"
+  }
+}
+</script>
+<script type="module">
+import '/dep.js';
+</script>
+<script type="module">
+import 'dep';
+</script>
+```
+
+In the above, on browsers without import maps support, the `/dep.js` instance will be loaded natively by the first module, then the second import will fail.
+
+ES Module Shims will pick up on the second import and reexecute `/dep.js`. As a result, `/dep.js` will be executed twice on the page.
+
+For this reason it is important to always ensure all modules hit the polyfill path, either by having all graphs use import maps at the top-level, or via `importShim` directly.
+
+#### Skip Polyfill
+
+Adding the `"noshim"` attribute to the script tag will also ensure that ES Module Shims skips processing this script entirely:
+
+```html
+<script type="module" noshim>
+  // ...
+</script>
+```
+
 ## Benchmarks
 
 ES Module Shims is designed for production performance. A [comprehensive benchmark suite](bench/README.md) tracks multiple loading scenarios for the project.
@@ -322,90 +422,6 @@ var resolvedUrl = import.meta.resolve('dep', 'https://site.com/another/scope');
 ```
 
 Node.js also implements a similar API, although it's in the process of shifting to a synchronous resolver.
-
-## Polyfill Mode Details
-
-In polyfill mode, feature detections are performed for ES modules features. In browsers with full feature support no further processing is done.
-
-In browsers with variable feature support, sources are analyzed with module specifiers rewritten using the very fast Wasm / asm.js lexer while sharing the source network fetch cache with the native loader.
-
-#### Polyfill Features
-
-The current default native baseline for the ES module shims polyfill mode is browsers supporting import maps.
-
-If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`polyfillEnable` init option](#polyfill-enable-option) to raise the native baseline to only browsers supporting these features:
-
-```html
-<script>
-window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules'] }
-</script>
-```
-
-To verify when the polyfill is actively engaging as opposed to relying on the native loader, [a `polyfill` hook](#polyfill-hook) is also provided.
-
-#### Polyfill Edge Case: Dynamic Import
-
-The guarantee of the polyfill is that any module graph that would have failed will be reexecuted through the shim layer. This leaves any edge case where execution succeeds but not as expected. For example when using dynamic imports:
-
-```html
-<script type="module">
-  console.log('Executing');
-  const dynamic = 'bare-specifier';
-  import(dynamic).then(x => {
-    console.log('Ok');
-  }, err => {
-    console.log('Fail');
-  });
-</script>
-```
-
-The native browser loader without import maps support will execute the above module fine, but fail on the lazy dynamic import.
-
-ES Module Shims will not reexecute the above in browsers without import maps support though because it will see that the execution did complete successfully therefore it will not attempt reexecution and as a result, `"Ok"` is never logged.
-
-Other examples include dynamically injecting import maps, or using import maps with a `"src"` attribute, which aren't supported in native Chrome.
-
-This is why it is advisable to always ensure modules use syntax that will fail early to avoid non-execution.
-
-#### Polyfill Edge Case: Instance Sharing
-
-When running in polyfill mode, it can be thought of that are effectively two loaders running on the page - the ES Module Shims polyfill loader, and the native loader.
-
-Note that instances are not shared between these loaders for consistency and performance.
-
-As a result, if you have two module graphs - one native and one polyfilled, they will not share the same dependency instance, for example:
-
-```html
-<script type="importmap">
-{
-  "imports": {
-    "dep": "/dep.js"
-  }
-}
-</script>
-<script type="module">
-import '/dep.js';
-</script>
-<script type="module">
-import 'dep';
-</script>
-```
-
-In the above, on browsers without import maps support, the `/dep.js` instance will be loaded natively by the first module, then the second import will fail.
-
-ES Module Shims will pick up on the second import and reexecute `/dep.js`. As a result, `/dep.js` will be executed twice on the page.
-
-For this reason it is important to always ensure all modules hit the polyfill path, either by having all graphs use import maps at the top-level, or via `importShim` directly.
-
-#### Skip Polyfill
-
-Adding the `"noshim"` attribute to the script tag will also ensure that ES Module Shims skips processing this script entirely:
-
-```html
-<script type="module" noshim>
-  // ...
-</script>
-```
 
 ## Init Options
 
