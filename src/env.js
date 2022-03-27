@@ -42,7 +42,7 @@ export function setShimMode () {
   shimMode = true;
 }
 
-export const edge = !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
+export const edge = !navigator.userAgentData && !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
 
 export const baseUrl = document.baseURI;
 
