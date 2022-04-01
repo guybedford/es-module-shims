@@ -10,15 +10,7 @@ root = "."
 
 [[task]]
 name = 'bench'
-deps = ['bench:serve', 'bench:run']
-
-[[task]]
-name = 'bench:serve'
-run = 'chomp -c bench serve:all'
-
-[[task]]
-name = 'bench:run'
-run = 'chomp -c bench :bench:*'
+run = 'chomp -c bench'
 
 [[task]]
 name = 'bench:clear'

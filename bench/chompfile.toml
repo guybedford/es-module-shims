@@ -1,5 +1,11 @@
 version = 0.1
 
+default-task = 'bench'
+
+[[task]]
+name = 'bench'
+deps = ['serve:all', ':bench:']
+
 [[task]]
 targets = ['generated', 'benchmarks']
 deps = ['generate.js']

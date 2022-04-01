@@ -1,13 +1,14 @@
 import { readFile, writeFile, mkdir, readdir } from 'fs/promises';
 import { join, sep } from 'path';
 import rimraf from 'rimraf';
+import { fileURLToPath } from 'url';
 
 // GENERATE CASES
 {
   const preact = await readFile(new URL('../node_modules/preact/dist/preact.module.js', import.meta.url));
 
   try {
-    rimraf.sync(new URL('./generated', import.meta.url));
+    rimraf.sync(fileURLToPath(new URL('./generated', import.meta.url)));
   }
   catch {}
 
@@ -99,12 +100,12 @@ import rimraf from 'rimraf';
 
   const ports = {
     'fastest': 8000,
-    'fastest-cached': 8001,
+    // 'fastest-cached': 8001,
     'slow': 8002,
     // 'slow-uncompressed': 8003
   };
 
-  for (const browser of ['safari', 'firefox', 'chrome']) {
+  for (const browser of [/*'safari', */'firefox', 'chrome']) {
     let firefoxProfilePath;
     if (browser === 'firefox' && process.env.APPDATA) {
       // TODO: Firefox profile path for other platforms
@@ -207,7 +208,7 @@ import rimraf from 'rimraf';
                 "name": "${browser}"${browser === 'firefox' ? `,
                 "profile": ${JSON.stringify(firefoxProfilePath)}` : ''}
               }
-            }${type.startsWith('slow') ? '' : `,
+            }${true ? '' : `,
             {
               "name": "${fullName}-1000",
               "url": "runner.html?type=${name}&n=1000&port=${port}",
