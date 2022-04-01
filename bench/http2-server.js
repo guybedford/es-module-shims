@@ -2,7 +2,59 @@ import { createSecureServer } from 'http2';
 import { readFileSync } from 'fs';
 import { lookup } from 'mime-types';
 import { brotliCompressSync, constants } from 'zlib';
-import { ThrottleGroup } from 'speed-limiter';
+import { Transform } from 'stream';
+
+class ThrottleGroup {
+  chunks = [];
+  constructor ({ rate, interval = 10 }) {
+    this.tickRoom = rate / (1000 / interval);
+    this.nextTick = performance.now() + interval;
+    const checkFn = () => {
+      if (performance.now() > this.nextTick) {
+        this.tick();
+        this.nextTick = this.nextTick + interval;
+      }
+      setImmediate(checkFn);
+    };
+    setImmediate(checkFn);
+  }
+  throttle () {
+    return new ThrottleTransform(this);
+  }
+  tick () {
+    let tickRoom = this.tickRoom;
+    let next;
+    while (next = this.chunks.shift()) {
+      const { chunk, callback, stream } = next;
+      if (chunk === null) {
+        callback();
+        continue;
+      }
+      if (chunk.byteLength > tickRoom) {
+        stream.push(chunk.slice(0, tickRoom));
+        this.chunks.unshift({ chunk: chunk.slice(tickRoom), callback, stream });
+        tickRoom = 0;
+      } else {
+        tickRoom -= chunk.byteLength;
+        callback(null, chunk);
+      }
+      if (tickRoom === 0)
+        break;
+    }
+  }
+}
+class ThrottleTransform extends Transform {
+  constructor(group) {
+    super();
+    this.group = group;
+  }
+  _transform (chunk, _encoding, callback) {
+    this.group.chunks.push({ chunk, callback, stream: this });
+  }
+  _flush (callback) {
+    this.group.chunks.push({ chunk: null, callback, stream: null });
+  }
+}
 
 const base = new URL('../', import.meta.url);
 
@@ -53,6 +105,13 @@ server.on('stream', async (stream, headers) => {
   const queryStringIndex = path.indexOf('?');
   if (queryStringIndex !== -1)
     path = path.slice(0, queryStringIndex);
+
+  if (path === 'gc') {
+    gc();
+    stream.respond({ ':status': 200, 'content-type': 'text/plain', 'content-length': 10, 'cache-control': cacheControl, 'Access-Control-Allow-Origin': '*' });
+    stream.end('GC Cleared');
+    return;
+  }
 
   let entry = staticFileCache[path];
   if (!entry) {

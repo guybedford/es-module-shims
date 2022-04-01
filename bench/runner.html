@@ -8,6 +8,7 @@
 
   iframe.src = `https://localhost:${port}/bench/${type.includes('allmapped') ? `generated/${type}-${n}` : type}.html?n=${n}`;
   const donePromise = new Promise(resolve => window.addEventListener('message', evt => { if (evt.data === 'done') resolve() }));
+  await (await fetch('/gc')).text();
 
   start();
   document.body.appendChild(iframe);

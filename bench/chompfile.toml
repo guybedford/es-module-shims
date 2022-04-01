@@ -18,22 +18,22 @@ deps = ['serve:fast', 'serve:cached', 'serve:throttled']
 [[task]]
 name = 'serve:fast'
 env = { PORT = '8000' }
-run = 'node http2-server.js'
+run = 'node --expose-gc http2-server.js'
 
 [[task]]
 name = 'serve:cached'
 env = { PORT = '8001', CACHE = '1' }
-run = 'node http2-server.js'
+run = 'node --expose-gc http2-server.js'
 
 [[task]]
 name = 'serve:throttled'
 env = { PORT = '8002', BANDWIDTH = '750', LATENCY = '25', BROTLI = '11' }
-run = 'node http2-server.js'
+run = 'node --expose-gc http2-server.js'
 
 [[task]]
 name = 'serve:rawthrottled'
 env = { PORT = '8003', BANDWIDTH = '750', LATENCY = '25' }
-run = 'node http2-server.js'
+run = 'node --expose-gc http2-server.js'
 
 [[task]]
 name = 'bench:#'
