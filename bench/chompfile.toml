@@ -1,0 +1,37 @@
+version = 0.1
+
+[[task]]
+targets = ['generated', 'benchmarks']
+deps = ['generate.js']
+run = 'node generate.js'
+
+[[task]]
+name = 'serve:all'
+deps = ['serve:fast', 'serve:cached', 'serve:throttled']
+
+[[task]]
+name = 'serve:fast'
+env = { PORT = '8000' }
+run = 'node http2-server.js'
+
+[[task]]
+name = 'serve:cached'
+env = { PORT = '8001', CACHE = '1' }
+run = 'node http2-server.js'
+
+[[task]]
+name = 'serve:throttled'
+env = { PORT = '8002', BANDWIDTH = '750', LATENCY = '25', BROTLI = '11' }
+run = 'node http2-server.js'
+
+[[task]]
+name = 'serve:rawthrottled'
+env = { PORT = '8003', BANDWIDTH = '750', LATENCY = '25' }
+run = 'node http2-server.js'
+
+[[task]]
+name = 'bench:#'
+target = 'results/#.csv'
+deps = ['benchmarks', 'benchmarks/#.bench.json']
+serial = true
+run = 'node ../node_modules/tachometer/bin/tach --config $DEP --csv-file-raw results/$MATCH.csv'

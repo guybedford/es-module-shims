@@ -91,9 +91,6 @@ import rimraf from 'rimraf';
 // GENERATE BENCHMARKS
 
 {
-  try { await mkdir(new URL('./results', import.meta.url)) }
-  catch {}
-
   try { rimraf.sync(new URL('./benchmarks', import.meta.url)) }
   catch {}
 
