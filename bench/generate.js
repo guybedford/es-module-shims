@@ -51,7 +51,9 @@ import { fileURLToPath } from 'url';
 
   // GENERATE ALLMAPPED TESTS
   for (const n of [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 1000]) {
-    const imports = {};
+    const imports = {
+      mapped: 'data:text/javascript,'
+    };
     for (let i = 1; i <= n; i++) {
       imports[`lib/app.mapped${i}.js`] = `/bench/generated/app.mapped${i}.js`;
       imports[`lib/preact.js?n=${i}`] = `/bench/generated/preact.js?n=${i}`;
@@ -79,7 +81,7 @@ import { fileURLToPath } from 'url';
 </script>
 <script async src="/dist/es-module-shims.js"></script>
 <script type="module">
-  import 'lib/app.mapped1.js';
+  import 'mapped';
   let promises = Array(${n});
   for (let i = 1; i <= ${n}; i++)
     promises.push(import(\`lib/app.mapped\${i}.js\`));
