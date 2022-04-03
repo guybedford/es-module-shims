@@ -435,11 +435,10 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
     load.d = (await Promise.all(load.a[0].map(async ({ n, d }) => {
       if (d >= 0 && !supportsDynamicImport || d === 2 && !supportsImportMeta)
         load.n = true;
-      if (!n) return;
+      if (d !== -1 || !n) return;
       const { r, b } = await resolve(n, load.r || load.u);
       if (b && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
-      if (d !== -1) return;
       if (skip && skip.test(r)) return { b: r };
       if (childFetchOpts.integrity)
         childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
