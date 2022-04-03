@@ -19,8 +19,20 @@ run = 'rm -rf bench/results'
 [[task]]
 name = 'build'
 targets = ['dist/es-module-shims.js', 'dist/es-module-shims.wasm.js']
-deps = ['src/*.js', 'npm:install']
+deps = ['src/*.js', 'npm:install', 'README.md']
 run = 'rollup -c'
+
+[[task]]
+target = 'README.md'
+dep = 'package.json'
+engine = 'node'
+run = '''
+  import { readFileSync, writeFileSync } from 'fs';
+  const { version } = JSON.parse(readFileSync(process.env.DEP, 'utf8'));
+  const source = readFileSync(process.env.TARGET, 'utf8')
+    .replace(/es-module-shims@\d+.\d+.\d+/g, `es-module-shims@${version}`);
+  writeFileSync(process.env.TARGET, source);
+'''
 
 [[task]]
 name = 'footprint'
