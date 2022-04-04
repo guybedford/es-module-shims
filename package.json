@@ -1,6 +1,6 @@
 {
   "name": "es-module-shims",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Shims for the latest ES module features",
   "main": "dist/es-module-shims.js",
   "exports": {
@@ -18,7 +18,7 @@
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-replace": "^2.4.2",
-    "es-module-lexer": "^0.10.4",
+    "es-module-lexer": "^0.10.5",
     "esm": "^3.2.25",
     "kleur": "^4.1.4",
     "mime-types": "^2.1.33",
