@@ -543,16 +543,15 @@ function processScript (script) {
     return;
   script.ep = true;
   // does this load block readystate complete
-  const isReadyScript = readyStateCompleteCnt > 0;
+  const blocksReady = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
   // does this load block DOMContentLoaded
-  const isDomContentLoadedScript = domContentLoadedCnt > 0;
-  if (isReadyScript) readyStateCompleteCnt++;
-  if (isDomContentLoadedScript) domContentLoadedCnt++;
-  const blocks = script.getAttribute('async') === null && isReadyScript;
-  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(throwError);
-  if (blocks)
+  const blocksDomContentLoaded = domContentLoadedCnt > 0;
+  if (blocksReady) readyStateCompleteCnt++;
+  if (blocksDomContentLoaded) domContentLoadedCnt++;
+  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocksReady && lastStaticLoadPromise).catch(throwError);
+  if (blocksReady)
     lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
-  if (isDomContentLoadedScript)
+  if (blocksDomContentLoaded)
     loadPromise.then(domContentLoadedCheck);
 }
 
