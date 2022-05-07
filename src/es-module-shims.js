@@ -500,8 +500,8 @@ if (document.readyState === 'complete') {
 else {
   document.addEventListener('readystatechange', async () => {
     processImportMaps();
-    await initPromise;
-    readyStateCompleteCheck();
+    if (document.readyState === 'complete')
+      readyStateCompleteCheck();
   });
 }
 function readyStateCompleteCheck () {
@@ -543,15 +543,15 @@ function processScript (script) {
     return;
   script.ep = true;
   // does this load block readystate complete
-  const blocksReady = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
+  const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
   // does this load block DOMContentLoaded
-  const blocksDomContentLoaded = domContentLoadedCnt > 0;
-  if (blocksReady) readyStateCompleteCnt++;
-  if (blocksDomContentLoaded) domContentLoadedCnt++;
-  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocksReady && lastStaticLoadPromise).catch(throwError);
-  if (blocksReady)
+  const isDomContentLoadedScript = domContentLoadedCnt > 0;
+  if (isBlockingReadyScript) readyStateCompleteCnt++;
+  if (isDomContentLoadedScript) domContentLoadedCnt++;
+  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isBlockingReadyScript && lastStaticLoadPromise).catch(throwError);
+  if (isBlockingReadyScript)
     lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
-  if (blocksDomContentLoaded)
+  if (isDomContentLoadedScript)
     loadPromise.then(domContentLoadedCheck);
 }
 
