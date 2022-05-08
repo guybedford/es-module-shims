@@ -498,7 +498,8 @@ if (document.readyState === 'complete') {
   readyStateCompleteCheck();
 }
 else {
-  function readyListener () {
+  async function readyListener () {
+    await initPromise;
     processImportMaps();
     if (document.readyState === 'complete') {
       readyStateCompleteCheck();
