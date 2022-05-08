@@ -498,11 +498,14 @@ if (document.readyState === 'complete') {
   readyStateCompleteCheck();
 }
 else {
-  document.addEventListener('readystatechange', async () => {
+  function readyListener () {
     processImportMaps();
-    if (document.readyState === 'complete')
+    if (document.readyState === 'complete') {
       readyStateCompleteCheck();
-  });
+      document.removeEventListener('readystatechange', readyListener);
+    }
+  }
+  document.addEventListener('readystatechange', readyListener);
 }
 function readyStateCompleteCheck () {
   if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
