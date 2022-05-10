@@ -371,7 +371,8 @@ async function fetchModule (url, fetchOpts, parent) {
 
 function getOrCreateLoad (url, fetchOpts, parent, source) {
   let load = registry[url];
-  if (load && !source)
+  const isCache = !disableCacheHook(url, fetchOpts, source)
+  if (load && !source && isCache)
     return load;
 
   load = {

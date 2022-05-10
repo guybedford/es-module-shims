@@ -473,6 +473,8 @@ window.esmsInitOptions = {
   meta: (meta, url) => void // default is noop
   // Hook top-level imports
   onimport: (url, options, parentUrl) => void // default is noop
+  // Hook Determine whether the disable fetch caching
+  disableCacheHook: (url, options, source) => boolean // default is (() => false)
 }
 </script>
 <script async src="es-module-shims.js"></script>
