@@ -28,6 +28,7 @@ export const featureDetectionPromise = Promise.resolve(supportsDynamicImportChec
       };
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
+      iframe.setAttribute('nonce', nonce);
       iframe.srcdoc = `<script type=importmap nonce="${nonce}">{"imports":{"x":"data:text/javascript,"}}<${''}/script><script nonce="${nonce}">import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`;
       document.head.appendChild(iframe);
     })
