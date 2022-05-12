@@ -153,6 +153,20 @@ const initPromise = featureDetectionPromise.then(() => {
     }).observe(document, { childList: true, subtree: true });
     processImportMaps();
     processScriptsAndPreloads();
+    if (document.readyState === 'complete') {
+      readyStateCompleteCheck();
+    }
+    else {
+      async function readyListener () {
+        await initPromise;
+        processImportMaps();
+        if (document.readyState === 'complete') {
+          readyStateCompleteCheck();
+          document.removeEventListener('readystatechange', readyListener);
+        }
+      }
+      document.addEventListener('readystatechange', readyListener);
+    }
     return lexer.init;
   }
 });
@@ -494,20 +508,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 let readyStateCompleteCnt = 1;
-if (document.readyState === 'complete') {
-  readyStateCompleteCheck();
-}
-else {
-  async function readyListener () {
-    await initPromise;
-    processImportMaps();
-    if (document.readyState === 'complete') {
-      readyStateCompleteCheck();
-      document.removeEventListener('readystatechange', readyListener);
-    }
-  }
-  document.addEventListener('readystatechange', readyListener);
-}
 function readyStateCompleteCheck () {
   if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('readystatechange'));
