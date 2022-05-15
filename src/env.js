@@ -30,6 +30,8 @@ export const onpolyfill = esmsInitOptions.onpolyfill ? globalHook(esmsInitOption
   console.log('%c^^ Module TypeError above is polyfilled and can be ignored ^^', 'font-weight:900;color:#391');
 };
 
+export const supports = HTMLScriptElement.supports || (() => type === 'classic' || type === 'module');
+
 export const { revokeBlobURLs, noLoadEventRetriggers, enforceIntegrity } = esmsInitOptions;
 
 function globalHook (name) {
