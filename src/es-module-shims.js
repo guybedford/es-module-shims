@@ -136,8 +136,10 @@ const initPromise = featureDetectionPromise.then(() => {
     }
   }
   baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
-  if (!supportsImportMaps && typeof HTMLScriptElement === 'function')
-    HTMLScriptElement.supports = type => supports(type) || type === 'importmap';
+  if (!supportsImportMaps) {
+    const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
+    HTMLScriptElement.supports = type => type === 'importmap' || supports(type);
+  }
   if (shimMode || !baselinePassthrough) {
     new MutationObserver(mutations => {
       for (const mutation of mutations) {

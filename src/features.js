@@ -1,5 +1,5 @@
 import { dynamicImport, supportsDynamicImportCheck } from './dynamic-import-csp.js';
-import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled, supports } from './env.js';
+import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled } from './env.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsJsonAssertions = false;
@@ -19,7 +19,7 @@ export const featureDetectionPromise = Promise.resolve(supportsDynamicImportChec
     dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, noop),
     cssModulesEnabled && dynamicImport(createBlob('import"data:text/css,{}"assert{type:"css"}')).then(() => supportsCssAssertions = true, noop),
     jsonModulesEnabled && dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true, noop),
-    supports('importmap') || new Promise(resolve => {
+    HTMLScriptElement.supports ? supportsImportMaps = HTMLScriptElement.supports('importmap') : new Promise(resolve => {
       self._$s = v => {
         document.head.removeChild(iframe);
         if (v) supportsImportMaps = true;
