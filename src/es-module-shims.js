@@ -24,8 +24,7 @@ import {
   onpolyfill,
   enforceIntegrity,
   fromParent,
-  esmsInitOptions,
-  supports,
+  esmsInitOptions
 } from './env.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
