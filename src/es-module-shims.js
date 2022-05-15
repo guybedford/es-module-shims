@@ -25,6 +25,7 @@ import {
   enforceIntegrity,
   fromParent,
   esmsInitOptions,
+  supports,
 } from './env.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
