@@ -675,6 +675,8 @@ window.polyfilling = () => console.log('The polyfill is actively applying');
 
 The default hook will log a message to the console with `console.info` noting that polyfill mode is enabled and that the native error can be ignored.
 
+Overriding this hook with an empty function will disable the default polyfill log output.
+
 In the above, running in latest Chromium browsers, nothing will be logged, while running in an older browser that does not support newer features like import maps the console log will be output.
 
 #### Error hook
