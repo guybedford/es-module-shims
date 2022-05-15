@@ -19,7 +19,7 @@ export const featureDetectionPromise = Promise.resolve(supportsDynamicImportChec
     dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, noop),
     cssModulesEnabled && dynamicImport(createBlob('import"data:text/css,{}"assert{type:"css"}')).then(() => supportsCssAssertions = true, noop),
     jsonModulesEnabled && dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true, noop),
-    new Promise(resolve => {
+    HTMLScriptElement.supports ? supportsImportMaps = HTMLScriptElement.supports('importmap') : new Promise(resolve => {
       self._$s = v => {
         document.head.removeChild(iframe);
         if (v) supportsImportMaps = true;
