@@ -153,6 +153,20 @@ const initPromise = featureDetectionPromise.then(() => {
     }).observe(document, { childList: true, subtree: true });
     processImportMaps();
     processScriptsAndPreloads();
+    if (document.readyState === 'complete') {
+      readyStateCompleteCheck();
+    }
+    else {
+      async function readyListener () {
+        await initPromise;
+        processImportMaps();
+        if (document.readyState === 'complete') {
+          readyStateCompleteCheck();
+          document.removeEventListener('readystatechange', readyListener);
+        }
+      }
+      document.addEventListener('readystatechange', readyListener);
+    }
     return lexer.init;
   }
 });
@@ -494,16 +508,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 let readyStateCompleteCnt = 1;
-if (document.readyState === 'complete') {
-  readyStateCompleteCheck();
-}
-else {
-  document.addEventListener('readystatechange', async () => {
-    processImportMaps();
-    await initPromise;
-    readyStateCompleteCheck();
-  });
-}
 function readyStateCompleteCheck () {
   if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('readystatechange'));
@@ -543,14 +547,13 @@ function processScript (script) {
     return;
   script.ep = true;
   // does this load block readystate complete
-  const isReadyScript = readyStateCompleteCnt > 0;
+  const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
   // does this load block DOMContentLoaded
   const isDomContentLoadedScript = domContentLoadedCnt > 0;
-  if (isReadyScript) readyStateCompleteCnt++;
+  if (isBlockingReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
-  const blocks = script.getAttribute('async') === null && isReadyScript;
-  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, blocks && lastStaticLoadPromise).catch(throwError);
-  if (blocks)
+  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isBlockingReadyScript && lastStaticLoadPromise).catch(throwError);
+  if (isBlockingReadyScript)
     lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
   if (isDomContentLoadedScript)
     loadPromise.then(domContentLoadedCheck);
