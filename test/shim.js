@@ -179,6 +179,11 @@ suite('Circular dependencies', function() {
     var m = await importShim('./fixtures/test-cycle.js');
     assert.equal(m.default, 'f');
   });
+
+  test('should support shell update import interleaving', async function () {
+    var m = await importShim('./fixtures/test-self-import.js');
+    assert.equal(m.default(), 5);
+  });
 });
 
 suite('Loading order', function() {

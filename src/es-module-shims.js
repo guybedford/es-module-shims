@@ -246,7 +246,7 @@ function resolveDeps (load, seen) {
   for (const dep of load.d)
     resolveDeps(dep, seen);
 
-  const [imports] = load.a;
+  const [imports, exports] = load.a;
 
   // "execution"
   const source = load.S;
@@ -293,7 +293,7 @@ function resolveDeps (load, seen) {
         resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)}`;
 
         // circular shell execution
-        if (!cycleShell && depLoad.s) {          
+        if (!cycleShell && depLoad.s) {
           resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
           depLoad.s = undefined;
         }
@@ -314,6 +314,11 @@ function resolveDeps (load, seen) {
         dynamicImportEndStack.push(statementEnd - 1);
         lastIndex = start;
       }
+    }
+
+    // support progressive cycle binding updates
+    if (load.s) {
+      resolvedSource += `\n;import{u$_}from'${load.s}';u$_({ ${exports.filter(expt => expt !== 'default').join(',') }});\n`;
     }
 
     pushStringTo(source.length);
