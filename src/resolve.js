@@ -108,7 +108,7 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
 }
 
 export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
-  const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes) };
+  const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes), depcache: Object.assign({}, parentMap.depcache) };
 
   if (json.imports)
     resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null);
@@ -118,6 +118,10 @@ export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
       const resolvedScope = resolveUrl(s, baseUrl);
       resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap);
     }
+
+  if (json.depcache)
+    for (let d in json.depcache)
+      outMap.depcache[resolveUrl(d, baseUrl)] = json.depcache[d];
 
   return outMap;
 }

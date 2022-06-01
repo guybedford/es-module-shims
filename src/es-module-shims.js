@@ -110,7 +110,7 @@ async function loadAll (load, seen) {
     load.n = load.d.some(dep => dep.n);
 }
 
-let importMap = { imports: {}, scopes: {} };
+let importMap = { imports: {}, scopes: {}, depcache: {} };
 let importMapSrcOrLazy = false;
 let baselinePassthrough;
 
@@ -425,6 +425,12 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
   }
   registry[load.u] = load;
 
+  const childFetchOpts = fetchOpts.integrity ? Object.assign({}, fetchOpts, { integrity: undefined }) : fetchOpts;
+
+  const depcache = importMap.depcache[url];
+  if (depcache)
+    depcache.forEach(depUrl => getOrCreateLoad(resolveSync(depUrl, load.r || load.u), childFetchOpts, load.r || load.u));
+
   load.f = (async () => {
     if (!source) {
       // preload fetch options override fetch options (race)
@@ -449,7 +455,6 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
   })();
 
   load.L = load.f.then(async () => {
-    let childFetchOpts = fetchOpts;
     load.d = (await Promise.all(load.a[0].map(async ({ n, d }) => {
       if (d >= 0 && !supportsDynamicImport || d === 2 && !supportsImportMeta)
         load.n = true;
@@ -458,8 +463,6 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
       if (b && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
       if (skip && skip.test(r)) return { b: r };
-      if (childFetchOpts.integrity)
-        childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
       return getOrCreateLoad(r, childFetchOpts, load.r).f;
     }))).filter(l => l);
   });
