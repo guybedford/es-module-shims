@@ -451,7 +451,7 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
     load.d = (await Promise.all(load.a[0].map(async ({ n, d }) => {
-      if (d >= 0 && !supportsDynamicImport || d === 2 && !supportsImportMeta)
+      if (d >= 0 && !supportsDynamicImport || d === -2 && !supportsImportMeta)
         load.n = true;
       if (d !== -1 || !n) return;
       const { r, b } = await resolve(n, load.r || load.u);
