@@ -5,9 +5,8 @@ import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled } from '
 export let supportsJsonAssertions = false;
 export let supportsCssAssertions = false;
 
-export let supportsImportMeta = false;
 export let supportsImportMaps = HTMLScriptElement.supports ? HTMLScriptElement.supports('importmap') : false;
-
+export let supportsImportMeta = supportsImportMaps;
 export let supportsDynamicImport = false;
 
 export const featureDetectionPromise = Promise.resolve(supportsImportMaps || supportsDynamicImportCheck).then(_supportsDynamicImport => {
