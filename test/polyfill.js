@@ -21,6 +21,7 @@ suite('Polyfill tests', () => {
     throw new Error('Should fail');
   });
 
+  if (!navigator.userAgent.includes('Firefox/60.0') && !navigator.userAgent.includes('Firefox/67.0'))
   test('should support css imports', async function () {
     await importShim('./fixtures/css-assertion.js');
     assert.equal(window.cssAssertion, true);

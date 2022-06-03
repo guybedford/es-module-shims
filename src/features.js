@@ -5,21 +5,20 @@ import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled } from '
 export let supportsJsonAssertions = false;
 export let supportsCssAssertions = false;
 
-export let supportsImportMeta = false;
-export let supportsImportMaps = false;
-
+export let supportsImportMaps = HTMLScriptElement.supports ? HTMLScriptElement.supports('importmap') : false;
+export let supportsImportMeta = supportsImportMaps;
 export let supportsDynamicImport = false;
 
-export const featureDetectionPromise = Promise.resolve(supportsDynamicImportCheck).then(_supportsDynamicImport => {
+export const featureDetectionPromise = Promise.resolve(supportsImportMaps || supportsDynamicImportCheck).then(_supportsDynamicImport => {
   if (!_supportsDynamicImport)
     return;
   supportsDynamicImport = true;
 
   return Promise.all([
-    dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, noop),
+    supportsImportMaps || dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, noop),
     cssModulesEnabled && dynamicImport(createBlob('import"data:text/css,{}"assert{type:"css"}')).then(() => supportsCssAssertions = true, noop),
     jsonModulesEnabled && dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true, noop),
-    HTMLScriptElement.supports ? supportsImportMaps = HTMLScriptElement.supports('importmap') : new Promise(resolve => {
+    supportsImportMaps || new Promise(resolve => {
       self._$s = v => {
         document.head.removeChild(iframe);
         if (v) supportsImportMaps = true;
