@@ -28,10 +28,10 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       iframe.setAttribute('nonce', nonce);
+      document.head.appendChild(iframe);
       // we use document.write here because eg Weixin built-in browser doesn't support setting srcdoc
       // setting src to an object URL is not supported in React native webviews on iOS
       iframe.contentWindow.document.write(`<script type=importmap nonce="${nonce}">{"imports":{"x":"data:text/javascript,"}}<${''}/script><script nonce="${nonce}">import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`);
-      document.head.appendChild(iframe);
     })
   ]);
 });
