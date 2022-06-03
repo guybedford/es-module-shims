@@ -10,7 +10,7 @@ export let supportsImportMaps = HTMLScriptElement.supports ? HTMLScriptElement.s
 
 export let supportsDynamicImport = false;
 
-export const featureDetectionPromise = Promise.resolve(supportsDynamicImportCheck).then(_supportsDynamicImport => {
+export const featureDetectionPromise = Promise.resolve(supportsImportMaps || supportsDynamicImportCheck).then(_supportsDynamicImport => {
   if (!_supportsDynamicImport)
     return;
   supportsDynamicImport = true;
