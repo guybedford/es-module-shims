@@ -1,4 +1,4 @@
-import { createBlob, baseUrl, nonce } from './env.js';
+import { createBlob, baseUrl, nonce, hasDocument } from './env.js';
 
 export let supportsDynamicImportCheck = false;
 
@@ -9,7 +9,7 @@ try {
 }
 catch (e) {}
 
-if (!supportsDynamicImportCheck) {
+if (hasDocument && !supportsDynamicImportCheck) {
   let err;
   window.addEventListener('error', _err => err = _err);
   dynamicImport = (url, { errUrl = url }) => {

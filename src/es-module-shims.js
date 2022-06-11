@@ -24,7 +24,8 @@ import {
   onpolyfill,
   enforceIntegrity,
   fromParent,
-  esmsInitOptions
+  esmsInitOptions,
+  hasDocument
 } from './env.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
@@ -97,6 +98,7 @@ function metaResolve (id, parentUrl = this.url) {
 
 importShim.resolve = resolveSync;
 importShim.getImportMap = () => JSON.parse(JSON.stringify(importMap));
+importShim.setImportMap = (importMapIn) => Object.assign(importMap, JSON.parse(JSON.stringify(importMapIn)));
 
 const registry = importShim._r = {};
 
@@ -135,41 +137,42 @@ const initPromise = featureDetectionPromise.then(() => {
     }
   }
   baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
-  if (!supportsImportMaps) {
+  if (hasDocument && !supportsImportMaps) {
     const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
     HTMLScriptElement.supports = type => type === 'importmap' || supports(type);
   }
   if (shimMode || !baselinePassthrough) {
-    new MutationObserver(mutations => {
-      for (const mutation of mutations) {
-        if (mutation.type !== 'childList') continue;
-        for (const node of mutation.addedNodes) {
-          if (node.tagName === 'SCRIPT') {
-            if (node.type === (shimMode ? 'module-shim' : 'module'))
-              processScript(node);
-            if (node.type === (shimMode ? 'importmap-shim' : 'importmap'))
-              processImportMap(node);
+    if (hasDocument) {
+      new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+          if (mutation.type !== 'childList') continue;
+          for (const node of mutation.addedNodes) {
+            if (node.tagName === 'SCRIPT') {
+              if (node.type === (shimMode ? 'module-shim' : 'module'))
+                processScript(node);
+              if (node.type === (shimMode ? 'importmap-shim' : 'importmap'))
+                processImportMap(node);
+            } else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload'))
+              processPreload(node);
           }
-          else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload'))
-            processPreload(node);
         }
-      }
-    }).observe(document, { childList: true, subtree: true });
-    processImportMaps();
-    processScriptsAndPreloads();
-    if (document.readyState === 'complete') {
-      readyStateCompleteCheck();
-    }
-    else {
-      async function readyListener () {
-        await initPromise;
-        processImportMaps();
-        if (document.readyState === 'complete') {
-          readyStateCompleteCheck();
-          document.removeEventListener('readystatechange', readyListener);
+      }).observe(document, {childList: true, subtree: true});
+      processImportMaps();
+      processScriptsAndPreloads();
+      if (document.readyState === 'complete') {
+        readyStateCompleteCheck();
+      } else {
+        async function readyListener() {
+          await initPromise;
+          processImportMaps();
+          if (document.readyState === 'complete') {
+            readyStateCompleteCheck();
+            document.removeEventListener('readystatechange', readyListener);
+          }
         }
+
+        document.addEventListener('readystatechange', readyListener);
       }
-      document.addEventListener('readystatechange', readyListener);
     }
     return lexer.init;
   }
@@ -252,7 +255,7 @@ function resolveDeps (load, seen) {
   const source = load.S;
 
   // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
-  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';  
+  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';
 
   if (!imports.length) {
     resolvedSource += source;
@@ -293,7 +296,7 @@ function resolveDeps (load, seen) {
         resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)}`;
 
         // circular shell execution
-        if (!cycleShell && depLoad.s) {          
+        if (!cycleShell && depLoad.s) {
           resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
           depLoad.s = undefined;
         }
@@ -380,8 +383,8 @@ async function fetchModule (url, fetchOpts, parent) {
     return { r: res.url, s: `export default ${await res.text()}`, t: 'json' };
   else if (cssContentType.test(contentType)) {
     return { r: res.url, s: `var s=new CSSStyleSheet();s.replaceSync(${
-      JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes = '', relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
-    });export default s;`, t: 'css' };
+        JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes = '', relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
+      });export default s;`, t: 'css' };
   }
   else
     throw Error(`Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`);
@@ -468,6 +471,8 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
 }
 
 function processScriptsAndPreloads () {
+  if (!hasDocument) return;
+
   for (const script of document.querySelectorAll(shimMode ? 'script[type=module-shim]' : 'script[type=module]'))
     processScript(script);
   for (const link of document.querySelectorAll(shimMode ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]'))
@@ -475,6 +480,8 @@ function processScriptsAndPreloads () {
 }
 
 function processImportMaps () {
+  if (!hasDocument) return;
+
   for (const script of document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]'))
     processImportMap(script);
 }
@@ -502,14 +509,16 @@ function domContentLoadedCheck () {
     document.dispatchEvent(new Event('DOMContentLoaded'));
 }
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
-document.addEventListener('DOMContentLoaded', async () => {
-  await initPromise;
-  domContentLoadedCheck();
-  if (shimMode || !baselinePassthrough) {
-    processImportMaps();
-    processScriptsAndPreloads();
-  }
-});
+if(hasDocument) {
+  document.addEventListener('DOMContentLoaded', async () => {
+    await initPromise;
+    domContentLoadedCheck();
+    if (shimMode || !baselinePassthrough) {
+      processImportMaps();
+      processScriptsAndPreloads();
+    }
+  });
+}
 
 let readyStateCompleteCnt = 1;
 function readyStateCompleteCheck () {
