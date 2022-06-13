@@ -423,6 +423,29 @@ var resolvedUrl = import.meta.resolve('dep', 'https://site.com/another/scope');
 
 Node.js also implements a similar API, although it's in the process of shifting to a synchronous resolver.
 
+### Module Workers
+ES Module Shims can be used in module workers in browsers that provide dynamic import in worker environments, which at the moment are Chrome(80+), Edge(80+), Safari(15+).
+
+An example of ES Module Shims usage in web workers is provided below:
+```js
+/**
+ * 
+ * @param {string} aURL a string representing the URL of the module script the worker will execute.
+ * @returns {string} The string representing the URL of the script the worker will execute.
+ */
+function getWorkerScriptURL(aURL) {
+  // baseURL, esModuleShimsURL are considered to be known in advance
+  // esModuleShimsURL - must point to the non-CSP build of ES Module Shims, namely the `es-module-shim.wasm.js` output: es-module-shims/dist/es-module-shims.wasm.js
+
+  return URL.createObjectURL(new Blob(
+    [`importScripts('${new URL(esModuleShimsURL, baseURL).href}');importShim.setImportMap(${JSON.stringify(importShim.getImportMap())});importShim('${new URL(aURL, baseURL).href}').catch(e=>setTimeout(()=>{throw e}))`],
+    { type: 'application/javascript' }))
+}
+
+const worker = new Worker(getWorkerScriptURL('myEsModule.js'));
+```
+> For now, in web workers must be used the non-CSP build of ES Module Shims, namely the `es-module-shim.wasm.js` output.
+
 ## Init Options
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:

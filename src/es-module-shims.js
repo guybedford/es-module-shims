@@ -68,7 +68,9 @@ async function importShim (id, ...args) {
   await initPromise;
   if (importHook) await importHook(id, typeof args[1] !== 'string' ? args[1] : {}, parentUrl);
   if (acceptingImportMaps || shimMode || !baselinePassthrough) {
-    processImportMaps();
+    if (hasDocument)
+      processImportMaps();
+
     if (!shimMode)
       acceptingImportMaps = false;
   }
@@ -471,8 +473,6 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
 }
 
 function processScriptsAndPreloads () {
-  if (!hasDocument) return;
-
   for (const script of document.querySelectorAll(shimMode ? 'script[type=module-shim]' : 'script[type=module]'))
     processScript(script);
   for (const link of document.querySelectorAll(shimMode ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]'))
@@ -480,8 +480,6 @@ function processScriptsAndPreloads () {
 }
 
 function processImportMaps () {
-  if (!hasDocument) return;
-
   for (const script of document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]'))
     processImportMap(script);
 }
@@ -509,7 +507,7 @@ function domContentLoadedCheck () {
     document.dispatchEvent(new Event('DOMContentLoaded'));
 }
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
-if(hasDocument) {
+if (hasDocument) {
   document.addEventListener('DOMContentLoaded', async () => {
     await initPromise;
     domContentLoadedCheck();
