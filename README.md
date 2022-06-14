@@ -292,10 +292,21 @@ While in polyfill mode the same restrictions apply that multiple import maps, im
 To make it easy to keep track of import map state, es-module-shims provides a `importShim.getImportMap` utility function, available only in shim mode.
 
 ```js
-const importMap = importShim.getImportMap()
+const importMap = importShim.getImportMap();
 
 // importMap will be an object in the same shape as the json in a importmap script
 ```
+
+#### Setting current import map state
+To make it easy to set the import map state, es-module-shims provides a `importShim.setImportMap` utility function, available only in shim mode.
+
+```js
+// importMap will be an object in the same shape as the json in a importmap script
+const importMap = { imports: {/*...*/}, scopes: {/*...*/} };
+
+importShim.setImportMap(importMap);
+```
+
 
 ### Dynamic Import
 
@@ -435,16 +446,21 @@ An example of ES Module Shims usage in web workers is provided below:
  */
 function getWorkerScriptURL(aURL) {
   // baseURL, esModuleShimsURL are considered to be known in advance
-  // esModuleShimsURL - must point to the non-CSP build of ES Module Shims, namely the `es-module-shim.wasm.js` output: es-module-shims/dist/es-module-shims.wasm.js
+  // esModuleShimsURL - must point to the non-CSP build of ES Module Shims, 
+  // namely the `es-module-shim.wasm.js` output: es-module-shims/dist/es-module-shims.wasm.js
 
   return URL.createObjectURL(new Blob(
-    [`importScripts('${new URL(esModuleShimsURL, baseURL).href}');importShim.setImportMap(${JSON.stringify(importShim.getImportMap())});importShim('${new URL(aURL, baseURL).href}').catch(e=>setTimeout(()=>{throw e}))`],
+    [
+      `importScripts('${new URL(esModuleShimsURL, baseURL).href}');
+      importShim.setImportMap(${JSON.stringify(importShim.getImportMap())});
+      importShim('${new URL(aURL, baseURL).href}').catch(e => setTimeout(() => { throw e; }))`
+    ],
     { type: 'application/javascript' }))
 }
 
 const worker = new Worker(getWorkerScriptURL('myEsModule.js'));
 ```
-> For now, in web workers must be used the non-CSP build of ES Module Shims, namely the `es-module-shim.wasm.js` output.
+> For now, in web workers must be used the non-CSP build of ES Module Shims, namely the `es-module-shim.wasm.js` output: es-module-shims/dist/es-module-shims.wasm.js.
 
 ## Init Options
 

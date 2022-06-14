@@ -100,7 +100,10 @@ function metaResolve (id, parentUrl = this.url) {
 
 importShim.resolve = resolveSync;
 importShim.getImportMap = () => JSON.parse(JSON.stringify(importMap));
-importShim.setImportMap = (importMapIn) => Object.assign(importMap, JSON.parse(JSON.stringify(importMapIn)));
+importShim.setImportMap = importMapIn => {
+  if (!shimMode) throw new Error('Unsupported in polyfill mode.');
+  importMap = JSON.parse(JSON.stringify(importMapIn));
+}
 
 const registry = importShim._r = {};
 
@@ -139,12 +142,13 @@ const initPromise = featureDetectionPromise.then(() => {
     }
   }
   baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
-  if (hasDocument && !supportsImportMaps) {
-    const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
-    HTMLScriptElement.supports = type => type === 'importmap' || supports(type);
-  }
-  if (shimMode || !baselinePassthrough) {
-    if (hasDocument) {
+  if (hasDocument) {
+    if (!supportsImportMaps) {
+      const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
+      HTMLScriptElement.supports = type => type === 'importmap' || supports(type);
+    }
+
+    if (shimMode || !baselinePassthrough) {
       new MutationObserver(mutations => {
         for (const mutation of mutations) {
           if (mutation.type !== 'childList') continue;
@@ -154,7 +158,8 @@ const initPromise = featureDetectionPromise.then(() => {
                 processScript(node);
               if (node.type === (shimMode ? 'importmap-shim' : 'importmap'))
                 processImportMap(node);
-            } else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload'))
+            }
+            else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload'))
               processPreload(node);
           }
         }
@@ -163,7 +168,8 @@ const initPromise = featureDetectionPromise.then(() => {
       processScriptsAndPreloads();
       if (document.readyState === 'complete') {
         readyStateCompleteCheck();
-      } else {
+      }
+      else {
         async function readyListener() {
           await initPromise;
           processImportMaps();
@@ -172,12 +178,11 @@ const initPromise = featureDetectionPromise.then(() => {
             document.removeEventListener('readystatechange', readyListener);
           }
         }
-
         document.addEventListener('readystatechange', readyListener);
       }
     }
-    return lexer.init;
   }
+  return lexer.init;
 });
 let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
