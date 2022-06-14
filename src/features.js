@@ -1,11 +1,11 @@
 import { dynamicImport, supportsDynamicImportCheck } from './dynamic-import-csp.js';
-import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled } from './env.js';
+import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled, hasDocument } from './env.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsJsonAssertions = false;
 export let supportsCssAssertions = false;
 
-export let supportsImportMaps = HTMLScriptElement.supports ? HTMLScriptElement.supports('importmap') : false;
+export let supportsImportMaps = hasDocument && HTMLScriptElement.supports ? HTMLScriptElement.supports('importmap') : false;
 export let supportsImportMeta = supportsImportMaps;
 export let supportsDynamicImport = false;
 
@@ -18,7 +18,7 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
     supportsImportMaps || dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, noop),
     cssModulesEnabled && dynamicImport(createBlob('import"data:text/css,{}"assert{type:"css"}')).then(() => supportsCssAssertions = true, noop),
     jsonModulesEnabled && dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true, noop),
-    supportsImportMaps || new Promise(resolve => {
+    supportsImportMaps || (hasDocument && new Promise(resolve => {
       self._$s = v => {
         document.head.removeChild(iframe);
         if (v) supportsImportMaps = true;
@@ -33,6 +33,6 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
       // setting src to a blob URL results in a navigation event in webviews
       // setting srcdoc is not supported in React native webviews on iOS
       iframe.contentWindow.document.write(`<script type=importmap nonce="${nonce}">{"imports":{"x":"data:text/javascript,"}}<${''}/script><script nonce="${nonce}">import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`);
-    })
+    }))
   ]);
 });

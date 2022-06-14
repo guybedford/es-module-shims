@@ -1,12 +1,14 @@
+export const hasWindow = typeof window !== 'undefined';
+export const hasDocument = typeof document !== 'undefined';
 
 export const noop = () => {};
 
-const optionsScript = document.querySelector('script[type=esms-options]');
+const optionsScript = hasDocument ? document.querySelector('script[type=esms-options]') : undefined;
 
 export const esmsInitOptions = optionsScript ? JSON.parse(optionsScript.innerHTML) : {};
 Object.assign(esmsInitOptions, self.esmsInitOptions || {});
 
-export let shimMode = !!esmsInitOptions.shimMode;
+export let shimMode = hasDocument ? !!esmsInitOptions.shimMode : true;
 
 export const importHook = globalHook(shimMode && esmsInitOptions.onimport);
 export const resolveHook = globalHook(shimMode && esmsInitOptions.resolve);
@@ -19,7 +21,7 @@ export let nonce = esmsInitOptions.nonce;
 
 export const mapOverrides = esmsInitOptions.mapOverrides;
 
-if (!nonce) {
+if (!nonce && hasDocument) {
   const nonceElement = document.querySelector('script[nonce]');
   if (nonceElement)
     nonce = nonceElement.nonce || nonceElement.getAttribute('nonce');
@@ -46,7 +48,11 @@ export function setShimMode () {
 
 export const edge = !navigator.userAgentData && !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
 
-export const baseUrl = document.baseURI;
+export const baseUrl = hasDocument
+  ? document.baseURI
+  : `${location.protocol}//${location.host}${location.pathname.includes('/') 
+    ? location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1) 
+    : location.pathname}`;
 
 export function createBlob (source, type = 'text/javascript') {
   return URL.createObjectURL(new Blob([source], { type }));
@@ -54,7 +60,7 @@ export function createBlob (source, type = 'text/javascript') {
 
 const eoop = err => setTimeout(() => { throw err });
 
-export const throwError = err => { (window.reportError || window.safari && console.error || eoop)(err), void onerror(err) };
+export const throwError = err => { (self.reportError || hasWindow && window.safari && console.error || eoop)(err), void onerror(err) };
 
 export function fromParent (parent) {
   return parent ? ` imported from ${parent}` : '';
