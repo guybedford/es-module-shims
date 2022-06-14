@@ -298,13 +298,13 @@ const importMap = importShim.getImportMap();
 ```
 
 #### Setting current import map state
-To make it easy to set the import map state, es-module-shims provides a `importShim.extendImportMap` utility function, available only in shim mode.
+To make it easy to set the import map state, es-module-shims provides a `importShim.addImportMap` utility function, available only in shim mode.
 
 ```js
 // importMap will be an object in the same shape as the json in a importmap script
 const importMap = { imports: {/*...*/}, scopes: {/*...*/} };
 
-importShim.extendImportMap(importMap);
+importShim.addImportMap(importMap);
 ```
 
 
@@ -452,7 +452,7 @@ function getWorkerScriptURL(aURL) {
   return URL.createObjectURL(new Blob(
     [
       `importScripts('${new URL(esModuleShimsURL, baseURL).href}');
-      importShim.setImportMap(${JSON.stringify(importShim.getImportMap())});
+      importShim.addImportMap(${JSON.stringify(importShim.getImportMap())});
       importShim('${new URL(aURL, baseURL).href}').catch(e => setTimeout(() => { throw e; }))`
     ],
     { type: 'application/javascript' }))

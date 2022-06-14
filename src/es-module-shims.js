@@ -100,7 +100,7 @@ function metaResolve (id, parentUrl = this.url) {
 
 importShim.resolve = resolveSync;
 importShim.getImportMap = () => JSON.parse(JSON.stringify(importMap));
-importShim.extendImportMap = importMapIn => {
+importShim.addImportMap = importMapIn => {
   if (!shimMode) throw new Error('Unsupported in polyfill mode.');
   importMap = resolveAndComposeImportMap(importMapIn, pageBaseUrl, importMap);
 }
