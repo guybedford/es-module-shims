@@ -298,13 +298,13 @@ const importMap = importShim.getImportMap();
 ```
 
 #### Setting current import map state
-To make it easy to set the import map state, es-module-shims provides a `importShim.setImportMap` utility function, available only in shim mode.
+To make it easy to set the import map state, es-module-shims provides a `importShim.extendImportMap` utility function, available only in shim mode.
 
 ```js
 // importMap will be an object in the same shape as the json in a importmap script
 const importMap = { imports: {/*...*/}, scopes: {/*...*/} };
 
-importShim.setImportMap(importMap);
+importShim.extendImportMap(importMap);
 ```
 
 
