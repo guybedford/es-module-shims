@@ -18,7 +18,7 @@ interface ESMSInitOptions {
   /**
    * Disable retriggering of document readystate
    */
-  noLoadEventRetriggers: true,
+  noLoadEventRetriggers: true;
 
   /**
    * #### Skip Processing Stability
@@ -45,24 +45,28 @@ interface ESMSInitOptions {
 
   /**
    * #### Error hook
-   * 
+   *
    * Register a callback for any ES Module Shims module errors.
-   * 
+   *
    */
   onerror: (e: any) => any;
 
   /**
    * #### Resolve Hook
-   * 
+   *
    * Only supported in Shim Mode.
-   * 
+   *
    * Provide a custom resolver function.
    */
-  resolve: (id: string, parentUrl: string, resolve: (id: string, parentUrl: string) => string) => string | Promise<string>;
+  resolve: (
+    id: string,
+    parentUrl: string,
+    resolve: (id: string, parentUrl: string) => string
+  ) => string | Promise<string>;
 
   /**
    * #### Fetch Hook
-   * 
+   *
    * Only supported in Shim Mode.
    *
    * > Stability: Non-spec feature
@@ -126,12 +130,17 @@ interface ESMSInitOptions {
 
   /**
    * #### Revoke Blob URLs
-   * 
+   *
    * Set to *true* to cleanup blob URLs from memory after execution.
    * Can cost some compute time for large loads.
-   * 
+   *
    */
   revokeBlobURLs: boolean;
+}
+
+interface ImportMap {
+  imports: Record<string, string>;
+  scopes: Record<string, Record<string, string>>;
 }
 
 /**
@@ -150,6 +159,12 @@ declare function importShim<Default, Exports extends object>(
   specifier: string,
   parentUrl?: string
 ): Promise<{ default: Default } & Exports>;
+
+declare namespace importShim {
+  const resolve: (id: string, parentURL?: string) => string;
+  const addImportMap: (importMap: Partial<ImportMap>) => void;
+  const getImportMap: () => ImportMap;
+}
 
 interface Window {
   esmsInitOptions?: ESMSInitOptions;
