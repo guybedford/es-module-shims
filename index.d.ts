@@ -1,5 +1,3 @@
-import type { parse } from "es-module-lexer";
-
 interface ESMSInitOptions {
   /**
    * Enable Shim Mode
@@ -145,40 +143,6 @@ interface ImportMap {
   scopes: Record<string, Record<string, string>>;
 }
 
-type ResolveFn = (id: string, parentURL?: string) => string;
-
-interface RegistryLoad {
-  /** URL */
-  u: string;
-  /** Response URL */
-  r: string | undefined;
-  /** Fetch Promise */
-  f: Promise<RegistryLoad> | undefined;
-  /** Source */
-  S: string | undefined;
-  /** Link Promise */
-  L: Promise<void> | undefined;
-  /** Analysis */
-  a: ReturnType<typeof parse> | undefined;
-  /** Deps */
-  d:
-    | (RegistryLoad | Pick<RegistryLoad, "r" | "b"> | Pick<RegistryLoad, "b">)[]
-    | undefined;
-  /** Blob URL */
-  b: string | undefined;
-  /** Shell URL */
-  s: string | undefined;
-  /** Needs shim */
-  n: boolean;
-  /**
-   * Module type
-   * @deprecated This field is never set.
-   */
-  t: null;
-  /** The import.meta value. */
-  m: { url: string; resolve: ResolveFn } | null;
-}
-
 /**
  * Dynamic import(...) within any modules loaded will be rewritten as
  * importShim(...) automatically providing full support for all es-module-shims
@@ -197,9 +161,7 @@ declare function importShim<Default, Exports extends object>(
 ): Promise<{ default: Default } & Exports>;
 
 declare namespace importShim {
-  /** The internal registry used to track shimmed modules. */
-  const _r: Record<string, RegistryLoad>;
-  const resolve: ResolveFn;
+  const resolve: (id: string, parentURL?: string) => string;
   const addImportMap: (importMap: Partial<ImportMap>) => void;
   const getImportMap: () => ImportMap;
 }
