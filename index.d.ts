@@ -1,3 +1,5 @@
+import type { parse } from "es-module-lexer";
+
 interface ESMSInitOptions {
   /**
    * Enable Shim Mode
@@ -18,7 +20,7 @@ interface ESMSInitOptions {
   /**
    * Disable retriggering of document readystate
    */
-  noLoadEventRetriggers: true,
+  noLoadEventRetriggers: true;
 
   /**
    * #### Skip Processing Stability
@@ -45,24 +47,28 @@ interface ESMSInitOptions {
 
   /**
    * #### Error hook
-   * 
+   *
    * Register a callback for any ES Module Shims module errors.
-   * 
+   *
    */
   onerror: (e: any) => any;
 
   /**
    * #### Resolve Hook
-   * 
+   *
    * Only supported in Shim Mode.
-   * 
+   *
    * Provide a custom resolver function.
    */
-  resolve: (id: string, parentUrl: string, resolve: (id: string, parentUrl: string) => string) => string | Promise<string>;
+  resolve: (
+    id: string,
+    parentUrl: string,
+    resolve: (id: string, parentUrl: string) => string
+  ) => string | Promise<string>;
 
   /**
    * #### Fetch Hook
-   * 
+   *
    * Only supported in Shim Mode.
    *
    * > Stability: Non-spec feature
@@ -126,12 +132,51 @@ interface ESMSInitOptions {
 
   /**
    * #### Revoke Blob URLs
-   * 
+   *
    * Set to *true* to cleanup blob URLs from memory after execution.
    * Can cost some compute time for large loads.
-   * 
+   *
    */
   revokeBlobURLs: boolean;
+}
+
+interface ImportMap {
+  imports: Record<string, string>;
+  scopes: Record<string, Record<string, string>>;
+}
+
+type ResolveFn = (id: string, parentURL?: string) => string;
+
+interface RegistryLoad {
+  /** URL */
+  u: string;
+  /** Response URL */
+  r: string | undefined;
+  /** Fetch Promise */
+  f: Promise<RegistryLoad> | undefined;
+  /** Source */
+  S: string | undefined;
+  /** Link Promise */
+  L: Promise<void> | undefined;
+  /** Analysis */
+  a: ReturnType<typeof parse> | undefined;
+  /** Deps */
+  d:
+    | (RegistryLoad | Pick<RegistryLoad, "r" | "b"> | Pick<RegistryLoad, "b">)[]
+    | undefined;
+  /** Blob URL */
+  b: string | undefined;
+  /** Shell URL */
+  s: string | undefined;
+  /** Needs shim */
+  n: boolean;
+  /**
+   * Module type
+   * @deprecated This field is never set.
+   */
+  t: null;
+  /** The import.meta value. */
+  m: { url: string; resolve: ResolveFn } | null;
 }
 
 /**
@@ -150,6 +195,14 @@ declare function importShim<Default, Exports extends object>(
   specifier: string,
   parentUrl?: string
 ): Promise<{ default: Default } & Exports>;
+
+declare namespace importShim {
+  /** The internal registry used to track shimmed modules. */
+  const _r: Record<string, RegistryLoad>;
+  const resolve: ResolveFn;
+  const addImportMap: (importMap: Partial<ImportMap>) => void;
+  const getImportMap: () => ImportMap;
+}
 
 interface Window {
   esmsInitOptions?: ESMSInitOptions;
