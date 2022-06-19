@@ -1,4 +1,4 @@
-import { createBlob, baseUrl, nonce, hasDocument } from './env.js';
+import { createBlob, baseUrl, hasDocument } from './env.js';
 
 export let supportsDynamicImportCheck = false;
 
