@@ -19,12 +19,6 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
     cssModulesEnabled && dynamicImport(createBlob(`import"${createBlob('', 'text/css')}"assert{type:"css"}`)).then(() => supportsCssAssertions = true, noop),
     jsonModulesEnabled && dynamicImport(createBlob(`import"${createBlob('{}', 'text/json')}"assert{type:"json"}`)).then(() => supportsJsonAssertions = true, noop),
     supportsImportMaps || hasDocument && (HTMLScriptElement.supports || new Promise(resolve => {
-      self._$s = v => {
-        document.head.removeChild(iframe);
-        supportsImportMaps = v;
-        delete self._$s;
-        resolve();
-      };
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       iframe.setAttribute('nonce', nonce);
@@ -34,8 +28,14 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
       iframe.srcdoc = `<!doctype html><script nonce="${nonce}"><${''}/script>`;
       document.head.appendChild(iframe);
       iframe.contentWindow.addEventListener('DOMContentLoaded', () => {
+        self._$s = v => {
+          document.head.removeChild(iframe);
+          supportsImportMaps = v;
+          delete self._$s;
+          resolve();
+        };
         const supportsSrcDoc = iframe.contentDocument.head.childNodes.length > 0;
-        const importMapTest = `<!doctype html><script type=importmap nonce="${nonce}">{"imports":{"x":"${createBlob('')}"}<${''}/script><script nonce="${nonce}">import('x').then(()=>true,()=>false).then(v=>parent._$s(v))<${''}/script>`;
+        const importMapTest = `<!doctype html><script type=importmap nonce="${nonce}">{"imports":{"x":"${createBlob('')}"}<${''}/script><script nonce="${nonce}">import('x').catch(() => {}).then(v=>parent._$s(!!v))<${''}/script>`;
         if (supportsSrcDoc)
           iframe.srcdoc = importMapTest;
         else
