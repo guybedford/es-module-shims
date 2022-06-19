@@ -17,10 +17,9 @@ export const metaHook = esmsInitOptions.meta ? globalHook(shimModule && esmsInit
 
 export const skip = esmsInitOptions.skip ? new RegExp(esmsInitOptions.skip) : null;
 
-export let nonce = esmsInitOptions.nonce;
-
 export const mapOverrides = esmsInitOptions.mapOverrides;
 
+export let nonce = esmsInitOptions.nonce;
 if (!nonce && hasDocument) {
   const nonceElement = document.querySelector('script[nonce]');
   if (nonceElement)

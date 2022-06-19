@@ -1,7 +1,16 @@
-import { createBlob, baseUrl, nonce, hasDocument } from './env.js';
+import { createBlob, baseUrl, hasDocument } from './env.js';
 
 export let supportsDynamicImportCheck = false;
 
+// first check basic eval support
+try {
+  eval('');
+}
+catch (e) {
+  throw new Error(`The ES Module Shims Wasm build will not work without eval support. Either use the alternative CSP-compatible build or make sure to add both the "unsafe-eval" and "unsafe-wasm-eval" CSP policies.`);
+}
+
+// polyfill dynamic import if not supported
 export let dynamicImport;
 try {
   dynamicImport = (0, eval)('u=>import(u)');
@@ -17,7 +26,6 @@ if (hasDocument && !supportsDynamicImportCheck) {
     const src = createBlob(`import*as m from'${url}';self._esmsi=m;`);
     const s = Object.assign(document.createElement('script'), { type: 'module', src });
     s.setAttribute('noshim', '');
-    s.setAttribute('nonce', nonce);
     document.head.appendChild(s);
     return new Promise((resolve, reject) => {
       s.addEventListener('load', () => {

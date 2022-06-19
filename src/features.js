@@ -16,23 +16,31 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
 
   return Promise.all([
     supportsImportMaps || dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, noop),
-    cssModulesEnabled && dynamicImport(createBlob('import"data:text/css,{}"assert{type:"css"}')).then(() => supportsCssAssertions = true, noop),
-    jsonModulesEnabled && dynamicImport(createBlob('import"data:text/json,{}"assert{type:"json"}')).then(() => supportsJsonAssertions = true, noop),
-    supportsImportMaps || (hasDocument && new Promise(resolve => {
-      self._$s = v => {
-        document.head.removeChild(iframe);
-        if (v) supportsImportMaps = true;
-        delete self._$s;
-        resolve();
-      };
+    cssModulesEnabled && dynamicImport(createBlob(`import"${createBlob('', 'text/css')}"assert{type:"css"}`)).then(() => supportsCssAssertions = true, noop),
+    jsonModulesEnabled && dynamicImport(createBlob(`import"${createBlob('{}', 'text/json')}"assert{type:"json"}`)).then(() => supportsJsonAssertions = true, noop),
+    supportsImportMaps || hasDocument && (HTMLScriptElement.supports || new Promise(resolve => {
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       iframe.setAttribute('nonce', nonce);
-      document.head.appendChild(iframe);
-      // we use document.write here because eg Weixin built-in browser doesn't support setting srcdoc
       // setting src to a blob URL results in a navigation event in webviews
       // setting srcdoc is not supported in React native webviews on iOS
-      iframe.contentWindow.document.write(`<script type=importmap nonce="${nonce}">{"imports":{"x":"data:text/javascript,"}}<${''}/script><script nonce="${nonce}">import('x').then(()=>1,()=>0).then(v=>parent._$s(v))<${''}/script>`);
+      // therefore, we need to first feature detect srcdoc support
+      iframe.srcdoc = `<!doctype html><script nonce="${nonce}"><${''}/script>`;
+      document.head.appendChild(iframe);
+      iframe.contentWindow.addEventListener('DOMContentLoaded', () => {
+        self._$s = v => {
+          document.head.removeChild(iframe);
+          supportsImportMaps = v;
+          delete self._$s;
+          resolve();
+        };
+        const supportsSrcDoc = iframe.contentDocument.head.childNodes.length > 0;
+        const importMapTest = `<!doctype html><script type=importmap nonce="${nonce}">{"imports":{"x":"${createBlob('')}"}<${''}/script><script nonce="${nonce}">import('x').catch(() => {}).then(v=>parent._$s(!!v))<${''}/script>`;
+        if (supportsSrcDoc)
+          iframe.srcdoc = importMapTest;
+        else
+          iframe.contentDocument.write(importMapTest);
+      });
     }))
   ]);
 });
