@@ -2,6 +2,14 @@ import { createBlob, baseUrl, nonce, hasDocument } from './env.js';
 
 export let supportsDynamicImportCheck = false;
 
+// first check basic eval support
+try {
+  eval('');
+}
+catch (e) {
+  throw new Error(`The ES Module Shims Wasm build will not work without eval. Either use the alternative CSP-compatible build or make sure to add both the "unsafe-eval" and "unsafe-wasm-eval" CSP policies.`);
+}
+
 export let dynamicImport;
 try {
   dynamicImport = (0, eval)('u=>import(u)');
