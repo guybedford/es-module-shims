@@ -1,6 +1,6 @@
 export function runMochaTests(suite) {
   mocha.setup({ ui: 'tdd' });
-  mocha.allowUncaught();
+  // mocha.allowUncaught();
   self.assert = function (val) {
     equal(!!val, true);
   };
