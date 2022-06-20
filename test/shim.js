@@ -320,7 +320,8 @@ suite('Errors', function () {
 
   test('onerror hook worked correctly', async function () {
     await new Promise(resolve => setTimeout(resolve, 50));
-    assert.equal(window.e.toString(), 'ReferenceError: syntax is not defined');
+    assert.ok(window.e instanceof ReferenceError);
+    assert.ok(window.e.toString().includes('syntax'));
   });
 
   test('should give a plain name error', async function () {
@@ -399,7 +400,9 @@ suite('Errors', function () {
 
   test('Dynamic import map shim with override to the same mapping is allowed', async function () {
     const expectingNoError = new Promise((resolve, reject) => {
-      window.addEventListener('error', (event) => reject(event.error))
+      window.addEventListener('error', (event) => {
+        reject(event.error)
+      });
       // waiting for 1 sec should be enough to make sure the error didn't happen.
       setTimeout(resolve, 1000)
     })

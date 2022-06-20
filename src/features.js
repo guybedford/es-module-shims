@@ -27,7 +27,7 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
       // therefore, we need to first feature detect srcdoc support
       iframe.srcdoc = `<!doctype html><script nonce="${nonce}"><${''}/script>`;
       document.head.appendChild(iframe);
-      iframe.contentWindow.addEventListener('DOMContentLoaded', () => {
+      iframe.onload = () => {
         self._$s = v => {
           document.head.removeChild(iframe);
           supportsImportMaps = v;
@@ -40,7 +40,7 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
           iframe.srcdoc = importMapTest;
         else
           iframe.contentDocument.write(importMapTest);
-      });
+      };
     }))
   ]);
 });
