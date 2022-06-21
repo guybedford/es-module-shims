@@ -24,7 +24,8 @@ import {
   enforceIntegrity,
   fromParent,
   esmsInitOptions,
-  hasDocument
+  hasDocument,
+  importMapSrcOrLazy
 } from './env.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
@@ -117,7 +118,6 @@ async function loadAll (load, seen) {
 }
 
 let importMap = { imports: {}, scopes: {} };
-let importMapSrcOrLazy = false;
 let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
