@@ -63,6 +63,10 @@ export function fromParent (parent) {
 
 export let importMapSrcOrLazy = false;
 
+export function setImportMapSrcOrLazy () {
+  importMapSrcOrLazy = true;
+}
+
 // shim mode is determined on initialization, no late shim mode
 if (!shimMode) {
   if (document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]').length) {

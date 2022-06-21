@@ -25,7 +25,8 @@ import {
   fromParent,
   esmsInitOptions,
   hasDocument,
-  importMapSrcOrLazy
+  importMapSrcOrLazy,
+  setImportMapSrcOrLazy,
 } from './env.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
@@ -519,7 +520,7 @@ function processImportMap (script) {
   if (script.src) {
     if (!shimMode)
       return;
-    importMapSrcOrLazy = true;
+    setImportMapSrcOrLazy();
   }
   if (acceptingImportMaps) {
     importMapPromise = importMapPromise
