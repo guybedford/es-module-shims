@@ -121,7 +121,7 @@ let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
 let baselinePassthrough;
 
-const initPromise = featureDetectionPromise.then(() => {
+const initPromise = (async () => {
   // shim mode is determined on initialization, no late shim mode
   if (!shimMode) {
     if (document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]').length) {
@@ -141,6 +141,9 @@ const initPromise = featureDetectionPromise.then(() => {
       }
     }
   }
+
+  await featureDetectionPromise;
+
   baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
   if (hasDocument) {
     if (!supportsImportMaps) {
@@ -183,7 +186,7 @@ const initPromise = featureDetectionPromise.then(() => {
     }
   }
   return lexer.init;
-});
+})();
 let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let acceptingImportMaps = true;
