@@ -10,7 +10,6 @@ import {
   createBlob,
   edge,
   throwError,
-  setShimMode,
   shimMode,
   resolveHook,
   fetchHook,
@@ -121,36 +120,13 @@ let importMap = { imports: {}, scopes: {} };
 let importMapSrcOrLazy = false;
 let baselinePassthrough;
 
-const initPromise = (async () => {
-  // shim mode is determined on initialization, no late shim mode
-  if (!shimMode) {
-    if (document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]').length) {
-      setShimMode();
-    }
-    else {
-      let seenScript = false;
-      for (const script of document.querySelectorAll('script[type=module],script[type=importmap]')) {
-        if (!seenScript) {
-          if (script.type === 'module')
-            seenScript = true;
-        }
-        else if (script.type === 'importmap') {
-          importMapSrcOrLazy = true;
-          break;
-        }
-      }
-    }
-  }
-
-  await featureDetectionPromise;
-
+const initPromise = featureDetectionPromise.then(() => {
   baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
   if (hasDocument) {
     if (!supportsImportMaps) {
       const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
       HTMLScriptElement.supports = type => type === 'importmap' || supports(type);
     }
-
     if (shimMode || !baselinePassthrough) {
       new MutationObserver(mutations => {
         for (const mutation of mutations) {
@@ -186,7 +162,7 @@ const initPromise = (async () => {
     }
   }
   return lexer.init;
-})();
+});
 let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let acceptingImportMaps = true;

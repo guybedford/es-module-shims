@@ -41,10 +41,6 @@ const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.p
 export const cssModulesEnabled = enable.includes('css-modules');
 export const jsonModulesEnabled = enable.includes('json-modules');
 
-export function setShimMode () {
-  shimMode = true;
-}
-
 export const edge = !navigator.userAgentData && !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
 
 export const baseUrl = hasDocument
@@ -63,4 +59,26 @@ export const throwError = err => { (self.reportError || hasWindow && window.safa
 
 export function fromParent (parent) {
   return parent ? ` imported from ${parent}` : '';
+}
+
+export let importMapSrcOrLazy = false;
+
+// shim mode is determined on initialization, no late shim mode
+if (!shimMode) {
+  if (document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]').length) {
+    shimMode = true;
+  }
+  else {
+    let seenScript = false;
+    for (const script of document.querySelectorAll('script[type=module],script[type=importmap]')) {
+      if (!seenScript) {
+        if (script.type === 'module')
+          seenScript = true;
+      }
+      else if (script.type === 'importmap') {
+        importMapSrcOrLazy = true;
+        break;
+      }
+    }
+  }
 }
