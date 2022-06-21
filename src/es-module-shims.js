@@ -10,7 +10,6 @@ import {
   createBlob,
   edge,
   throwError,
-  setShimMode,
   shimMode,
   resolveHook,
   fetchHook,
@@ -25,7 +24,9 @@ import {
   enforceIntegrity,
   fromParent,
   esmsInitOptions,
-  hasDocument
+  hasDocument,
+  importMapSrcOrLazy,
+  setImportMapSrcOrLazy,
 } from './env.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
@@ -118,36 +119,15 @@ async function loadAll (load, seen) {
 }
 
 let importMap = { imports: {}, scopes: {} };
-let importMapSrcOrLazy = false;
 let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
-  // shim mode is determined on initialization, no late shim mode
-  if (!shimMode) {
-    if (document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]').length) {
-      setShimMode();
-    }
-    else {
-      let seenScript = false;
-      for (const script of document.querySelectorAll('script[type=module],script[type=importmap]')) {
-        if (!seenScript) {
-          if (script.type === 'module')
-            seenScript = true;
-        }
-        else if (script.type === 'importmap') {
-          importMapSrcOrLazy = true;
-          break;
-        }
-      }
-    }
-  }
   baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
   if (hasDocument) {
     if (!supportsImportMaps) {
       const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
       HTMLScriptElement.supports = type => type === 'importmap' || supports(type);
     }
-
     if (shimMode || !baselinePassthrough) {
       new MutationObserver(mutations => {
         for (const mutation of mutations) {
@@ -540,7 +520,7 @@ function processImportMap (script) {
   if (script.src) {
     if (!shimMode)
       return;
-    importMapSrcOrLazy = true;
+    setImportMapSrcOrLazy();
   }
   if (acceptingImportMaps) {
     importMapPromise = importMapPromise
