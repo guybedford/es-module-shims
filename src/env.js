@@ -13,7 +13,7 @@ export let shimMode = hasDocument ? !!esmsInitOptions.shimMode : true;
 export const importHook = globalHook(shimMode && esmsInitOptions.onimport);
 export const resolveHook = globalHook(shimMode && esmsInitOptions.resolve);
 export let fetchHook = esmsInitOptions.fetch ? globalHook(esmsInitOptions.fetch) : fetch;
-export const metaHook = esmsInitOptions.meta ? globalHook(shimModule && esmsInitOptions.meta) : noop;
+export const metaHook = esmsInitOptions.meta ? globalHook(shimMode && esmsInitOptions.meta) : noop;
 
 export const skip = esmsInitOptions.skip ? new RegExp(esmsInitOptions.skip) : null;
 
