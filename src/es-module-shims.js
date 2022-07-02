@@ -172,7 +172,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   if (!shimMode)
     acceptingImportMaps = false;
   await importMapPromise;
-  if (importHook) await importHook(id, typeof args[1] !== 'string' ? args[1] : {}, parentUrl);
+  if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, '');
   // early analysis opt-out - no need to even fetch if we have feature support
   if (!shimMode && baselinePassthrough) {
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
