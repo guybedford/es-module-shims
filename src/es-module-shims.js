@@ -3,7 +3,7 @@ import {
   resolveUrl,
   resolveImportMap,
   resolveIfNotPlainOrUrl,
-  isURL
+  isURL,
 } from './resolve.js'
 import {
   baseUrl as pageBaseUrl,
