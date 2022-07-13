@@ -5,7 +5,7 @@ window.addEventListener('error', _err => err = _err);
 function dynamicImportScript (url, { errUrl = url } = {}) {
   err = undefined;
   const src = createBlob(`import*as m from'${url}';self._esmsi=m`);
-  const s = Object.assign(document.createElement('script'), { type: 'module', src });
+  const s = Object.assign(document.createElement('script'), { type: 'module', src, ep: true });
   s.setAttribute('nonce', nonce);
   s.setAttribute('noshim', '');
   const p =  new Promise((resolve, reject) => {

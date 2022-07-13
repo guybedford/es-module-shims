@@ -76,10 +76,10 @@ if (!shimMode) {
     let seenScript = false;
     for (const script of document.querySelectorAll('script[type=module],script[type=importmap]')) {
       if (!seenScript) {
-        if (script.type === 'module')
+        if (script.type === 'module' && !script.ep)
           seenScript = true;
       }
-      else if (script.type === 'importmap') {
+      else if (script.type === 'importmap' && seenScript) {
         importMapSrcOrLazy = true;
         break;
       }
