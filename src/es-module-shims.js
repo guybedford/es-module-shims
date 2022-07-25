@@ -236,7 +236,7 @@ function resolveDeps (load, seen) {
   for (const dep of load.d)
     resolveDeps(dep, seen);
 
-  const [imports] = load.a;
+  const [imports, exports] = load.a;
 
   // "execution"
   const source = load.S;
@@ -269,11 +269,11 @@ function resolveDeps (load, seen) {
           if (!(blobUrl = depLoad.s)) {
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
               depLoad.a[1].map(
-                name => name === 'default' ? `d$_=m.default` : `${name}=m.${name}`
+                expt => expt.n === 'default' ? `d$_=m.default` : `${expt.n}=m.${expt.n}`
               ).join(',')
             }}${
-              depLoad.a[1].map(name =>
-                name === 'default' ? `let d$_;export{d$_ as default}` : `export let ${name}`
+              depLoad.a[1].map(expt =>
+                expt.n === 'default' ? `let d$_;export{d$_ as default}` : `export let ${expt.n}`
               ).join(';')
             }\n//# sourceURL=${depLoad.r}?cycle`);
           }
@@ -304,6 +304,12 @@ function resolveDeps (load, seen) {
         dynamicImportEndStack.push(statementEnd - 1);
         lastIndex = start;
       }
+    }
+
+    // support progressive cycle binding updates
+    if (load.s) {
+      const fields = exports.filter(expt => expt.n !== 'default' && expt.ln).map(expt => `${expt.n}: ${expt.ln}`);
+      resolvedSource += `\n;import{u$_}from'${load.s}';u$_({ ${fields.join(',')} });\n`;
     }
 
     pushStringTo(source.length);
