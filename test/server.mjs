@@ -7,7 +7,7 @@ import open from "open";
 import kleur from 'kleur';
 import { spawn } from 'child_process';
 
-const port = 8080;
+const port = parseInt(process.env.CI_PORT || '8080');
 
 const rootURL = new URL("..", import.meta.url);
 
@@ -21,7 +21,7 @@ const mimes = {
 };
 
 const shouldExit = process.env.WATCH_MODE !== 'true';
-const testName = process.argv[2] ?? 'test';
+const testName = process.argv[2] ?? 'test-shim';
 
 let retry = 0;
 
@@ -51,7 +51,7 @@ function setBrowserTimeout () {
 
 setBrowserTimeout();
 
-http.createServer(async function (req, res) {
+const server = http.createServer(async function (req, res) {
   // Helps CI debugging:
   if (process.env.CI_BROWSER)
     console.log("REQ: " + req.url);
@@ -124,18 +124,21 @@ http.createServer(async function (req, res) {
   fileStream.pipe(res);
   await once(fileStream, 'end');
   res.end();
-}).listen(port);
+});
 
-let spawnPs;
-function start () {
-  if (process.env.CI_BROWSER) {
-    const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
-    console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
-    spawnPs = spawn(process.env.CI_BROWSER, [...args, `http://localhost:${port}/test/${testName}.html`]);
+server.listen(port, 'localhost', function() {
+  const baseURL = `http://${server.address().address}:${server.address().port}`;
+  let spawnPs;
+  function start () {
+    if (process.env.CI_BROWSER) {
+      const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
+      console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
+      spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
+    }
+    else {
+      open(`${baseURL}/test/${testName}.html`, { app: { name: open.apps.chrome } });
+    }
   }
-  else {
-    open(`http://localhost:${port}/test/${testName}.html`, { app: { name: open.apps.chrome } });
-  }
-}
 
-start();
+  start();
+});
