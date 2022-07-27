@@ -267,15 +267,23 @@ function resolveDeps (load, seen) {
         if (cycleShell) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
+            function dotOrBracketAccessor(expt) {
+              const ch = depLoad.S[expt.s];
+              return (ch === '"' || ch === "'") ? `[${depLoad.S.slice(expt.s, expt.e)}]` : '.' + expt.n;
+            }
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
               depLoad.a[1].map(
-                expt => expt.n === 'default' ? `d$_=m.default` : `${expt.n}=m.${expt.n}`
+                expt => expt.ln ? `${expt.ln}=m${dotOrBracketAccessor(expt)}` : `d$_=m.default`
               ).join(',')
             }}${
-              depLoad.a[1].map(expt =>
-                expt.n === 'default' ? `let d$_;export{d$_ as default}` : `export let ${expt.n}`
-              ).join(';')
-            }\n//# sourceURL=${depLoad.r}?cycle`);
+              depLoad.a[1].map(
+                expt => expt.ln ? `let ${expt.ln};` : 'let d$_;'
+              ).join('')
+            }export {${
+              depLoad.a[1].map(
+                expt => expt.ln ? `${expt.ln} as ${depLoad.S.slice(expt.s, expt.e)}` : `d$_ as default`
+              ).join(',')
+            }}\n//# sourceURL=${depLoad.r}?cycle`);
           }
         }
 
@@ -308,7 +316,7 @@ function resolveDeps (load, seen) {
 
     // support progressive cycle binding updates
     if (load.s) {
-      const fields = exports.filter(expt => expt.n !== 'default' && expt.ln).map(expt => `${expt.n}: ${expt.ln}`);
+      const fields = exports.filter(expt => expt.ln).map(expt => `${source.slice(expt.s, expt.e)}: ${expt.ln}`);
       resolvedSource += `\n;import{u$_}from'${load.s}';u$_({ ${fields.join(',')} });\n`;
     }
 

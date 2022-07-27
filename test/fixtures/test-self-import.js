@@ -3,6 +3,13 @@ export const b = 5;
 const c = 6;
 export { c as d };
 
-import { b as bb, d as dd } from './test-self-import.js';
+const e = 7;
+export { e as 'e f' };
 
-export default [bb, dd];
+import {
+  b as bb,
+  d as dd,
+  'e f' as ef,
+} from './test-self-import.js';
+
+export default [bb, dd, ef];
