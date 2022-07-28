@@ -126,9 +126,9 @@ const server = http.createServer(async function (req, res) {
   res.end();
 });
 
+let spawnPs;
 server.listen(port, 'localhost', function() {
   const baseURL = `http://${server.address().address}:${server.address().port}`;
-  let spawnPs;
   function start () {
     if (process.env.CI_BROWSER) {
       const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
