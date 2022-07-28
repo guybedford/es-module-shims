@@ -161,18 +161,19 @@ const server = http.createServer(async function (req, res) {
 });
 
 let spawnPs;
-server.listen(port, 'localhost', function() {
-  const baseURL = `http://${server.address().address}:${server.address().port}`;
-  function start () {
-    if (process.env.CI_BROWSER) {
-      const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
-      console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
-      spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
-    }
-    else {
-      open(`${baseURL}/test/${testName}.html`, { app: { name: open.apps.chrome } });
-    }
+let baseURL;
+function start () {
+  if (process.env.CI_BROWSER) {
+    const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
+    console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
+    spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
   }
+  else {
+    open(`${baseURL}/test/${testName}.html`, { app: { name: open.apps.chrome } });
+  }
+}
 
+server.listen(port, 'localhost', function() {
+  baseURL = `http://${server.address().address}:${server.address().port}`;
   start();
 });
