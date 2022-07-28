@@ -267,17 +267,15 @@ function resolveDeps (load, seen) {
         if (cycleShell) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
-            function dotOrBracketAccessor(expt) {
-              const ch = depLoad.S[expt.s];
-              return (ch === '"' || ch === "'") ? `[${depLoad.S.slice(expt.s, expt.e)}]` : '.' + expt.n;
-            }
-            const shellExports = depLoad.a[1].map(expt => expt.ln ? expt : {...expt, ln: 'd$_'});
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
-              shellExports.map(expt => `${expt.ln}=m${dotOrBracketAccessor(expt)}`).join(',')
+              depLoad.a[1].map(({ s, e }, i) => {
+                const q = depLoad.S[s] === '"' || depLoad.S[s] === "'";
+                return `e$_${i}=m${q ? `[` : '.'}${depLoad.S.slice(s, e)}${q ? `]` : ''}`;
+              }).join(',')
             }}${
-              shellExports.map(expt => `let ${expt.ln};`).join('')
+              depLoad.a[1].length ? `let ${depLoad.a[1].map((_, i) => `e$_${i}`).join(',')};` : ''
             }export {${
-              shellExports.map(expt => `${expt.ln} as ${depLoad.S.slice(expt.s, expt.e)}`).join(',')
+              depLoad.a[1].map(({ s, e }, i) => `e$_${i} as ${depLoad.S.slice(s, e)}`).join(',')
             }}\n//# sourceURL=${depLoad.r}?cycle`);
           }
         }
@@ -323,6 +321,7 @@ function resolveDeps (load, seen) {
   if (!hasSourceURL)
     resolvedSource += '\n//# sourceURL=' + load.r;
 
+  console.log(resolvedSource);
   load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
 }
