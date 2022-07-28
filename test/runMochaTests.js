@@ -1,5 +1,8 @@
 export function runMochaTests(suite) {
-  mocha.setup({ ui: 'tdd' });
+  mocha.setup({
+    ui: 'tdd',
+    reporter: multiReporter([Mocha.reporters.HTML, ServerReporter]),
+  });
   // mocha.allowUncaught();
   self.assert = function (val) {
     equal(!!val, true);
@@ -15,11 +18,34 @@ export function runMochaTests(suite) {
   };
 
   importShim('./' + suite + '.js')
-  .then(async () => {
-    const failures = await new Promise(resolve => mocha.run(resolve));
-    fetch(failures ? '/error?' + failures : '/done');
-  }, err => {
-    console.error('Unable to import test ' + suite);
-    console.error(err);
+  .then(() => mocha.run());
+}
+
+function multiReporter(reporters) {
+  return function(runner) {
+    for (const reporter of reporters) {
+      new reporter(runner);
+    }
+  }
+}
+
+function ServerReporter(runner) {
+  Mocha.reporters.Base.call(this, runner);
+
+  runner.on('test', test => {
+    return fetch('/mocha/start?t=' + encodeURIComponent(test.fullTitle()), { method: 'POST' });
+  });
+
+  runner.on('pass', test => {
+    return fetch('/mocha/pass?t=' + encodeURIComponent(test.fullTitle()), { method: 'POST' });
+  });
+
+  runner.on('fail', (test, err) => {
+    return fetch(`/mocha/fail?t=${encodeURIComponent(test.fullTitle())}&e=${encodeURIComponent(err.message)}`, { method: 'POST' });
+  });
+
+  runner.on('end', () => {
+    return fetch(this.stats.failures ? `/error?${this.stats.failures}` : `/done?${this.stats.passes}/${this.stats.passes + this.stats.failures}`, { method: 'POST' });
   });
 }
+Mocha.utils.inherits(ServerReporter, Mocha.reporters.Base);
