@@ -136,7 +136,7 @@ suite('Basic loading tests', () => {
 
   test('Should import a module via a full url, without scheme', async function () {
     const url = window.location.href.split('#')[0].split('?')[0]
-      .replace('/test-shim.html', '/fixtures/es-modules/no-imports.js') 
+      .replace('/test-shim.html', '/fixtures/es-modules/no-imports.js')
       .replace(/^http(s)?:/, '');
     assert.equal(url.slice(0, 2), '//');
     var m = await importShim(url);
@@ -278,26 +278,27 @@ suite('Get import map', () => {
     const importMap = await importShim.getImportMap();
 
     const sortEntriesByKey = (entries) => [...entries].sort(([key1], [key2]) => key1.localeCompare(key2));
+    const baseURL = document.location.href.replace(/\/test\/.*/, '/');
 
     assert.equal(JSON.stringify(Object.keys(importMap)), JSON.stringify(["imports", "scopes"]));
     assert.equal(
-      JSON.stringify(sortEntriesByKey(Object.entries(importMap.imports))), 
+      JSON.stringify(sortEntriesByKey(Object.entries(importMap.imports))),
       JSON.stringify(sortEntriesByKey(Object.entries({
-        "test": "http://localhost:8080/test/fixtures/es-modules/es6-file.js",
-        "test/": "http://localhost:8080/test/fixtures/",
-        "global1": "http://localhost:8080/test/fixtures/es-modules/global1.js",
-        "bare-dynamic-import": "http://localhost:8080/test/fixtures/es-modules/bare-dynamic-import.js",
+        "test": baseURL + "test/fixtures/es-modules/es6-file.js",
+        "test/": baseURL + "test/fixtures/",
+        "global1": baseURL + "test/fixtures/es-modules/global1.js",
+        "bare-dynamic-import": baseURL + "test/fixtures/es-modules/bare-dynamic-import.js",
         "react": "https://ga.jspm.io/npm:react@17.0.2/dev.index.js"
       })))
     );
     assert.equal(
-      JSON.stringify(sortEntriesByKey(Object.entries(importMap.scopes))), 
+      JSON.stringify(sortEntriesByKey(Object.entries(importMap.scopes))),
       JSON.stringify(sortEntriesByKey(Object.entries({
-        "http://localhost:8080/": {
-          "test-dep": "http://localhost:8080/test/fixtures/test-dep.js",
+        [baseURL]: {
+          "test-dep": baseURL + "test/fixtures/test-dep.js",
         },
-        "http://localhost:8080/test/fixtures/es-modules/import-relative-path.js": {
-          "http://localhost:8080/test/fixtures/es-modules/relative-path": "http://localhost:8080/test/fixtures/es-modules/es6-dep.js",
+        [baseURL + "test/fixtures/es-modules/import-relative-path.js"]: {
+          [baseURL + "test/fixtures/es-modules/relative-path"]: baseURL + "test/fixtures/es-modules/es6-dep.js",
         },
         "https://ga.jspm.io/": {
           "object-assign": "https://ga.jspm.io/npm:object-assign@4.1.1/index.js",
@@ -395,7 +396,7 @@ suite('Errors', function () {
 
     removeImportMap();
 
-    assert(error.message === 'Rejected map override "global1" from http://localhost:8080/test/fixtures/es-modules/global1.js to data:text/javascript,throw new Error(\'Shim should not allow dynamic import map to override existing entries\');.');
+    assert(error.message.match(new RegExp(String.raw`Rejected map override \"global1\" from http://[^/]+/test/fixtures/es-modules/global1.js to data:text/javascript,throw new Error\('Shim should not allow dynamic import map to override existing entries'\);\.`)));
   })
 
   test('Dynamic import map shim with override to the same mapping is allowed', async function () {
@@ -407,9 +408,10 @@ suite('Errors', function () {
       setTimeout(resolve, 1000)
     })
 
+    const baseURL = document.location.href.replace(/\/test\/.*/, '/');
     const removeImportMap = insertDynamicImportMap({
       "imports": {
-        "global1": "http://localhost:8080/test/fixtures/es-modules/global1.js"
+        "global1": baseURL + "test/fixtures/es-modules/global1.js"
       }
     });
 
