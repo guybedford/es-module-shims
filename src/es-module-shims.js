@@ -271,18 +271,13 @@ function resolveDeps (load, seen) {
               const ch = depLoad.S[expt.s];
               return (ch === '"' || ch === "'") ? `[${depLoad.S.slice(expt.s, expt.e)}]` : '.' + expt.n;
             }
+            const shellExports = depLoad.a[1].map(expt => expt.ln ? expt : {...expt, ln: 'd$_'});
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
-              depLoad.a[1].map(
-                expt => expt.ln ? `${expt.ln}=m${dotOrBracketAccessor(expt)}` : `d$_=m.default`
-              ).join(',')
+              shellExports.map(expt => `${expt.ln}=m${dotOrBracketAccessor(expt)}`).join(',')
             }}${
-              depLoad.a[1].map(
-                expt => expt.ln ? `let ${expt.ln};` : 'let d$_;'
-              ).join('')
+              shellExports.map(expt => `let ${expt.ln};`).join('')
             }export {${
-              depLoad.a[1].map(
-                expt => expt.ln ? `${expt.ln} as ${depLoad.S.slice(expt.s, expt.e)}` : `d$_ as default`
-              ).join(',')
+              shellExports.map(expt => `${expt.ln} as ${depLoad.S.slice(expt.s, expt.e)}`).join(',')
             }}\n//# sourceURL=${depLoad.r}?cycle`);
           }
         }
