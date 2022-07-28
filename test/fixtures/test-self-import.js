@@ -4,12 +4,12 @@ const c = 6;
 export { c as d };
 
 const e = 7;
-export { e as 'e f' };
+export { e as ef };
 
 import {
   b as bb,
   d as dd,
-  'e f' as ef,
+  ef,
 } from './test-self-import.js';
 
 export default [bb, dd, ef];
