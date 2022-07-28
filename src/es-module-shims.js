@@ -321,7 +321,6 @@ function resolveDeps (load, seen) {
   if (!hasSourceURL)
     resolvedSource += '\n//# sourceURL=' + load.r;
 
-  console.log(resolvedSource);
   load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
 }
