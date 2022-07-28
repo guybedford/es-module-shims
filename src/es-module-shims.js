@@ -308,10 +308,8 @@ function resolveDeps (load, seen) {
     }
 
     // support progressive cycle binding updates
-    if (load.s) {
-      const fields = exports.filter(expt => expt.ln).map(expt => `${source.slice(expt.s, expt.e)}: ${expt.ln}`);
-      resolvedSource += `\n;import{u$_}from'${load.s}';u$_({ ${fields.join(',')} });\n`;
-    }
+    if (load.s)
+      resolvedSource += `\n;import{u$_}from'${load.s}';u$_({ ${exports.filter(e => e.ln).map(({ s, e, ln }) => `${source.slice(s, e)}: ${ln}`).join(',')} });\n`;
 
     pushStringTo(source.length);
   }
