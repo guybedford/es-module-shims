@@ -51,6 +51,7 @@ function setBrowserTimeout () {
 
 setBrowserTimeout();
 
+let latestStartTitle;
 const server = http.createServer(async function (req, res) {
   // Helps CI debugging:
   if (process.env.CI_BROWSER)
@@ -59,6 +60,9 @@ const server = http.createServer(async function (req, res) {
   if (req.url.startsWith('/done')) {
     res.writeHead(200, { 'content-type': 'text/plain' });
     res.end('');
+    if (latestStartTitle) {
+      console.log(kleur.yellow('Starting ') + latestStartTitle);
+    }
     console.log(kleur.green('Tests completed successfully.'));
     if (browserTimeout)
       clearTimeout(browserTimeout);
@@ -72,11 +76,41 @@ const server = http.createServer(async function (req, res) {
     return;
   }
   else if (req.url.startsWith('/error?')) {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('');
+    if (latestStartTitle) {
+      console.log(kleur.yellow('Starting ') + latestStartTitle);
+    }
     const msg = decodeURIComponent(req.url.slice(7));
-    console.log(kleur.red('Test failure: ') + msg);
+    console.log(kleur.red('Test failures: ') + msg);
     if (shouldExit) {
       failTimeout = setTimeout(() => process.exit(1), 30000);
     }
+    return;
+  }
+  else if (req.url.startsWith('/mocha/start?')) {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('');
+    latestStartTitle = decodeURIComponent(req.url.slice(15));
+    return;
+  }
+  else if (req.url.startsWith('/mocha/pass?')) {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('');
+    const fullTitle = decodeURIComponent(req.url.slice(14));
+    console.log(kleur.green('Pass ') + fullTitle);
+    latestStartTitle = undefined;
+    return;
+  }
+  else if (req.url.startsWith('/mocha/fail?')) {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('');
+    const u = new URL(req.url, `http://${req.headers.host}`);
+    const fullTitle = u.searchParams.get('t');
+    const msg = u.searchParams.get('e');
+    console.log(kleur.red('Fail ') + fullTitle + ': ' + msg);
+    latestStartTitle = undefined;
+    return;
   }
   else if (failTimeout) {
     clearTimeout(failTimeout);
