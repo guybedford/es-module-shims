@@ -236,7 +236,7 @@ function resolveDeps (load, seen) {
   for (const dep of load.d)
     resolveDeps(dep, seen);
 
-  const [imports] = load.a;
+  const [imports, exports] = load.a;
 
   // "execution"
   const source = load.S;
@@ -268,14 +268,15 @@ function resolveDeps (load, seen) {
           // circular shell creation
           if (!(blobUrl = depLoad.s)) {
             blobUrl = depLoad.s = createBlob(`export function u$_(m){${
-              depLoad.a[1].map(
-                name => name === 'default' ? `d$_=m.default` : `${name}=m.${name}`
-              ).join(',')
+              depLoad.a[1].map(({ s, e }, i) => {
+                const q = depLoad.S[s] === '"' || depLoad.S[s] === "'";
+                return `e$_${i}=m${q ? `[` : '.'}${depLoad.S.slice(s, e)}${q ? `]` : ''}`;
+              }).join(',')
             }}${
-              depLoad.a[1].map(name =>
-                name === 'default' ? `let d$_;export{d$_ as default}` : `export let ${name}`
-              ).join(';')
-            }\n//# sourceURL=${depLoad.r}?cycle`);
+              depLoad.a[1].length ? `let ${depLoad.a[1].map((_, i) => `e$_${i}`).join(',')};` : ''
+            }export {${
+              depLoad.a[1].map(({ s, e }, i) => `e$_${i} as ${depLoad.S.slice(s, e)}`).join(',')
+            }}\n//# sourceURL=${depLoad.r}?cycle`);
           }
         }
 
@@ -304,6 +305,12 @@ function resolveDeps (load, seen) {
         dynamicImportEndStack.push(statementEnd - 1);
         lastIndex = start;
       }
+    }
+
+    // support progressive cycle binding updates
+    if (load.s) {
+      const fields = exports.filter(expt => expt.ln).map(expt => `${source.slice(expt.s, expt.e)}: ${expt.ln}`);
+      resolvedSource += `\n;import{u$_}from'${load.s}';u$_({ ${fields.join(',')} });\n`;
     }
 
     pushStringTo(source.length);

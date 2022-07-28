@@ -174,6 +174,6 @@ function start () {
 }
 
 server.listen(port, 'localhost', function() {
-  baseURL = `http://${server.address().address}:${server.address().port}`;
+  baseURL = `http://localhost:${server.address().port}`;
   start();
 });
