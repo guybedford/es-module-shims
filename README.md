@@ -29,7 +29,7 @@ Because we are still using the native module loader the edge cases work out comp
 Include ES Module Shims with a `async` attribute on the script, then include an import map and module scripts normally:
 
 ```html
-<script async src="https://ga.jspm.io/npm:es-module-shims@1.5.10/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.5.11/dist/es-module-shims.js"></script>
 
 <!-- https://generator.jspm.io/#U2NhYGBkDM0rySzJSU1hKEpNTC5xMLTQM9Az0C1K1jMAAKFS5w0gAA -->
 <script type="importmap">
