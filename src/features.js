@@ -9,12 +9,12 @@ export let supportsImportMaps = hasDocument && HTMLScriptElement.supports ? HTML
 export let supportsImportMeta = supportsImportMaps;
 export let supportsDynamicImport = false;
 
-export const featureDetect = async () => {
-  if (!(supportsImportMaps || await supportsDynamicImportCheck))
+export const featureDetectionPromise = Promise.resolve(supportsImportMaps || supportsDynamicImportCheck).then(_supportsDynamicImport => {
+  if (!_supportsDynamicImport)
     return;
   supportsDynamicImport = true;
 
-  await Promise.all([
+  return Promise.all([
     supportsImportMaps || dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, noop),
     cssModulesEnabled && dynamicImport(createBlob(`import"${createBlob('', 'text/css')}"assert{type:"css"}`)).then(() => supportsCssAssertions = true, noop),
     jsonModulesEnabled && dynamicImport(createBlob(`import"${createBlob('{}', 'text/json')}"assert{type:"json"}`)).then(() => supportsJsonAssertions = true, noop),
@@ -43,4 +43,4 @@ export const featureDetect = async () => {
       };
     }))
   ]);
-};
+});
