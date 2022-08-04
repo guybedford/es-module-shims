@@ -30,12 +30,12 @@ import {
 } from './env.js';
 import { dynamicImport } from './dynamic-import-csp.js';
 import {
-  featureDetectionPromise,
   supportsDynamicImport,
   supportsImportMeta,
   supportsImportMaps,
   supportsCssAssertions,
   supportsJsonAssertions,
+  featureDetect,
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 
@@ -66,12 +66,11 @@ async function importShim (id, ...args) {
   if (typeof parentUrl !== 'string')
     parentUrl = pageBaseUrl;
   // needed for shim check
-  await initPromise;
+  await init();
   if (importHook) await importHook(id, typeof args[1] !== 'string' ? args[1] : {}, parentUrl);
   if (acceptingImportMaps || shimMode || !baselinePassthrough) {
     if (hasDocument)
       processImportMaps();
-
     if (!shimMode)
       acceptingImportMaps = false;
   }
@@ -121,7 +120,8 @@ async function loadAll (load, seen) {
 let importMap = { imports: {}, scopes: {} };
 let baselinePassthrough;
 
-const initPromise = featureDetectionPromise.then(() => {
+let initPromise;
+const init = () => initPromise || (initPromise = featureDetect().then(() => {
   baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
   if (hasDocument) {
     if (!supportsImportMaps) {
@@ -163,14 +163,15 @@ const initPromise = featureDetectionPromise.then(() => {
     }
   }
   return lexer.init;
-});
-let importMapPromise = initPromise;
+}));
+let importMapPromise = Promise.resolve();
 let firstPolyfillLoad = true;
 let acceptingImportMaps = true;
 
 async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
   if (!shimMode)
     acceptingImportMaps = false;
+  await init();
   await importMapPromise;
   if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, '');
   // early analysis opt-out - no need to even fetch if we have feature support
@@ -499,7 +500,7 @@ function domContentLoadedCheck () {
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
 if (hasDocument) {
   document.addEventListener('DOMContentLoaded', async () => {
-    await initPromise;
+    await init();
     domContentLoadedCheck();
     if (shimMode || !baselinePassthrough) {
       processImportMaps();

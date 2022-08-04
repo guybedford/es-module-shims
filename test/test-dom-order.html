@@ -1,5 +1,5 @@
 <!doctype html>
-<script type="module" src="../src/es-module-shims.js" async></script>
+<script type="module" src="../src/es-module-shims.js"></script>
 <script>
   window.order = ['script (' + document.readyState + ')'];
   document.addEventListener('readystatechange', () => order.push(document.readyState));
@@ -15,7 +15,7 @@
 <script type="module-shim">
   new Promise(resolve => setTimeout(resolve, 3000)).then(() => {
     const orderStr = order.join(', ');
-    if (orderStr.startsWith('script (loading), interactive, dom content loaded') && orderStr.includes(', complete') && orderStr.includes(', module2') && orderStr.endsWith(', module1'))
+    if (orderStr.startsWith('script (loading), interactive, dom content loaded') && orderStr.includes(', complete') && orderStr.includes(', module2') && orderStr.includes(', module1'))
       fetch('/done');
     else
     fetch(`/error?${encodeURIComponent(order.join(', '))}`);

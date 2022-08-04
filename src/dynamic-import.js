@@ -31,8 +31,8 @@ if (hasDocument && !supportsDynamicImportCheck) {
       s.addEventListener('load', () => {
         document.head.removeChild(s);
         if (self._esmsi) {
-          resolve(self._esmsi, baseUrl);
-          self._esmsi = null;
+          resolve(_esmsi, baseUrl);
+          _esmsi = null;
         }
         else {
           reject(err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
