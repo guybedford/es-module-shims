@@ -1,38 +1,35 @@
-import { createBlob, baseUrl, noop, nonce } from './env.js';
+import { createBlob, baseUrl, nonce } from './env.js';
 
 let err;
 window.addEventListener('error', _err => err = _err);
-function dynamicImportScript (url, { errUrl = url } = {}) {
+const inject = (s, errUrl) => new Promise((resolve, reject) => {
   err = undefined;
-  const src = createBlob(`import*as m from'${url}';self._esmsi=m`);
-  const s = Object.assign(document.createElement('script'), { type: 'module', src, ep: true });
+  s.ep = true;
   s.setAttribute('nonce', nonce);
-  s.setAttribute('noshim', '');
-  const p =  new Promise((resolve, reject) => {
-    // Safari is unique in supporting module script error events
-    s.addEventListener('error', cb);
-    s.addEventListener('load', cb);
 
-    function cb (_err) {
-      document.head.removeChild(s);
-      if (self._esmsi) {
-        resolve(self._esmsi, baseUrl);
-        self._esmsi = undefined;
-      }
-      else {
-        reject(!(_err instanceof Event) && _err || err && err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
-        err = undefined;
-      }
+  // Safari is unique in supporting module script error events
+  s.addEventListener('error', cb);
+  s.addEventListener('load', cb);
+
+  function cb (_err) {
+    document.head.removeChild(s);
+    if (self._esmsi) {
+      resolve(self._esmsi, baseUrl);
+      self._esmsi = undefined;
     }
-  });
+    else {
+      reject(!(_err instanceof Event) && _err || err && err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${s.src}).`));
+      err = undefined;
+    }
+  }
+
   document.head.appendChild(s);
-  return p;
-}
+});
 
-export let dynamicImport = dynamicImportScript;
+export const dynamicImport = (url, opts) => inject(Object.assign(document.createElement('script'), {
+  type: 'module',
+  src: createBlob(`import*as m from'${url}';self._esmsi=m`)
+}), opts && opts.errUrl || url);
 
-export const supportsDynamicImportCheck = dynamicImportScript(createBlob('export default u=>import(u)')).then(_dynamicImport => {
-  if (_dynamicImport)
-    dynamicImport = _dynamicImport.default;
-  return !!_dynamicImport;
-}, noop);
+// This is done as a script so we don't trigger module loading too early for any loading import maps
+export const supportsDynamicImportCheck = inject(Object.assign(document.createElement('script', { src: createBlob('u => import(u)') }))).then(() => true, () => false);
