@@ -35,7 +35,7 @@ import {
   supportsImportMaps,
   supportsCssAssertions,
   supportsJsonAssertions,
-  featureDetect,
+  featureDetectionPromise,
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 
@@ -66,7 +66,7 @@ async function importShim (id, ...args) {
   if (typeof parentUrl !== 'string')
     parentUrl = pageBaseUrl;
   // needed for shim check
-  await init();
+  await initPromise;
   if (importHook) await importHook(id, typeof args[1] !== 'string' ? args[1] : {}, parentUrl);
   if (acceptingImportMaps || shimMode || !baselinePassthrough) {
     if (hasDocument)
@@ -120,8 +120,7 @@ async function loadAll (load, seen) {
 let importMap = { imports: {}, scopes: {} };
 let baselinePassthrough;
 
-let initPromise;
-const init = () => initPromise || (initPromise = featureDetect().then(() => {
+const initPromise = featureDetectionPromise.then(() => {
   baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
   if (hasDocument) {
     if (!supportsImportMaps) {
@@ -163,15 +162,15 @@ const init = () => initPromise || (initPromise = featureDetect().then(() => {
     }
   }
   return lexer.init;
-}));
-let importMapPromise = Promise.resolve();
+});
+let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let acceptingImportMaps = true;
 
 async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
   if (!shimMode)
     acceptingImportMaps = false;
-  await init();
+  await initPromise;
   await importMapPromise;
   if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, '');
   // early analysis opt-out - no need to even fetch if we have feature support
@@ -500,7 +499,7 @@ function domContentLoadedCheck () {
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
 if (hasDocument) {
   document.addEventListener('DOMContentLoaded', async () => {
-    await init();
+    await initPromise;
     domContentLoadedCheck();
     if (shimMode || !baselinePassthrough) {
       processImportMaps();

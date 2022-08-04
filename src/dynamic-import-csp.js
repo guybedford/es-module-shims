@@ -33,4 +33,4 @@ export const dynamicImport = (url, opts) => inject(Object.assign(document.create
 }), opts && opts.errUrl || url);
 
 // This is done as a script so we don't trigger module loading too early for any loading import maps
-export const supportsDynamicImportCheck = inject(Object.assign(document.createElement('script'), { src: createBlob('u => import(u)') })).then(() => true, () => false);
+export const supportsDynamicImportCheck = inject(Object.assign(document.createElement('script'), { src: createBlob('self._esmsi=u => import(u)') })).then(() => true, () => false);
