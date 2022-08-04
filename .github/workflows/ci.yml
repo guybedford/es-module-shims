@@ -40,8 +40,8 @@ jobs:
     strategy:
       matrix:
         chrome: [
-          '695070', # ~September 2019
-          '695080', # ~September 2019
+          '695071', # ~September 2019
+          '695082', # ~September 2019
           '859178', # Mar 2021, Import Maps
           '913920', # August 2021, JSON modules + CSS modules
         ]
