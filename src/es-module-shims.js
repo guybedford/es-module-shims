@@ -491,7 +491,7 @@ function getFetchOpts (script) {
 let lastStaticLoadPromise = Promise.resolve();
 
 let domContentLoadedCnt = 1;
-async function domContentLoadedCheck () {
+function domContentLoadedCheck () {
   if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers)
     document.dispatchEvent(new Event('DOMContentLoaded'));
 }
@@ -554,6 +554,7 @@ function processScript (script) {
 
 const fetchCache = {};
 function processPreload (link) {
+  if (link.ep) return;
   link.ep = true;
   if (fetchCache[link.href])
     return;
