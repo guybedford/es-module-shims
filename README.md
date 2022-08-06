@@ -186,43 +186,38 @@ Benchmark summary:
 
 Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
 
-Browser Compatibility **with ES Module Shims**:
+Browser Compatibility on baseline ES modules support **with** ES Module Shims:
 
-| ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       | Edge (17+)                           |
-| ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
-| Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:<sup>1</sup>       |
-| [Dynamic Import](#dynamic-import)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [import.meta.url](#importmetaurl)  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      | :x:<sup>2</sup>                      |
-| [modulepreload](#modulepreload)    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Import Maps](#import-maps)        | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [JSON Modules](#json-modules)      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [CSS Modules](#css-modules)        | :heavy_check_mark:<sup>3</sup>       | :heavy_check_mark:<sup>3</sup>       | :heavy_check_mark:<sup>3</sup>       | :heavy_check_mark:<sup>3</sup>       |
-| [import.meta.resolve](#resolve)    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Top-Level Await](#tla)            | :heavy_check_mark: 89+               | :heavy_check_mark: 89+               | :x:<sup>4</sup>                      | :x:<sup>4</sup>                       |
+| ES Modules Features                             | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       |
+| ----------------------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ |
+| [modulepreload](#modulepreload)                 | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Dynamic Import](#dynamic-import)               | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [import.meta.url](#importmetaurl)               | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Import Maps](#import-maps)                     | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [JSON Modules](#json-modules)                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [CSS Modules](#css-modules)                     | :heavy_check_mark:<sup>2</sup>       | :heavy_check_mark:<sup>2</sup>       | :heavy_check_mark:<sup>2</sup>       |
+| [import.meta.resolve](#resolve)                 | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Module Workers](#module-workers) (via wrapper) | :heavy_check_mark: 63+               | :x:<sup>1</sup>                      | :heavy_check_mark: 15+               |
+| Top-Level Await (unpolyfilled<sup>3</sup>)      | :heavy_check_mark: 89+               | :heavy_check_mark: 89+               | :heavy_check_mark: 15+               |
 
-* 1: _The Edge parallel execution ordering bug is corrected by ES Module Shims with an execution chain inlining approach._
-* 2: _Module worker support cannot be implemented without dynamic import support in web workers._
-* 3: _CSS module support requires a separate [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme)._
-* 4: _Top-level await support is possible for ES Module Shims to implement, with the feature request tracking in https://github.com/guybedford/es-module-shims/issues/5._
+* 1: _Module worker support cannot yet be implemented in Firefox due to no dynamic import support in web workers._
+* 2: _CSS module support requires a separate [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme)._
+* 3: _Top-level await support is not currently polyfilled but is possible for ES Module Shims to implement for intermediate browser versions, with the feature request tracking in https://github.com/guybedford/es-module-shims/issues/5. The compatibility gap with native modules is currently < 5% of users so it may not even be necessary._
 
-Browser compatibility **without ES module shims**:
+Browser compatibility on baseline ES modules support **without** ES Module Shims:
 
-| ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       | Edge (17+)                           |
-| ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
-| Executes Modules in Correct Order  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :x:<sup>1</sup>                      |
-| [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+               | :heavy_check_mark: 67+               | :heavy_check_mark: 11.1+             | :x:                                  |
-| [import.meta.url](#importmetaurl)  | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+ ❕<sup>1</sup>| :x:                                  |
-| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  | :x:                                  |
-| [modulepreload](#modulepreload)    | :heavy_check_mark: 66+               | :x:                                  | :x:                                  | :x:                                  |
-| [Import Maps](#import-maps)        | :heavy_check_mark: 89+               | :x:                                  | :x:                                  | :x:                                  |
-| [JSON Modules](#json-modules)      | :heavy_check_mark: 91+               | :x:                                  | :x:                                  | :x:                                  |
-| [CSS Modules](#css-modules)        | :heavy_check_mark: 95+               | :x:                                  | :x:                                  | :x:                                  |
-| [import.meta.resolve](#resolve)    | :x:                                  | :x:                                  | :x:                                  | :x:                                  |
-| [Top-Level Await](#tla)            | :heavy_check_mark: 89+               | :heavy_check_mark: 89+               | :x:                                  | :x:                                  |
+| ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       |
+| ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ |
+| [modulepreload](#modulepreload)    | :heavy_check_mark: 66+               | :x:                                  | :x:                                  |
+| [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+               | :heavy_check_mark: 67+               | :heavy_check_mark: 11.1+             |
+| [import.meta.url](#importmetaurl)  | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+ ❕<sup>1</sup>|
+| [Import Maps](#import-maps)        | :heavy_check_mark: 89+               | :x:                                  | :x:                                  |
+| [JSON Modules](#json-modules)      | :heavy_check_mark: 91+               | :x:                                  | :x:                                  |
+| [CSS Modules](#css-modules)        | :heavy_check_mark: 95+               | :x:                                  | :x:                                  |
+| [import.meta.resolve](#resolve)    | :x:                                  | :x:                                  | :x:                                  |
+| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  |
+| Top-Level Await                    | :heavy_check_mark: 89+               | :heavy_check_mark: 89+               | :heavy_check_mark: 15+               |
 
-* 1: _Edge executes parallel dependencies in non-deterministic order. ([ChakraCore bug](https://github.com/microsoft/ChakraCore/issues/6261))._
-* ~: _Indicates the exact first version support has not yet been determined (PR's welcome!)._
 * ❕<sup>1</sup>: On module redirects, Safari returns the request URL in `import.meta.url` instead of the response URL as per the spec.
 
 ### Import Maps
@@ -435,9 +430,11 @@ var resolvedUrl = import.meta.resolve('dep', 'https://site.com/another/scope');
 Node.js also implements a similar API, although it's in the process of shifting to a synchronous resolver.
 
 ### Module Workers
-ES Module Shims can be used in module workers in browsers that provide dynamic import in worker environments, which at the moment are Chrome(80+), Edge(80+), Safari(15+).
 
-An example of ES Module Shims usage in web workers is provided below:
+ES Module Shims can be used in module workers in browsers that provide dynamic import in worker environments, which at the moment are Chrome(80+), Edge(80+) and Safari(15+).
+
+By default, when there is no DOM present, ES Module Shims will switch into shim mode. An example of ES Module Shims usage through shim mode in web workers is provided below:
+
 ```js
 /**
  * 
@@ -460,7 +457,8 @@ function getWorkerScriptURL(aURL) {
 
 const worker = new Worker(getWorkerScriptURL('myEsModule.js'));
 ```
-> For now, in web workers must be used the non-CSP build of ES Module Shims, namely the `es-module-shim.wasm.js` output: es-module-shims/dist/es-module-shims.wasm.js.
+
+> Web workers must use the non-CSP build of ES Module Shims via `es-module-shim.wasm.js` from the `dist/` folder, since the CSP build currently assumes a DOM.
 
 ## Init Options
 
