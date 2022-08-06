@@ -29,7 +29,7 @@ Because we are still using the native module loader the edge cases work out comp
 Include ES Module Shims with a `async` attribute on the script, then include an import map and module scripts normally:
 
 ```html
-<script async src="https://ga.jspm.io/npm:es-module-shims@1.5.12/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.5.13/dist/es-module-shims.js"></script>
 
 <!-- https://generator.jspm.io/#U2NhYGBkDM0rySzJSU1hKEpNTC5xMLTQM9Az0C1K1jMAAKFS5w0gAA -->
 <script type="importmap">
@@ -860,7 +860,7 @@ window.esmsInitOptions = {
 
 * Sources are fetched, import specifiers are rewritten to reference exact URLs, and then executed as BlobURLs through the whole module graph.
 * The [lexer](https://github.com/guybedford/es-module-lexer) handles the full language grammar including nested template strings, comments, regexes and division operator ambiguity based on backtracking.
-* When executing a circular reference A -> B -> A, a shell module technique is used to "shim" the circular reference into an acyclic graph. As a result, live bindings for the circular parent A are not supported, and instead the bindings are captured immediately after the execution of A.
+* When executing a circular reference A -> B -> A, a shell module technique is used to acyclify into the graph A -> B -> A Shell, with A -> A Shell. The shell module exports an update function which is called by the original once after the last import statement, and again after the last statement of the source file.
 
 ## Inspiration
 
