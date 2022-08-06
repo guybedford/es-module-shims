@@ -21,6 +21,7 @@ Because we are still using the native module loader the edge cases work out comp
 * Live bindings in ES modules
 * Dynamic import expressions (`import('src/' + varname')`)
 * Circular references, with the execption that live bindings are disabled for the first unexecuted circular parent.
+* [Hot reloading extension](#hot-reloading) supporting the `import.meta.hot` API.
 
 > [Built with](https://github.com/guybedford/es-module-shims/blob/main/chompfile.toml) [Chomp](https://chompbuild.com/)
 
@@ -134,31 +135,9 @@ If a static failure is not possible and dynamic import must be used, rather use 
 
 When running in polyfill mode, it can be thought of that are effectively two loaders running on the page - the ES Module Shims polyfill loader, and the native loader.
 
-Note that instances are not shared between these loaders for consistency and performance.
+Note that instances are not shared between these loaders for consistency and performance. For this reason it is important to always ensure all modules hit the polyfill path, either by having all graphs use import maps at the top-level, or via `importShim` directly.
 
-As a result, if you have two module graphs - one native and one polyfilled, they will not share the same dependency instance, for example:
-
-```html
-<script type="importmap">
-{
-  "imports": {
-    "dep": "/dep.js"
-  }
-}
-</script>
-<script type="module">
-import '/dep.js';
-</script>
-<script type="module">
-import 'dep';
-</script>
-```
-
-In the above, on browsers without import maps support, the `/dep.js` instance will be loaded natively by the first module, then the second import will fail.
-
-ES Module Shims will pick up on the second import and reexecute `/dep.js`. As a result, `/dep.js` will be executed twice on the page.
-
-For this reason it is important to always ensure all modules hit the polyfill path, either by having all graphs use import maps at the top-level, or via `importShim` directly.
+If instance sharing really is needed, the [`subgraphPassthrough: true` option](#subgraph-passthrough) can be used, although this is not recommended in production since it results in slower network performance.
 
 #### Skip Polyfill
 
@@ -434,10 +413,31 @@ var resolvedUrl = import.meta.resolve('dep', 'https://site.com/another/scope');
 
 Node.js also implements a similar API, although it's in the process of shifting to a synchronous resolver.
 
+### Hot Reloading
+
+Hot reloading support is provided via the separate `dist/hot.js` or `es-module-shims/hot` export.
+
+Load the hot reloading extension before ES Module Shims:
+
+test.html
+```html
+<script src="https://ga.jspm.io/npm:es-module-shims@1.5.4/dist/hot.js"></script>
+<script src="https://ga.jspm.io/npm:es-module-shims@1.5.4/dist/es-module-shims.js"></script>
+<script type="module-shim" src="/app.js"></script>
+```
+
+While the hot reloading system will work with polyfill mode, it is advisable to use shim mode for hot reloading since the `import.meta.hot` API can only be created for non-native module loads.
+
+The hot reloader will listen to websocket events at `ws://[base]/watch`. Events are strings corresponding to changed file URLs relative to the base URL. The base URL is taken from `document.baseURI`.
+
+`chomp --watch` provides a local server and websocket connection that provides this hot reloading workflow out of the box given the above `test.html` ([Chomp](https://chompbuild.com) can be installed via `npm install -g chomp`).
+
 ### Module Workers
+
 ES Module Shims can be used in module workers in browsers that provide dynamic import in worker environments, which at the moment are Chrome(80+), Edge(80+), Safari(15+).
 
 An example of ES Module Shims usage in web workers is provided below:
+
 ```js
 /**
  * 
@@ -460,6 +460,7 @@ function getWorkerScriptURL(aURL) {
 
 const worker = new Worker(getWorkerScriptURL('myEsModule.js'));
 ```
+
 > For now, in web workers must be used the non-CSP build of ES Module Shims, namely the `es-module-shim.wasm.js` output: es-module-shims/dist/es-module-shims.wasm.js.
 
 ## Init Options
@@ -478,6 +479,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [fetch](#fetch-hook)
 * [revokeBlobURLs](#revoke-blob-urls)
 * [mapOverrides](#overriding-import-map-entries)
+* [subgraphPassthrough](#subgraph-passthrough)
 
 ```html
 <script>
@@ -498,6 +500,10 @@ window.esmsInitOptions = {
   enforceIntegrity: true, // default false
   // Permit overrides to import maps
   mapOverrides: true, // default false
+  // Ensure all natively supported subgraphs are loaded through the native loader.
+  // This is disabled by default for performance since the network fetch cache might not be shared
+  // with the native loader. Enabling it avoids some classes of instancing bugs.
+  subgraphPassthrough: true, // default false
 
   // -- Hooks --
   // Module load error
@@ -692,6 +698,48 @@ document.body.appendChild(Object.assign(document.createElement('script'), {
 ```
 
 This can be useful for HMR workflows.
+
+### Subgraph Passthrough
+
+_This option is not recommended in production for network performance reasons._
+
+It is a performance optimization in ES Module Shims that even native modules that would support execution in the native loader
+will still be executed as blob URLs through the polyfill loader in order to share the fetch cache used by ESMS itself.
+
+Otherwise, for a module graph like:
+
+main.js
+```js
+import 'dep';
+```
+
+dep.js
+```js
+console.log('dep execution');
+```
+
+`main.js` in the above uses import maps so would be polyfilled in browsers without import maps support. Then if
+the native `import '/dep.js'` were used, the native loader wouldn't have that it in its cache so we could end up
+waiting on a new network request to `/dep.js` even though the polyfill has already fetched it (since in Firefox and Safari, the module network cache and fetch cache aren't always shared). To avoid this ES Module Shims will still use a blob URL for `dep.js`
+providing the source it fetched.
+
+Setting `subgraphPassthrough: true` will cause ES Module Shims to directly inline the dependency as `import '/dep.js'`
+thus causing the native loader to fetch and execute `/dep.js` itself.
+
+This can also be useful to avoid instancing bugs, for example if `dep.js` were imported natively as well:
+
+```html
+<script type="module" src="/dep.js"></script>
+<script type="module" src="/main.js"></script>
+```
+
+In the above without `subgraphPassthrough`, `/dep.js` would be executed natively while `/main.js` would be polyfilled/
+
+When the polyfilled `/main.js` imports `/dep.js` it would be executed through the polyfill loader resulting in the
+`"dep execution"` log output being executed twice.
+
+By setting `subgraphPassthrough: true` this results in a single `"dep execution"` log - the module instance is shared
+between the native loader and the polyfill loader.
 
 ### Hooks
 

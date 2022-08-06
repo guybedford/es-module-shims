@@ -35,8 +35,12 @@ run = '''
 '''
 
 [[task]]
+target = 'dist/hot.js'
+run = 'cp src/hot-reload.js dist/hot.js'
+
+[[task]]
 name = 'footprint'
-deps = ['dist/es-module-shims.js', 'dist/es-module-shims.wasm.js']
+deps = ['dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'dist/hot.js']
 template = 'footprint'
 
 [[task]]

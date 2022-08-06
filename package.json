@@ -5,7 +5,8 @@
   "main": "dist/es-module-shims.js",
   "exports": {
     ".": "./dist/es-module-shims.js",
-    "./wasm": "./dist/es-module-shims.wasm.js"
+    "./wasm": "./dist/es-module-shims.wasm.js",
+    "./hot": "./dist/hot.js"
   },
   "types": "index.d.ts",
   "type": "module",
