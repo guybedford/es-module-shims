@@ -169,7 +169,7 @@ function start () {
     spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
   }
   else {
-    open(`${baseURL}/test/${testName}.html`, { app: { name: open.apps.chrome } });
+    open(`${baseURL}/test/${testName}.html`, { app: { name: open.apps[process.env.BROWSER || 'chrome'] } });
   }
 }
 

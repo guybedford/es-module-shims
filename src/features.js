@@ -26,32 +26,34 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
         jsonModulesEnabled && dynamicImport(jsonModulescheck).then(() => supportsJsonAssertions = true, noop),
       ]);
 
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.setAttribute('nonce', nonce);
-    // setting src to a blob URL results in a navigation event in webviews
-    // setting srcdoc is not supported in React native webviews on iOS
-    // therefore, we need to first feature detect srcdoc support
-    iframe.srcdoc = `<!doctype html><script nonce="${nonce}"><${''}/script>`;
-    document.head.appendChild(iframe);
-    iframe.onload = () => {
-      self._$s = (a, b, c, d) => {
-        document.head.removeChild(iframe);
-        supportsImportMaps = a;
-        supportsImportMeta = b;
-        supportsCssAssertions = c;
-        supportsJsonAssertions = d;
-        delete self._$s;
-        resolve();
+    return new Promise(resolve => {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.setAttribute('nonce', nonce);
+      // setting src to a blob URL results in a navigation event in webviews
+      // setting srcdoc is not supported in React native webviews on iOS
+      // therefore, we need to first feature detect srcdoc support
+      iframe.srcdoc = `<!doctype html><script nonce="${nonce}"><${''}/script>`;
+      document.head.appendChild(iframe);
+      iframe.onload = () => {
+        self._$s = (a, b, c, d) => {
+          document.head.removeChild(iframe);
+          supportsImportMaps = a;
+          supportsImportMeta = b;
+          supportsCssAssertions = c;
+          supportsJsonAssertions = d;
+          delete self._$s;
+          resolve();
+        };
+        const supportsSrcDoc = iframe.contentDocument.head.childNodes.length > 0;
+        const importMapTest = `<!doctype html><script type=importmap nonce="${nonce}">{"imports":{"x":"${createBlob('')}"}<${''}/script><script nonce="${nonce}">Promise.all([${
+          supportsImportMaps ? 'true, true' : `'x', '${importMetaCheck}'`}, ${cssModulesEnabled ? `'${cssModulesCheck}'` : 'false'}, ${jsonModulesEnabled ? `'${jsonModulesCheck}'` : 'false'
+        }].map(x => typeof x === 'string' ? import(x).then(x => !!x, () => false) : x)).then(a=>parent._$s.apply(null, a))<${''}/script>`;
+        if (supportsSrcDoc)
+          iframe.srcdoc = importMapTest;
+        else
+          iframe.contentDocument.write(importMapTest);
       };
-      const supportsSrcDoc = iframe.contentDocument.head.childNodes.length > 0;
-      const importMapTest = `<!doctype html><script type=importmap nonce="${nonce}">{"imports":{"x":"${createBlob('')}"}<${''}/script><script nonce="${nonce}">Promise.all([${
-        supportsImportMaps ? 'true, true' : `'x', '${importMetaCheck}'`}, ${cssModulesEnabled ? `'${cssModulesCheck}'` : 'false'}, ${jsonModulesEnabled ? `'${jsonModulesCheck}'` : 'false'
-      }].map(x => typeof x === 'string' ? import(x).then(x => !!x, () => false) : x)).then(a=>parent._$s.apply(null, a))<${''}/script>`;
-      if (supportsSrcDoc)
-        iframe.srcdoc = importMapTest;
-      else
-        iframe.contentDocument.write(importMapTest);
-    };
+    });
   }
 });

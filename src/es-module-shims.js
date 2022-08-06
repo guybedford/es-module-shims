@@ -70,7 +70,7 @@ async function importShim (id, ...args) {
   if (importHook) await importHook(id, typeof args[1] !== 'string' ? args[1] : {}, parentUrl);
   if (acceptingImportMaps || shimMode || !baselinePassthrough) {
     if (hasDocument)
-      processImportMaps();
+      processScriptsAndPreloads(true);
     if (!shimMode)
       acceptingImportMaps = false;
   }
@@ -138,12 +138,12 @@ const initPromise = featureDetectionPromise.then(() => {
               if (node.type === (shimMode ? 'importmap-shim' : 'importmap'))
                 processImportMap(node);
             }
-            else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload'))
+            else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload')) {
               processPreload(node);
+            }
           }
         }
       }).observe(document, {childList: true, subtree: true});
-      processImportMaps();
       processScriptsAndPreloads();
       if (document.readyState === 'complete') {
         readyStateCompleteCheck();
@@ -151,7 +151,7 @@ const initPromise = featureDetectionPromise.then(() => {
       else {
         async function readyListener() {
           await initPromise;
-          processImportMaps();
+          processScriptsAndPreloads();
           if (document.readyState === 'complete') {
             readyStateCompleteCheck();
             document.removeEventListener('readystatechange', readyListener);
@@ -462,16 +462,15 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
   return load;
 }
 
-function processScriptsAndPreloads () {
-  for (const script of document.querySelectorAll(shimMode ? 'script[type=module-shim]' : 'script[type=module]'))
-    processScript(script);
-  for (const link of document.querySelectorAll(shimMode ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]'))
-    processPreload(link);
-}
-
-function processImportMaps () {
-  for (const script of document.querySelectorAll(shimMode ? 'script[type="importmap-shim"]' : 'script[type="importmap"]'))
+function processScriptsAndPreloads (mapsOnly = false) {
+  if (!mapsOnly)
+    for (const link of document.querySelectorAll(shimMode ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]'))
+      processPreload(link);
+  for (const script of document.querySelectorAll(shimMode ? 'script[type=importmap-shim]' : 'script[type=importmap]'))
     processImportMap(script);
+  if (!mapsOnly)
+    for (const script of document.querySelectorAll(shimMode ? 'script[type=module-shim]' : 'script[type=module]'))
+      processScript(script);
 }
 
 function getFetchOpts (script) {
@@ -500,11 +499,8 @@ function domContentLoadedCheck () {
 if (hasDocument) {
   document.addEventListener('DOMContentLoaded', async () => {
     await initPromise;
-    domContentLoadedCheck();
-    if (shimMode || !baselinePassthrough) {
-      processImportMaps();
-      processScriptsAndPreloads();
-    }
+    if (shimMode || !baselinePassthrough)
+      domContentLoadedCheck();
   });
 }
 
@@ -515,10 +511,8 @@ function readyStateCompleteCheck () {
 }
 
 function processImportMap (script) {
-  if (script.ep) // ep marker = script processed
-    return;
   // empty inline scripts sometimes show before domready
-  if (!script.src && !script.innerHTML)
+  if (script.ep || !script.src && !script.innerHTML)
     return;
   script.ep = true;
   // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
@@ -539,14 +533,12 @@ function processImportMap (script) {
 }
 
 function processScript (script) {
-  if (script.ep) // ep marker = script processed
-    return;
-  if (script.getAttribute('noshim') !== null)
-    return;
   // empty inline scripts sometimes show before domready
-  if (!script.src && !script.innerHTML)
+  if (script.ep || !script.src && !script.innerHTML)
     return;
   script.ep = true;
+  if (script.getAttribute('noshim') !== null)
+    return;
   // does this load block readystate complete
   const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
   // does this load block DOMContentLoaded
@@ -562,8 +554,7 @@ function processScript (script) {
 
 const fetchCache = {};
 function processPreload (link) {
-  if (link.ep) // ep marker = processed
-    return;
+  if (link.ep) return;
   link.ep = true;
   if (fetchCache[link.href])
     return;
