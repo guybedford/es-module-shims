@@ -204,19 +204,19 @@ Browser Compatibility on baseline ES modules support **with** ES Module Shims:
 * 2: _CSS module support requires a separate [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme)._
 * 3: _Top-level await support is not currently polyfilled but is possible for ES Module Shims to implement for intermediate browser versions, with the feature request tracking in https://github.com/guybedford/es-module-shims/issues/5. The compatibility gap with native modules is currently < 5% of users so it may not even be necessary._
 
-Browser compatibility on baseline ES modules support **without** ES Module Shims:
+Browser compatibility **without** ES Module Shims:
 
-| ES Modules Features                | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       |
-| ---------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ |
-| [modulepreload](#modulepreload)    | :heavy_check_mark: 66+               | :x:                                  | :x:                                  |
-| [Dynamic Import](#dynamic-import)  | :heavy_check_mark: 63+               | :heavy_check_mark: 67+               | :heavy_check_mark: 11.1+             |
-| [import.meta.url](#importmetaurl)  | :heavy_check_mark: ~76+              | :heavy_check_mark: ~67+              | :heavy_check_mark: ~12+ ❕<sup>1</sup>|
-| [Import Maps](#import-maps)        | :heavy_check_mark: 89+               | :x:                                  | :x:                                  |
-| [JSON Modules](#json-modules)      | :heavy_check_mark: 91+               | :x:                                  | :x:                                  |
-| [CSS Modules](#css-modules)        | :heavy_check_mark: 95+               | :x:                                  | :x:                                  |
-| [import.meta.resolve](#resolve)    | :x:                                  | :x:                                  | :x:                                  |
-| [Module Workers](#module-workers)  | :heavy_check_mark: ~68+              | :x:                                  | :x:                                  |
-| Top-Level Await                    | :heavy_check_mark: 89+               | :heavy_check_mark: 89+               | :heavy_check_mark: 15+               |
+| ES Modules Features                | Chrome             | Firefox            | Safari             |
+| ---------------------------------- | ------------------ | ------------------ | ------------------ |
+| [modulepreload](#modulepreload)    | 66+                | :x:                | :x:                |
+| [Dynamic Import](#dynamic-import)  | 63+                | 67+                | 11.1+              |
+| [import.meta.url](#importmetaurl)  | ~76+               | ~67+               | ~12+ ❕<sup>1</sup> |
+| [Import Maps](#import-maps)        | 89+                | :x:                | :x:                |
+| [JSON Modules](#json-modules)      | 91+                | :x:                | :x:                |
+| [CSS Modules](#css-modules)        | 95+                | :x:                | :x:                |
+| [import.meta.resolve](#resolve)    | :x:                | :x:                | :x:                |
+| [Module Workers](#module-workers)  | ~68+               | :x:                | :x:                |
+| Top-Level Await                    | 89+                | 89+                | 15+                |
 
 * ❕<sup>1</sup>: On module redirects, Safari returns the request URL in `import.meta.url` instead of the response URL as per the spec.
 
