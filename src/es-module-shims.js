@@ -510,11 +510,10 @@ function readyStateCompleteCheck () {
     document.dispatchEvent(new Event('readystatechange'));
 }
 
+const epCheck = script => script.ep || !script.src && !script.innerHTML || !script.nextSibling && !script.parentNode.nextSibling || script.getAttribute('noshim') !== null || !(script.ep = true);
+
 function processImportMap (script) {
-  // empty inline scripts sometimes show before domready
-  if (script.ep || !script.src && !script.innerHTML)
-    return;
-  script.ep = true;
+  if (epCheck(script)) return;
   // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
   if (script.src) {
     if (!shimMode)
@@ -526,19 +525,19 @@ function processImportMap (script) {
       .then(async () => {
         importMap = resolveAndComposeImportMap(script.src ? await (await doFetch(script.src, getFetchOpts(script))).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
       })
-      .catch(throwError);
+      .catch(e => {
+        console.log(e);
+        if (e instanceof SyntaxError)
+          e = new Error(`Unable to parse import map ${e.message} in: ${script.src || script.innerHTML}`);
+        throwError(e);
+      });
     if (!shimMode)
       acceptingImportMaps = false;
   }
 }
 
 function processScript (script) {
-  // empty inline scripts sometimes show before domready
-  if (script.ep || !script.src && !script.innerHTML)
-    return;
-  script.ep = true;
-  if (script.getAttribute('noshim') !== null)
-    return;
+  if (epCheck(script)) return;
   // does this load block readystate complete
   const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
   // does this load block DOMContentLoaded

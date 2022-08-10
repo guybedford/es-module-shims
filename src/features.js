@@ -46,7 +46,7 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
           resolve();
         };
         const supportsSrcDoc = iframe.contentDocument.head.childNodes.length > 0;
-        const importMapTest = `<!doctype html><script type=importmap nonce="${nonce}">{"imports":{"x":"${createBlob('')}"}<${''}/script><script nonce="${nonce}">Promise.all([${
+        const importMapTest = `<!doctype html><script type=importmap nonce="${nonce}">{"imports":{"x":"${createBlob('')}"}}<${''}/script><script nonce="${nonce}">Promise.all([${
           supportsImportMaps ? 'true, true' : `'x', '${importMetaCheck}'`}, ${cssModulesEnabled ? `'${cssModulesCheck}'` : 'false'}, ${jsonModulesEnabled ? `'${jsonModulesCheck}'` : 'false'
         }].map(x => typeof x === 'string' ? import(x).then(x => !!x, () => false) : x)).then(a=>parent._$s.apply(null, a))<${''}/script>`;
         if (supportsSrcDoc)
