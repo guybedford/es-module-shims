@@ -510,7 +510,8 @@ function readyStateCompleteCheck () {
     document.dispatchEvent(new Event('readystatechange'));
 }
 
-const epCheck = script => script.ep || !script.src && !script.innerHTML || !script.nextSibling && !script.parentNode.nextSibling || script.getAttribute('noshim') !== null || !(script.ep = true);
+const hasNext = script => script.nextSibling || script.parentNode && hasNext(script.parentNode);
+const epCheck = script => script.ep || !script.src && !script.innerHTML || !hasNext(script) || script.getAttribute('noshim') !== null || !(script.ep = true);
 
 function processImportMap (script) {
   if (epCheck(script)) return;
