@@ -134,9 +134,9 @@ const initPromise = featureDetectionPromise.then(() => {
           for (const node of mutation.addedNodes) {
             if (node.tagName === 'SCRIPT') {
               if (node.type === (shimMode ? 'module-shim' : 'module'))
-                processScript(node);
+                processScript(node, true);
               if (node.type === (shimMode ? 'importmap-shim' : 'importmap'))
-                processImportMap(node);
+                processImportMap(node, true);
             }
             else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload')) {
               processPreload(node);
@@ -510,11 +510,11 @@ function readyStateCompleteCheck () {
     document.dispatchEvent(new Event('readystatechange'));
 }
 
-function processImportMap (script) {
-  // empty inline scripts sometimes show before domready
-  if (script.ep || !script.src && !script.innerHTML)
-    return;
-  script.ep = true;
+const hasNext = script => script.nextSibling || script.parentNode && hasNext(script.parentNode);
+const epCheck = (script, ready) => script.ep || !ready && (!script.src && !script.innerHTML || !hasNext(script)) || script.getAttribute('noshim') !== null || !(script.ep = true);
+
+function processImportMap (script, ready = readyStateCompleteCnt > 0) {
+  if (epCheck(script, ready)) return;
   // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
   if (script.src) {
     if (!shimMode)
@@ -526,19 +526,19 @@ function processImportMap (script) {
       .then(async () => {
         importMap = resolveAndComposeImportMap(script.src ? await (await doFetch(script.src, getFetchOpts(script))).json() : JSON.parse(script.innerHTML), script.src || pageBaseUrl, importMap);
       })
-      .catch(throwError);
+      .catch(e => {
+        console.log(e);
+        if (e instanceof SyntaxError)
+          e = new Error(`Unable to parse import map ${e.message} in: ${script.src || script.innerHTML}`);
+        throwError(e);
+      });
     if (!shimMode)
       acceptingImportMaps = false;
   }
 }
 
-function processScript (script) {
-  // empty inline scripts sometimes show before domready
-  if (script.ep || !script.src && !script.innerHTML)
-    return;
-  script.ep = true;
-  if (script.getAttribute('noshim') !== null)
-    return;
+function processScript (script, ready = readyStateCompleteCnt > 0) {
+  if (epCheck(script, ready)) return;
   // does this load block readystate complete
   const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
   // does this load block DOMContentLoaded

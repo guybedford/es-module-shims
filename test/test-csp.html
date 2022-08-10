@@ -6,6 +6,7 @@
 <script type="importmap" nonce="asdf">
 {
   "imports": {
+    "once": "/test/fixtures/once.js",
     "test": "/test/fixtures/es-modules/es6-file.js",
     "test/": "/test/fixtures/",
     "global1": "/test/fixtures/es-modules/global1.js",
@@ -30,6 +31,10 @@
 </script>
 <script nonce="asdf">
   window.import2 = import('data');
+</script>
+
+<script type="module" nonce="asdf">
+  import 'once';
 </script>
 
 <script type="module" src="../src/es-module-shims.js" nonce="asdf"></script>

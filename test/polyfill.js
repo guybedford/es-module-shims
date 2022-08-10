@@ -46,4 +46,10 @@ suite('Polyfill tests', () => {
     const result = await check();
     assert.equal(result, true);
   });
+
+  test('Polyfill engagement', async function () {
+    if (window.cnt > 1)
+      throw new Error(`Polyfill engaged despite native implementation`);
+    assert.equal(window.cnt, 1);
+  });
 });
