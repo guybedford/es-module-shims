@@ -134,9 +134,9 @@ const initPromise = featureDetectionPromise.then(() => {
           for (const node of mutation.addedNodes) {
             if (node.tagName === 'SCRIPT') {
               if (node.type === (shimMode ? 'module-shim' : 'module'))
-                processScript(node);
+                processScript(node, true);
               if (node.type === (shimMode ? 'importmap-shim' : 'importmap'))
-                processImportMap(node);
+                processImportMap(node, true);
             }
             else if (node.tagName === 'LINK' && node.rel === (shimMode ? 'modulepreload-shim' : 'modulepreload')) {
               processPreload(node);
@@ -511,10 +511,10 @@ function readyStateCompleteCheck () {
 }
 
 const hasNext = script => script.nextSibling || script.parentNode && hasNext(script.parentNode);
-const epCheck = script => script.ep || !script.src && !script.innerHTML || !hasNext(script) || script.getAttribute('noshim') !== null || !(script.ep = true);
+const epCheck = (script, ready) => script.ep || !ready && (!script.src && !script.innerHTML || !hasNext(script)) || script.getAttribute('noshim') !== null || !(script.ep = true);
 
-function processImportMap (script) {
-  if (epCheck(script)) return;
+function processImportMap (script, ready = readyStateCompleteCnt > 0) {
+  if (epCheck(script, ready)) return;
   // we dont currently support multiple, external or dynamic imports maps in polyfill mode to match native
   if (script.src) {
     if (!shimMode)
@@ -537,8 +537,8 @@ function processImportMap (script) {
   }
 }
 
-function processScript (script) {
-  if (epCheck(script)) return;
+function processScript (script, ready = readyStateCompleteCnt > 0) {
+  if (epCheck(script, ready)) return;
   // does this load block readystate complete
   const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
   // does this load block DOMContentLoaded
