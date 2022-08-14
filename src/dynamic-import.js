@@ -26,10 +26,10 @@ if (hasDocument && !supportsDynamicImportCheck) {
     const src = createBlob(`import*as m from'${url}';self._esmsi=m;`);
     const s = Object.assign(document.createElement('script'), { type: 'module', src });
     s.setAttribute('noshim', '');
-    document.head.appendChild(s);
+    document.appendChild(s);
     return new Promise((resolve, reject) => {
       s.addEventListener('load', () => {
-        document.head.removeChild(s);
+        document.removeChild(s);
         if (self._esmsi) {
           resolve(_esmsi, baseUrl);
           _esmsi = null;

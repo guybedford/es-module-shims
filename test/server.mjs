@@ -152,7 +152,7 @@ const server = http.createServer(async function (req, res) {
     mime = mimes[path.extname(filePath)] || 'text/plain';
 
   const headers = filePath.endsWith('content-type-none.json') ?
-    {} : { 'content-type': mime, 'Cache-Control': 'no-cache' }
+    {} : { 'Access-Control-Allow-Origin': '*', 'Content-Type': mime, 'Cache-Control': 'no-cache' }
 
   res.writeHead(200, headers);
   fileStream.pipe(res);

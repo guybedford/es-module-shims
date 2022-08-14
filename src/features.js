@@ -15,45 +15,43 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
   supportsDynamicImport = true;
 
   if (!supportsImportMaps || cssModulesEnabled || jsonModulesEnabled) {
-    const importMetaCheck = createBlob('import.meta');
-    const cssModulesCheck = createBlob(`import"${createBlob('', 'text/css')}"assert{type:"css"}`);
-    const jsonModulesCheck = createBlob(`import"${createBlob('{}', 'text/json')}"assert{type:"json"}`);
+    const importMetaCheck = 'import.meta';
+    const cssModulesCheck = `import"x"assert{type:"css"}`;
+    const jsonModulesCheck = `import"x"assert{type:"json"}`;
 
     if (!hasDocument)
       return Promise.all([
-        supportsImportMaps || dynamicImport(importMetaCheck).then(() => supportsImportMeta = true, noop),
-        cssModulesEnabled && dynamicImport(cssModulesCheck).then(() => supportsCssAssertions = true, noop),
-        jsonModulesEnabled && dynamicImport(jsonModulescheck).then(() => supportsJsonAssertions = true, noop),
+        supportsImportMaps || dynamicImport(createBlob(importMetaCheck)).then(() => supportsImportMeta = true, noop),
+        cssModulesEnabled && dynamicImport(createBlob(cssModulesCheck.replace('x', createBlob('', 'text/css')))).then(() => supportsCssAssertions = true, noop),
+        jsonModulesEnabled && dynamicImport(createBlob(jsonModulescheck.replace('x', createBlob('{}', 'text/json')))).then(() => supportsJsonAssertions = true, noop),
       ]);
 
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       iframe.setAttribute('nonce', nonce);
-      // setting src to a blob URL results in a navigation event in webviews
+      function cb ({ data: [a, b, c, d] }) {
+        supportsImportMaps = a;
+        supportsImportMeta = b;
+        supportsCssAssertions = c;
+        supportsJsonAssertions = d;
+        resolve();
+        document.head.removeChild(iframe);
+        window.removeEventListener('message', cb, false);
+      }
+      window.addEventListener('message', cb, false);
+
+      const importMapTest = `<script>const createBlob=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${createBlob('')}"}}\`}));Promise.all([${
+        supportsImportMaps ? 'true, true' : `'x',createBlob('${importMetaCheck}')`}, ${cssModulesEnabled ? `createBlob('${cssModulesCheck}'.replace('x',createBlob('','text/css')))` : 'false'}, ${
+        jsonModulesEnabled ? `createBlob('${jsonModulesCheck}'.replace('x',createBlob('{}','text/json')))` : 'false'}].map(x => typeof x === 'string' ? import(x).then(x => !!x, () => false) : x)).then(a=>parent.postMessage(a,'*'))<${''}/script>`;
       // setting srcdoc is not supported in React native webviews on iOS
-      // therefore, we need to first feature detect srcdoc support
-      iframe.srcdoc = `<!doctype html><script nonce="${nonce}"><${''}/script>`;
+      // setting src to a blob URL results in a navigation event in webviews
+      // document.write gives usability warnings
+      if ('srcdoc' in iframe)
+        iframe.srcdoc = importMapTest;
+      else
+        iframe.contentDocument.write(importMapTest);
       document.head.appendChild(iframe);
-      iframe.onload = () => {
-        self._$s = (a, b, c, d) => {
-          document.head.removeChild(iframe);
-          supportsImportMaps = a;
-          supportsImportMeta = b;
-          supportsCssAssertions = c;
-          supportsJsonAssertions = d;
-          delete self._$s;
-          resolve();
-        };
-        const supportsSrcDoc = iframe.contentDocument.head.childNodes.length > 0;
-        const importMapTest = `<!doctype html><script type=importmap nonce="${nonce}">{"imports":{"x":"${createBlob('')}"}}<${''}/script><script nonce="${nonce}">Promise.all([${
-          supportsImportMaps ? 'true, true' : `'x', '${importMetaCheck}'`}, ${cssModulesEnabled ? `'${cssModulesCheck}'` : 'false'}, ${jsonModulesEnabled ? `'${jsonModulesCheck}'` : 'false'
-        }].map(x => typeof x === 'string' ? import(x).then(x => !!x, () => false) : x)).then(a=>parent._$s.apply(null, a))<${''}/script>`;
-        if (supportsSrcDoc)
-          iframe.srcdoc = importMapTest;
-        else
-          iframe.contentDocument.write(importMapTest);
-      };
     });
   }
 });

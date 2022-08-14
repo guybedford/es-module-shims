@@ -49,9 +49,7 @@ export const baseUrl = hasDocument
     ? location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1) 
     : location.pathname}`;
 
-export function createBlob (source, type = 'text/javascript') {
-  return URL.createObjectURL(new Blob([source], { type }));
-}
+export const createBlob = (source, type = 'text/javascript') => URL.createObjectURL(new Blob([source], { type }));
 
 const eoop = err => setTimeout(() => { throw err });
 

@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script type="importmap">
+  {
+    "imports": {
+      "x": "/test/fixtures/test-dep.js"
+    }
+  }
+  </script>
+  <script type="module" src="../src/es-module-shims.js" crossorigin="anonymous"></script>
+  <script type="module">
+    import 'x';
+    window.parent.postMessage('OK', '*');
+  </script>
+</head>
+<body>
+</body>
+</html>
