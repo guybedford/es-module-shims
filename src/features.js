@@ -41,9 +41,9 @@ export const featureDetectionPromise = Promise.resolve(supportsImportMaps || sup
       }
       window.addEventListener('message', cb, false);
 
-      const importMapTest = `<script>const createBlob=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${createBlob('')}"}}\`}));Promise.all([${
+      const importMapTest = `<script nonce=${nonce}>const createBlob=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${createBlob('')}"}}\`}));Promise.all([${
         supportsImportMaps ? 'true, true' : `'x',createBlob('${importMetaCheck}')`}, ${cssModulesEnabled ? `createBlob('${cssModulesCheck}'.replace('x',createBlob('','text/css')))` : 'false'}, ${
-        jsonModulesEnabled ? `createBlob('${jsonModulesCheck}'.replace('x',createBlob('{}','text/json')))` : 'false'}].map(x => typeof x === 'string' ? import(x).then(x => !!x, () => false) : x)).then(a=>parent.postMessage(a,'*'))<${''}/script>`;
+        jsonModulesEnabled ? `createBlob('${jsonModulesCheck}'.replace('x',createBlob('{}','text/json')))` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(a,'*'))<${''}/script>`;
       // setting srcdoc is not supported in React native webviews on iOS
       // setting src to a blob URL results in a navigation event in webviews
       // document.write gives usability warnings
