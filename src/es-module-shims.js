@@ -498,8 +498,10 @@ function domContentLoadedCheck () {
 if (hasDocument) {
   document.addEventListener('DOMContentLoaded', async () => {
     await initPromise;
-    if (shimMode || !baselinePassthrough)
+    if (shimMode || !baselinePassthrough) {
       domContentLoadedCheck();
+      processScriptsAndPreloads();
+    }
   });
 }
 
