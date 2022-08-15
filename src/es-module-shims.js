@@ -8,7 +8,6 @@ import {
 import {
   baseUrl as pageBaseUrl,
   createBlob,
-  edge,
   throwError,
   shimMode,
   resolveHook,
@@ -27,10 +26,9 @@ import {
   hasDocument,
   importMapSrcOrLazy,
   setImportMapSrcOrLazy,
+  dynamicImport
 } from './env.js';
-import { dynamicImport } from './dynamic-import-csp.js';
 import {
-  supportsDynamicImport,
   supportsImportMeta,
   supportsImportMaps,
   supportsCssAssertions,
@@ -121,7 +119,7 @@ let importMap = { imports: {}, scopes: {} };
 let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
-  baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
+  baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
   if (hasDocument) {
     if (!supportsImportMaps) {
       const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
@@ -242,12 +240,12 @@ function resolveDeps (load, seen) {
   const source = load.S;
 
   // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
-  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';
-
+  let resolvedSource;
   if (!imports.length) {
-    resolvedSource += source;
+    resolvedSource = source;
   }
   else {
+    resolvedSource = '';
     // once all deps have loaded we can inline the dependency resolution blobs
     // and define this blob
     let lastIndex = 0, depIndex = 0, dynamicImportEndStack = [];
@@ -446,7 +444,7 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
     load.d = (await Promise.all(load.a[0].map(async ({ n, d }) => {
-      if (d >= 0 && !supportsDynamicImport || d === -2 && !supportsImportMeta)
+      if (d === -2 && !supportsImportMeta)
         load.n = true;
       if (d !== -1 || !n) return;
       const { r, b } = await resolve(n, load.r || load.u);

@@ -41,8 +41,6 @@ const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.p
 export const cssModulesEnabled = enable.includes('css-modules');
 export const jsonModulesEnabled = enable.includes('json-modules');
 
-export const edge = !navigator.userAgentData && !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
-
 export const baseUrl = hasDocument
   ? document.baseURI
   : `${location.protocol}//${location.host}${location.pathname.includes('/') 
@@ -84,3 +82,22 @@ if (!shimMode) {
     }
   }
 }
+
+export let dynamicImport = !hasDocument && (0, eval)('u=>import(u)');
+
+export const dynamicImportPromise = hasDocument ? new Promise(resolve => {
+  if (!hasDocument)
+    return resolve();
+  const s = Object.assign(document.createElement('script'), {
+    src: createBlob('self._di=u=>import(u)'),
+    ep: true
+  });
+  s.setAttribute('nonce', nonce);
+  s.addEventListener('load', () => {
+    document.head.removeChild(s);
+    dynamicImport = self._di;
+    delete self._di;
+    resolve();
+  });
+  document.head.appendChild(s);
+}) : Promise.resolve();

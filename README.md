@@ -1,15 +1,14 @@
 # ES Module Shims
 
-Shims modern ES Modules features like import maps on top of the baseline modules support in browsers supported by [95% of users](https://caniuse.com/#feat=es6-module).
+Shims modern ES Modules features like import maps on top of the baseline modules support in browsers supported by [95% of users](https://caniuse.com/es6-module-dynamic-import).
 
-When running in polyfill mode, [the 67% of users](https://caniuse.com/import-maps) with import maps entirely bypass the shim code entirely.
+When running in polyfill mode, [the 72% of users](https://caniuse.com/import-maps) with import maps entirely bypass the shim code entirely.
 
 For the remaining 30% of users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
 
 The following modules features are polyfilled:
 
-* [Import Maps](#import-maps) support.
-* Dynamic `import()` shimming when necessary in eg older Firefox versions.
+* [Import Maps](#import-maps) support
 * `import.meta` and `import.meta.url`.
 * [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions (when enabled).
 * [`<link rel="modulepreload">` polyfill](#modulepreload) in non Chromium browsers for both shimmed and unshimmed preloading scenarios.
@@ -176,8 +175,8 @@ ES Module Shims is designed for production performance. A [comprehensive benchma
 
 Benchmark summary:
 
-* [ES Module Shims Chrome Passthrough](bench/README.md#chrome-passthrough-performance) (for [70% of users](https://caniuse.com/import-maps)) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 10KB compressed download as expected.
-* [ES Module Shims Polyfilling](bench/README.md#native-v-polyfill-performance) (for the remaining [30% of users](https://caniuse.com/import-maps)) is on average 1.4x - 1.5x slower than native module loading, and up to 1.8x slower on slow networks (most likely due to the browser preloader), both for cached and uncached loads, and this result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
+* [ES Module Shims Chrome Passthrough](bench/README.md#chrome-passthrough-performance) (for [72% of users](https://caniuse.com/import-maps)) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 10KB compressed download as expected.
+* [ES Module Shims Polyfilling](bench/README.md#native-v-polyfill-performance) (for the remaining [28% of users](https://caniuse.com/import-maps)) is on average 1.4x - 1.5x slower than native module loading, and up to 1.8x slower on slow networks (most likely due to the browser preloader), both for cached and uncached loads, and this result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
 * [Very large import maps](bench/README.md#large-import-maps-performance) (100s of entries) cost only a few extra milliseconds upfront for the additional loading cost.
 
 ## Features
@@ -188,16 +187,15 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 
 Browser Compatibility on baseline ES modules support **with** ES Module Shims:
 
-| ES Modules Features                             | Chrome (61+)                         | Firefox (60+)                        | Safari (10.1+)                       |
+| ES Modules Features                             | Chrome (63+)                         | Firefox (67+)                        | Safari (11.1+)                       |
 | ----------------------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ |
 | [modulepreload](#modulepreload)                 | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Dynamic Import](#dynamic-import)               | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [import.meta.url](#importmetaurl)               | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Import Maps](#import-maps)                     | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [JSON Modules](#json-modules)                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [CSS Modules](#css-modules)                     | :heavy_check_mark:<sup>1</sup>       | :heavy_check_mark:<sup>1</sup>       | :heavy_check_mark:<sup>1</sup>       |
 | [import.meta.resolve](#resolve)                 | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Module Workers](#module-workers) (via wrapper) | 63+                                  | :x:<sup>2</sup>                      | 15+                                  |
+| [Module Workers](#module-workers) (via wrapper) | :heavy_check_mark:                   | :x:<sup>2</sup>                      | 15+                                  |
 | Top-Level Await (unpolyfilled<sup>3</sup>)      | 89+                                  | 89+                                  | 15+                                  |
 
 * 1: _CSS module support requires a separate [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme)._
@@ -209,7 +207,6 @@ Browser compatibility **without** ES Module Shims:
 | ES Modules Features                | Chrome             | Firefox            | Safari             |
 | ---------------------------------- | ------------------ | ------------------ | ------------------ |
 | [modulepreload](#modulepreload)    | 66+                | :x:                | :x:                |
-| [Dynamic Import](#dynamic-import)  | 63+                | 67+                | 11.1+              |
 | [import.meta.url](#importmetaurl)  | ~76+               | ~67+               | ~12+ ❕<sup>1</sup> |
 | [Import Maps](#import-maps)        | 89+                | :x:                | :x:                |
 | [JSON Modules](#json-modules)      | 91+                | :x:                | :x:                |
@@ -300,20 +297,6 @@ To make it easy to set the import map state, es-module-shims provides a `importS
 const importMap = { imports: {/*...*/}, scopes: {/*...*/} };
 
 importShim.addImportMap(importMap);
-```
-
-
-### Dynamic Import
-
-> Stability: Stable browser standard
-
-Dynamic `import(...)` within any modules loaded will be rewritten as `importShim(...)` automatically
-providing full support for all es-module-shims features through dynamic import.
-
-To load code dynamically (say from the browser console), `importShim` can be called similarly:
-
-```js
-importShim('/path/to/module.js').then(x => console.log(x));
 ```
 
 ### import.meta.url
