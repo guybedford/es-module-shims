@@ -28,9 +28,8 @@ import {
   importMapSrcOrLazy,
   setImportMapSrcOrLazy,
 } from './env.js';
-import { dynamicImport } from './dynamic-import-csp.js';
+import { dynamicImport, supportsDynamicImport } from './dynamic-import.js';
 import {
-  supportsDynamicImport,
   supportsImportMeta,
   supportsImportMaps,
   supportsCssAssertions,

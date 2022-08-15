@@ -1,44 +1,48 @@
-import { createBlob, baseUrl, hasDocument } from './env.js';
+import { createBlob, baseUrl, nonce, hasDocument } from './env.js';
 
-export let supportsDynamicImportCheck = false;
+export let dynamicImport = !hasDocument && (0, eval)('u=>import(u)');
 
-// first check basic eval support
-try {
-  eval('');
-}
-catch (e) {
-  throw new Error(`The ES Module Shims Wasm build will not work without eval support. Either use the alternative CSP-compatible build or make sure to add both the "unsafe-eval" and "unsafe-wasm-eval" CSP policies.`);
-}
+export let supportsDynamicImport;
 
-// polyfill dynamic import if not supported
-export let dynamicImport;
-try {
-  dynamicImport = (0, eval)('u=>import(u)');
-  supportsDynamicImportCheck = true;
-}
-catch (e) {}
-
-if (hasDocument && !supportsDynamicImportCheck) {
-  let err;
-  window.addEventListener('error', _err => err = _err);
-  dynamicImport = (url, { errUrl = url }) => {
-    err = undefined;
-    const src = createBlob(`import*as m from'${url}';self._esmsi=m;`);
-    const s = Object.assign(document.createElement('script'), { type: 'module', src });
-    s.setAttribute('noshim', '');
-    document.head.appendChild(s);
-    return new Promise((resolve, reject) => {
-      s.addEventListener('load', () => {
-        document.head.removeChild(s);
-        if (self._esmsi) {
-          resolve(_esmsi, baseUrl);
-          _esmsi = null;
+export const dynamicImportCheck = hasDocument && new Promise(resolve => {
+  const s = Object.assign(document.createElement('script'), {
+    src: createBlob('self._d=u=>import(u)'),
+    ep: true
+  });
+  s.setAttribute('nonce', nonce);
+  s.addEventListener('load', () => {
+    if (!(supportsDynamicImport = !!(dynamicImport = self._d))) {
+      let err;
+      window.addEventListener('error', _err => err = _err);
+      dynamicImport = (url, opts) => new Promise((resolve, reject) => {
+        const s = Object.assign(document.createElement('script'), {
+          type: 'module',
+          src: createBlob(`import*as m from'${url}';self._esmsi=m`)
+        });
+        err = undefined;
+        s.ep = true;
+        if (nonce)
+          s.setAttribute('nonce', nonce);
+        // Safari is unique in supporting module script error events
+        s.addEventListener('error', cb);
+        s.addEventListener('load', cb);
+        function cb (_err) {
+          document.head.removeChild(s);
+          if (self._esmsi) {
+            resolve(self._esmsi, baseUrl);
+            self._esmsi = undefined;
+          }
+          else {
+            reject(!(_err instanceof Event) && _err || err && err.error || new Error(`Error loading ${opts && opts.errUrl || url} (${s.src}).`));
+            err = undefined;
+          }
         }
-        else {
-          reject(err.error || new Error(`Error loading or executing the graph of ${errUrl} (check the console for ${src}).`));
-          err = undefined;
-        }
+        document.head.appendChild(s);
       });
-    });
-  };
-}
+    }
+    document.head.removeChild(s);
+    delete self._d;
+    resolve();
+  });
+  document.head.appendChild(s);
+});

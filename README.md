@@ -2,9 +2,9 @@
 
 Shims modern ES Modules features like import maps on top of the baseline modules support in browsers supported by [95% of users](https://caniuse.com/#feat=es6-module).
 
-When running in polyfill mode, [the 67% of users](https://caniuse.com/import-maps) with import maps entirely bypass the shim code entirely.
+When running in polyfill mode, [the 72% of users](https://caniuse.com/import-maps) with import maps entirely bypass the shim code entirely.
 
-For the remaining 30% of users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
+For the remaining 28% of users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
 
 The following modules features are polyfilled:
 
@@ -176,8 +176,8 @@ ES Module Shims is designed for production performance. A [comprehensive benchma
 
 Benchmark summary:
 
-* [ES Module Shims Chrome Passthrough](bench/README.md#chrome-passthrough-performance) (for [70% of users](https://caniuse.com/import-maps)) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 10KB compressed download as expected.
-* [ES Module Shims Polyfilling](bench/README.md#native-v-polyfill-performance) (for the remaining [30% of users](https://caniuse.com/import-maps)) is on average 1.4x - 1.5x slower than native module loading, and up to 1.8x slower on slow networks (most likely due to the browser preloader), both for cached and uncached loads, and this result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
+* [ES Module Shims Chrome Passthrough](bench/README.md#chrome-passthrough-performance) (for [72% of users](https://caniuse.com/import-maps)) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 10KB compressed download as expected.
+* [ES Module Shims Polyfilling](bench/README.md#native-v-polyfill-performance) (for the remaining [28% of users](https://caniuse.com/import-maps)) is on average 1.4x - 1.5x slower than native module loading, and up to 1.8x slower on slow networks (most likely due to the browser preloader), both for cached and uncached loads, and this result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
 * [Very large import maps](bench/README.md#large-import-maps-performance) (100s of entries) cost only a few extra milliseconds upfront for the additional loading cost.
 
 ## Features
