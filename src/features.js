@@ -41,6 +41,8 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
     const importMapTest = `<script nonce=${nonce}>const b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
       supportsImportMaps ? 'true,true' : `'x',b('${importMetaCheck}')`}, ${cssModulesEnabled ? `b('${cssModulesCheck}'.replace('x',b('','text/css')))` : 'false'}, ${
       jsonModulesEnabled ? `b('${jsonModulesCheck}'.replace('x',b('{}','text/json')))` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(a,'*'))<${''}/script>`;
+    // WeChat browser requires append before setting srcdoc
+    document.head.appendChild(iframe);
     // setting srcdoc is not supported in React native webviews on iOS
     // setting src to a blob URL results in a navigation event in webviews
     // document.write gives usability warnings
@@ -48,6 +50,5 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
       iframe.srcdoc = importMapTest;
     else
       iframe.contentDocument.write(importMapTest);
-    document.head.appendChild(iframe);
   });
 });
