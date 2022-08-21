@@ -38,9 +38,21 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
     }
     window.addEventListener('message', cb, false);
 
-    const importMapTest = `<script nonce=${nonce}>const b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
+    const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
       supportsImportMaps ? 'true,true' : `'x',b('${importMetaCheck}')`}, ${cssModulesEnabled ? `b('${cssModulesCheck}'.replace('x',b('','text/css')))` : 'false'}, ${
       jsonModulesEnabled ? `b('${jsonModulesCheck}'.replace('x',b('{}','text/json')))` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(a,'*'))<${''}/script>`;
+
+    iframe.onload = () => {
+      // WeChat browser doesn't support setting srcdoc scripts
+      // But iframe sandboxes don't support contentDocument so we do this as a fallback
+      if (iframe.contentDocument && iframe.contentDocument.head.childNodes.length === 0) {
+        const script = iframe.contentDocument.createElement('script');
+        if (nonce)
+          script.setAttribute('nonce', nonce);
+        script.innerHTML = importMapTest.slice(15 + (nonce ? nonce.length : 0), -9);
+        iframe.contentDocument.head.appendChild(script);
+      }
+    };
     // WeChat browser requires append before setting srcdoc
     document.head.appendChild(iframe);
     // setting srcdoc is not supported in React native webviews on iOS
