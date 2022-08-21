@@ -38,9 +38,24 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
     }
     window.addEventListener('message', cb, false);
 
-    const importMapTest = `<script nonce=${nonce}>const b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
+    const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
       supportsImportMaps ? 'true,true' : `'x',b('${importMetaCheck}')`}, ${cssModulesEnabled ? `b('${cssModulesCheck}'.replace('x',b('','text/css')))` : 'false'}, ${
       jsonModulesEnabled ? `b('${jsonModulesCheck}'.replace('x',b('{}','text/json')))` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(a,'*'))<${''}/script>`;
+
+    iframe.onload = () => {
+      // WeChat browser doesn't support setting srcdoc scripts
+      // But iframe sandboxes don't support contentDocument so we do this as a fallback
+      const doc = iframe.contentDocument;
+      if (doc && doc.head.childNodes.length === 0) {
+        const s = doc.createElement('script');
+        if (nonce)
+          s.setAttribute('nonce', nonce);
+        s.innerHTML = importMapTest.slice(15 + (nonce ? nonce.length : 0), -9);
+        doc.head.appendChild(s);
+      }
+    };
+    // WeChat browser requires append before setting srcdoc
+    document.head.appendChild(iframe);
     // setting srcdoc is not supported in React native webviews on iOS
     // setting src to a blob URL results in a navigation event in webviews
     // document.write gives usability warnings
@@ -48,6 +63,5 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
       iframe.srcdoc = importMapTest;
     else
       iframe.contentDocument.write(importMapTest);
-    document.head.appendChild(iframe);
   });
 });
