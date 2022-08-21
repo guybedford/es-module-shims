@@ -45,12 +45,13 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
     iframe.onload = () => {
       // WeChat browser doesn't support setting srcdoc scripts
       // But iframe sandboxes don't support contentDocument so we do this as a fallback
-      if (iframe.contentDocument && iframe.contentDocument.head.childNodes.length === 0) {
-        const script = iframe.contentDocument.createElement('script');
+      const doc = iframe.contentDocument;
+      if (doc && doc.head.childNodes.length === 0) {
+        const s = doc.createElement('script');
         if (nonce)
-          script.setAttribute('nonce', nonce);
-        script.innerHTML = importMapTest.slice(15 + (nonce ? nonce.length : 0), -9);
-        iframe.contentDocument.head.appendChild(script);
+          s.setAttribute('nonce', nonce);
+        s.innerHTML = importMapTest.slice(15 + (nonce ? nonce.length : 0), -9);
+        doc.head.appendChild(s);
       }
     };
     // WeChat browser requires append before setting srcdoc
