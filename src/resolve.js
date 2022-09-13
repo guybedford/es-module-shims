@@ -1,6 +1,6 @@
 import { mapOverrides, shimMode } from './env.js';
 
-export let importMap = { imports: {}, scopes: {} };
+export let importMap = { imports: Object.create(null), scopes: Object.create(null) };
 
 const backslashRegEx = /\\/g;
 
@@ -15,22 +15,14 @@ export function isURL (url) {
   }
 }
 
-/*
- * Import maps implementation
- *
- * To make lookups fast we pre-resolve the entire import map
- * and then match based on backtracked hash lookups
- *
- */
 export function resolveUrl (relUrl, parentUrl) {
   return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (isURL(relUrl) ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
-  // strip off any trailing query params or hashes
-  const queryHashIndex = parentUrl.indexOf('?', parentUrl.indexOf('#') === -1 ? parentUrl.indexOf('#') : parentUrl.length);
-  if (queryHashIndex !== -1)
-    parentUrl = parentUrl.slice(0, queryHashIndex);
+  const hIdx = parentUrl.indexOf('#'), qIdx = parentUrl.indexOf('?');
+  if (hIdx + qIdx > -2)
+    parentUrl = parentUrl.slice(0, hIdx === -1 ? qIdx : qIdx === -1 || qIdx > hIdx ? hIdx : qIdx);
   if (relUrl.indexOf('\\') !== -1)
     relUrl = relUrl.replace(backslashRegEx, '/');
   // protocol-relative
