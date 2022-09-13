@@ -306,9 +306,9 @@ function resolveDeps (load, seen) {
       }
     }
 
-    // support progressive cycle binding updates
+    // support progressive cycle binding updates (try statement avoids tdz errors)
     if (load.s)
-      resolvedSource += `\n;import{u$_}from'${load.s}';u$_({ ${exports.filter(e => e.ln).map(({ s, e, ln }) => `${source.slice(s, e)}: ${ln}`).join(',')} });\n`;
+      resolvedSource += `\n;import{u$_}from'${load.s}';try{u$_({${exports.filter(e => e.ln).map(({ s, e, ln }) => `${source.slice(s, e)}: ${ln}`).join(',')}})}catch(_){};\n`;
 
     pushStringTo(source.length);
   }

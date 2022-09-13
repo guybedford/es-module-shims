@@ -175,6 +175,11 @@ suite('Basic loading tests', () => {
 });
 
 suite('Circular dependencies', function() {
+  test('Should handle self-import tdzs', async function () {
+    var m = await importShim('./fixtures/es-modules/tdz.js');
+    assert.equal(m.checkTDZ(), 'tdz');
+  });
+
   test('should resolve circular dependencies', async function () {
     var m = await importShim('./fixtures/test-cycle.js');
     assert.equal(m.default, 'f');
