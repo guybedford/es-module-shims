@@ -451,6 +451,7 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
       const { r, b } = await resolve(n, load.r || load.u);
       if (b && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
+      if (d !== -1) return;      
       if (skip && skip.test(r)) return { b: r };
       if (childFetchOpts.integrity)
         childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });

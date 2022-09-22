@@ -15,8 +15,6 @@ export const resolveHook = globalHook(shimMode && esmsInitOptions.resolve);
 export let fetchHook = esmsInitOptions.fetch ? globalHook(esmsInitOptions.fetch) : fetch;
 export const metaHook = esmsInitOptions.meta ? globalHook(shimMode && esmsInitOptions.meta) : noop;
 
-export const skip = esmsInitOptions.skip ? new RegExp(esmsInitOptions.skip) : null;
-
 export const mapOverrides = esmsInitOptions.mapOverrides;
 
 export let nonce = esmsInitOptions.nonce;
@@ -50,6 +48,15 @@ export const baseUrl = hasDocument
     : location.pathname}`;
 
 export const createBlob = (source, type = 'text/javascript') => URL.createObjectURL(new Blob([source], { type }));
+export let { skip } = esmsInitOptions;
+if (Array.isArray(skip)) {
+  const l = skip.map(s => new URL(s, baseUrl).href);
+  skip = s => l.some(i => i[i.length - 1] === '/' && s.startsWith(i) || s === i);
+}
+else if (typeof skip === 'string') {
+  const r = new RegExp(skip);
+  skip = s => s.test(r);
+}
 
 const eoop = err => setTimeout(() => { throw err });
 
