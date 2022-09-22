@@ -626,7 +626,7 @@ In such a case, this double event firing can be disabled with the `noLoadEventRe
 
 When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
 
-The `skip` option supports a string regular expression, function or array of exact module URLs to check:
+The `skip` option supports a string regular expression or array of exact module URLs to check:
 
 ```js
 <script type="esms-options">
