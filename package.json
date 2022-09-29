@@ -1,6 +1,6 @@
 {
   "name": "es-module-shims",
-  "version": "1.5.18",
+  "version": "1.6.0",
   "description": "Shims for the latest ES module features",
   "main": "dist/es-module-shims.js",
   "exports": {
@@ -36,8 +36,8 @@
     "test": "test"
   },
   "scripts": {
-    "build": "cargo install chompbuild ; chomp build",
-    "test": "cargo install chompbuild ; chomp test"
+    "build": "npm install -g chomp ; chomp build",
+    "test": "npm install -g chomp ; chomp test"
   },
   "repository": {
     "type": "git",
