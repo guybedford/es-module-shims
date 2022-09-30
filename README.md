@@ -62,21 +62,15 @@ This execution failure is a feature - it avoids the polyfill causing double exec
 
 This is because the polyfill cannot disable the native loader - instead it will only execute modules that would otherwise fail resolving or parsing to avoid duplicate fetches or executions that would cause performance and reliability issues.
 
-### Shim Mode
+## Polyfill Mode
 
-Shim mode is an alternative to polyfill mode and doesn't rely on native modules erroring - instead it is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly setting the [`shimMode` init option](#shim-mode-option).
-
-In shim mode, only the above `importmap-shim` and `module-shim` tags will be parsed and executed by ES Module Shims.
-
-Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute, [dynamically injecting import maps](#dynamic-import-maps), and [reading current import map state](#reading-current-import-map-state), which can be useful in certain applications.
-
-## Polyfill Mode Details
+The typical polyfill scenario is to have a static import to a bare specifier fail, which will then be polyfilled by ES Module Shims.
 
 In polyfill mode, feature detections are performed for ES modules features. In browsers with full feature support no further processing is done.
 
 In browsers with variable feature support, sources are analyzed with module specifiers rewritten using the very fast Wasm / asm.js lexer while sharing the source network fetch cache with the native loader.
 
-#### Polyfill Features
+### Polyfill Features
 
 The current default native baseline for the ES module shims polyfill mode is browsers supporting import maps.
 
@@ -90,9 +84,9 @@ window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules'] }
 
 To verify when the polyfill is actively engaging as opposed to relying on the native loader, [a `polyfill` hook](#polyfill-hook) is also provided.
 
-#### Polyfill Edge Case: Dynamic Import
+### Polyfill Edge Case: Dynamic Import
 
-The guarantee of the polyfill is that any module graph that would have failed will be reexecuted through the shim layer. This leaves any edge case where execution succeeds but not as expected. For example when using dynamic imports:
+Module feature errors that are not _static errors_ but rather _runtime errors_ cause edge cases with the polyfill feature detection. For example when using dynamic imports:
 
 ```html
 <script type="module">
@@ -130,11 +124,11 @@ If a static failure is not possible and dynamic import must be used, rather use 
 
 `importShim` will automatically pass-through to native dynamic import or polyfill as necessary, just like it does for script tags.
 
-#### Polyfill Edge Case: Instance Sharing
+### Polyfill Edge Case: Instance Sharing
 
 When running in polyfill mode, it can be thought of that are effectively two loaders running on the page - the ES Module Shims polyfill loader, and the native loader.
 
-Note that instances are not shared between these loaders for consistency and performance.
+Note that instances are not shared between these loaders for consistency and performance, since some browsers do not properly share the fetch cache and native loader cache resulting in a double fetch which would be inefficient.
 
 As a result, if you have two module graphs - one native and one polyfilled, they will not share the same dependency instance, for example:
 
@@ -154,21 +148,43 @@ import 'dep';
 </script>
 ```
 
-In the above, on browsers without import maps support, the `/dep.js` instance will be loaded natively by the first module, then the second import will fail.
+```dep
+console.log('DEP');
+```
 
-ES Module Shims will pick up on the second import and reexecute `/dep.js`. As a result, `/dep.js` will be executed twice on the page.
+When polyfilling import maps, ES Module Shims will pick up on the second import failure and reexecute `/dep.js` as a new instance, logging `"DEP"` twice.
 
 For this reason it is important to always ensure all modules hit the polyfill path, either by having all graphs use import maps at the top-level, or via `importShim` directly.
 
-#### Skip Polyfill
+If you really need to support instance sharing with the native loader, a useful workaround is to use the [`skip` option](#skip) to list modules which should always be loaded via the native loader:
 
-Adding the `"noshim"` attribute to the script tag will also ensure that ES Module Shims skips processing this script entirely:
+```html
+<script type="esms-options">
+{
+  "skip": ["/dep.js"]
+}
+</script>
+```
+
+The above would then fully cause dependency module instance to be shared between ES Module Shims and the native loader, with the polyfill then logging `"DEP"` only once.
+
+#### No Shim Scripts
+
+If the polyfill is analyzing or applying to a module script that doesn't need to or shouldn't be polyfilled, adding the `"noshim"` attribute to the script tag will ensure that ES Module Shims ignores processing this script entirely:
 
 ```html
 <script type="module" noshim>
   // ...
 </script>
 ```
+
+## Shim Mode
+
+Shim mode is an alternative to polyfill mode and doesn't rely on native modules erroring - instead it is triggered by the existence of any `<script type="importmap-shim">` or `<script type="module-shim">`, or when explicitly setting the [`shimMode` init option](#shim-mode-option).
+
+In shim mode, only the above `importmap-shim` and `module-shim` tags will be parsed and executed by ES Module Shims.
+
+Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute, [dynamically injecting import maps](#dynamic-import-maps), and [reading current import map state](#reading-current-import-map-state), which can be useful in certain applications.
 
 ## Benchmarks
 
@@ -469,7 +485,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [enforceIntegrity](#enforce-integrity)
 * [nonce](#nonce)
 * [noLoadEventRetriggers](#no-load-event-retriggers)
-* [skip](#skip-processing)
+* [skip](#skip)
 * [onerror](#error-hook)
 * [onpolyfill](#polyfill-hook)
 * [resolve](#resolve-hook)
@@ -622,9 +638,9 @@ In such a case, this double event firing can be disabled with the `noLoadEventRe
 <script async src="es-module-shims.js"></script>
 ```
 
-### Skip Processing
+### Skip
 
-When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly opt-out modules from rewriting. This improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
+When loading modules that you know will only use baseline modules features, it is possible to set a rule to explicitly opt-out modules from being polyfilled to always load and be referenced through the native loader only. This enables instance sharing with the native loader and also improves performance because those modules then do not need to be processed or transformed at all, so that only local application code is handled and not library code.
 
 The `skip` option supports a string regular expression or array of exact module URLs to check:
 
