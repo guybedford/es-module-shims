@@ -65,7 +65,7 @@ at link time, and before execution time. And this is what allows the polyfill to
 without risk of duplicate execution.
 
 The ES Module Shims polyfill will analyze the browser to see if it supports import maps. If it does, it doesn't do anything more,
-otherwise it will nalyze all module scripts on the page to see if any of them have bare specifier imports that will fail like this.
+otherwise it will analyze all module scripts on the page to see if any of them have bare specifier imports that will fail like this.
 If one is found, it will then be reexecuted through ES Module Shims using its internal shimming of modules features.
 
 When the polyfill kicks in another console log message is output(which can be disabled or customized via the [polyfill hook](#polyfill-hook)):
