@@ -51,48 +51,68 @@ Include ES Module Shims with a `async` attribute on the script, then include an 
 </script>
 ```
 
-In browsers without import maps support, a console error will be given:
+## Polyfill Explainer
+
+When running the previous example in a browser without import maps support, the browser will output the following console error:
 
 ```
-Uncaught TypeError: Failed to resolve module specifier "app". Relative references must start with either "/", "./", or "../".
+Uncaught TypeError: Failed to resolve module specifier "react". Relative references must start with either "/", "./", or "../".
   at <anonymous>:1:15
 ```
 
-This execution failure is a feature - it avoids the polyfill causing double execution. The first import being a bare specifier in the pattern above is important to ensure this.
+This error is important - it means that the native browser loader didn't execute any of the code at all because this error happens
+at link time, and before execution time. And this is what allows the polyfill to be able to reexecute the modules and their dependencies
+without risk of duplicate execution.
 
-This is because the polyfill cannot disable the native loader - instead it will only execute modules that would otherwise fail resolving or parsing to avoid duplicate fetches or executions that would cause performance and reliability issues.
+The ES Module Shims polyfill will analyze the browser to see if it supports import maps. If it does, it doesn't do anything more,
+otherwise it will nalyze all module scripts on the page to see if any of them have bare specifier imports that will fail like this.
+If one is found, it will then be reexecuted through ES Module Shims using its internal shimming of modules features.
 
-## Polyfill Mode
+When the polyfill kicks in another console log message is output(which can be disabled or customized via the [polyfill hook](#polyfill-hook)):
 
-The typical polyfill scenario is to have a static import to a bare specifier fail, which will then be polyfilled by ES Module Shims.
-
-In polyfill mode, feature detections are performed for ES modules features. In browsers with full feature support no further processing is done.
-
-In browsers with variable feature support, sources are analyzed with module specifiers rewritten using the very fast Wasm / asm.js lexer while sharing the source network fetch cache with the native loader.
-
-### Polyfill Features
-
-The current default native baseline for the ES module shims polyfill mode is browsers supporting import maps.
-
-If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`polyfillEnable` init option](#polyfill-enable-option) to raise the native baseline to only browsers supporting these features:
-
-```html
-<script>
-window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules'] }
-</script>
 ```
-
-To verify when the polyfill is actively engaging as opposed to relying on the native loader, [a `polyfill` hook](#polyfill-hook) is also provided.
+^^ Module TypeError above is polyfilled and can be ignored ^^
+```
 
 ### Polyfill Edge Case: Dynamic Import
 
-Module feature errors that are not _static errors_ but rather _runtime errors_ cause edge cases with the polyfill feature detection. For example when using dynamic imports:
+Only static link-time errors are polyfilled, not runtime errors.
+
+Module feature errors that are not _static errors_ but rather _runtime errors_ will bypass the polyfill detection.
+
+For example:
 
 ```html
 <script type="module">
-  console.log('Executing');
-  const dynamic = 'bare-specifier';
-  import(dynamic).then(x => {
+  import './supported.js';
+  console.log('Static Ok');
+  import('react').then(x => {
+    console.log('Dynamic Ok');
+  }, err => {
+    console.log('Dynamic Fail');
+  });
+</script>
+```
+
+In the above, the native browser loader without import maps support will execute the above module, but fail the dynamic import.
+
+See the log output in various scenarios:
+
+* Native with Import Maps: `Static Ok`, `Dynamic Ok`
+* Native without Import Maps: `Static Ok`, `Dynamic Fail`
+* Native without Import Maps running ES Module Shims: `Static Ok`, `Dynamic Fail`
+
+ES Module Shims **does not polyfill the dynamic import**. The reason for this is that if it did, it would need to reexecute the entire outer module resulting in `Static Ok`, `Dynamic Fail`, `Static Ok`, `Dynamic Ok`. This _double execution_ would be a change of the normal execution in running code twice that would not be deemed suitable for calling it a polyfill.
+
+This is why it is advisable to always ensure modules use a bare specifier early to avoid non-execution.
+
+If a static failure is not possible and dynamic import must be used, one alternative is to use the `importShim` ES Module Shims top-level loader:
+
+```html
+<script type="module">
+  import './supported.js';
+  console.log('Static Ok');
+  importShim('react').then(x => {
     console.log('Ok');
   }, err => {
     console.log('Fail');
@@ -100,29 +120,7 @@ Module feature errors that are not _static errors_ but rather _runtime errors_ c
 </script>
 ```
 
-The native browser loader without import maps support will execute the above module fine, but fail on the lazy dynamic import.
-
-ES Module Shims will not reexecute the above in browsers without import maps support though because it will see that the execution did complete successfully therefore it will not attempt reexecution and as a result, `"Ok"` is never logged.
-
-Other examples include dynamically injecting import maps, or using import maps with a `"src"` attribute, which aren't supported in native Chrome.
-
-This is why it is advisable to always ensure modules use syntax that will fail early to avoid non-execution.
-
-If a static failure is not possible and dynamic import must be used, rather use the `importShim` ES Module Shims top-level loader:
-
-```html
-<script type="module">
-  console.log('Executing');
-  const dynamic = 'bare-specifier';
-  importShim(dynamic).then(x => {
-    console.log('Ok');
-  }, err => {
-    console.log('Fail');
-  });
-</script>
-```
-
-`importShim` will automatically pass-through to native dynamic import or polyfill as necessary, just like it does for script tags.
+`importShim` will automatically pass-through to the native dynamic import or polyfill as necessary, just like it does for script tags.
 
 ### Polyfill Edge Case: Instance Sharing
 
@@ -177,6 +175,19 @@ If the polyfill is analyzing or applying to a module script that doesn't need to
   // ...
 </script>
 ```
+
+
+### Polyfill Features
+
+If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`polyfillEnable` init option](#polyfill-enable-option) to raise the native baseline from just checking import maps to also checking that browsers support these features:
+
+```html
+<script>
+window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules'] }
+</script>
+```
+
+To verify when the polyfill is actively engaging as opposed to relying on the native loader, [a `polyfill` hook](#polyfill-hook) is also provided.
 
 ## Shim Mode
 
