@@ -159,14 +159,14 @@ interface ESMSInitOptions {
    * Set to *true* to permit overrides to import maps.
    *
    */
-   mapOverrides: boolean;
+  mapOverrides: boolean;
 
-   /**
-   * #### Meta hook
-   *
-   * Register a callback for import.meta construction.
-   *
-   */
+  /**
+  * #### Meta hook
+  *
+  * Register a callback for import.meta construction.
+  *
+  */
   meta: (meta: any, url: string) => void;
 
   /**
