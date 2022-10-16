@@ -11,6 +11,14 @@ interface ESMSInitOptions {
   polyfillEnable?: string[];
 
   /**
+   * #### Enforce Integrity
+   *
+   * Set to *true* to enable secure mode to not support loading modules without integrity (integrity is always verified though).
+   *
+   */
+  enforceIntegrity: boolean;
+
+  /**
    * Nonce for CSP build
    */
   nonce?: boolean;
@@ -50,6 +58,14 @@ interface ESMSInitOptions {
    *
    */
   onerror: (e: any) => any;
+
+  /**
+   * #### Polyfill hook
+   *
+   * Register a callback invoked when polyfill mode first engages.
+   *
+   */
+  onpolyfill: () => void;
 
   /**
    * #### Resolve Hook
@@ -136,6 +152,30 @@ interface ESMSInitOptions {
    *
    */
   revokeBlobURLs: boolean;
+
+  /**
+   * #### Map Overrides
+   *
+   * Set to *true* to permit overrides to import maps.
+   *
+   */
+  mapOverrides: boolean;
+
+  /**
+  * #### Meta hook
+  *
+  * Register a callback for import.meta construction.
+  *
+  */
+  meta: (meta: any, url: string) => void;
+
+  /**
+   * #### On import hook
+   *
+   * Register a callback for top-level imports.
+   *
+   */
+  onimport: (url: string, options: any, parentUrl: string) => void;
 }
 
 interface ImportMap {
