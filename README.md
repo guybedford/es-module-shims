@@ -881,7 +881,7 @@ window.esmsInitOptions = {
     return new Response(new ReadableStream({
       async start (controller) {
         let done, value;
-        controller.enqueue(new TextEncoder.encode('export default '));
+        controller.enqueue(new TextEncoder().encode('export default '));
         while (({ done, value } = await reader.read()) && !done) {
           controller.enqueue(value);
         }
