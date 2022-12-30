@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Chomp
-        uses: guybedford/chomp-action@91052667a28d
+        uses: guybedford/chomp-action@91052667a28d84bed7796eeb6866c678d4e4abaa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Node.js ${{ matrix.node }}
@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Chomp
-        uses: guybedford/chomp-action@91052667a28d
+        uses: guybedford/chomp-action@91052667a28d84bed7796eeb6866c678d4e4abaa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Node.js ${{ matrix.node }}
