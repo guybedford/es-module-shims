@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-firefox:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       matrix:
         firefox: [
@@ -31,13 +31,11 @@ jobs:
         uses: browser-actions/setup-firefox@latest
         with:
           firefox-version: ${{ matrix.firefox }}
-      - name: Clear Existing Firefox Profile
-        run: rm -rf /etc/firefox
       - name: Chomp Test
         run: chomp test
         env:
           CI_BROWSER: /opt/hostedtoolcache/firefox/${{ matrix.firefox }}/x64/firefox
-          CI_BROWSER_FLAGS: -headless -allow-downgrade
+          CI_BROWSER_FLAGS: -headless -allow-downgrade -no-remote
 
   test-chrome:
     runs-on: windows-latest
