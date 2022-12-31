@@ -32,7 +32,9 @@ jobs:
         with:
           firefox-version: ${{ matrix.firefox }}
       - name: Clear Existing Firefox
-        run: rm -rf ~/.mozilla && sudo rm -rf /etc/firefox
+        run: |
+          rm -rf ~/.mozilla && sudo rm -rf /etc/firefox
+          sudo apt-get purge firefox
       - name: Chomp Test
         run: chomp test
         env:
