@@ -35,7 +35,7 @@ jobs:
         run: chomp test
         env:
           CI_BROWSER: /opt/hostedtoolcache/firefox/${{ matrix.firefox }}/x64/firefox
-          CI_BROWSER_FLAGS: -headless -allow-downgrade -foreground
+          CI_BROWSER_FLAGS: -headless -allow-downgrade -new-instance -CreateProfile testprofile
 
   test-chrome:
     runs-on: windows-latest
