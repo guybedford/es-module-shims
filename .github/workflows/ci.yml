@@ -32,10 +32,10 @@ jobs:
         with:
           firefox-version: ${{ matrix.firefox }}
       - name: Chomp Test
-        run: chomp test:firefox
-        # env:
-        #   CI_BROWSER: /opt/hostedtoolcache/firefox/${{ matrix.firefox }}/x64/firefox
-        #   CI_BROWSER_FLAGS: -headless -allow-downgrade -new-instance -CreateProfile testprofile
+        run: chomp test
+        env:
+          CI_BROWSER: /opt/hostedtoolcache/firefox/${{ matrix.firefox }}/x64/firefox
+          CI_BROWSER_FLAGS: -headless -allow-downgrade -CreateProfile testprofile
 
   test-chrome:
     runs-on: windows-latest
