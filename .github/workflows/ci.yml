@@ -27,14 +27,14 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
+      - name: Clear Existing Firefox
+        run: |
+          rm -rf ~/.mozilla && sudo rm -rf /etc/firefox && sudo rm -rf /usr/lib/firefox
+          sudo apt-get purge firefox
       - name: Setup Firefox ${{ matrix.firefox }}
         uses: browser-actions/setup-firefox@latest
         with:
           firefox-version: ${{ matrix.firefox }}
-      - name: Clear Existing Firefox
-        run: |
-          rm -rf ~/.mozilla && sudo rm -rf /etc/firefox
-          sudo apt-get purge firefox
       - name: Chomp Test
         run: chomp test
         env:
