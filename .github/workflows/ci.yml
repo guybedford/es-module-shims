@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-firefox:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         firefox: [
