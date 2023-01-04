@@ -238,7 +238,7 @@ Browser compatibility **without** ES Module Shims:
 | [modulepreload](#modulepreload)    | 66+                | :x:                | :x:                |
 | [Dynamic Import](#dynamic-import)  | 63+                | 67+                | 11.1+              |
 | [import.meta.url](#importmetaurl)  | ~76+               | ~67+               | ~12+ ❕<sup>1</sup> |
-| [Import Maps](#import-maps)        | 89+                | :x:                | :x:                |
+| [Import Maps](#import-maps)        | 89+                | 108+               | :x:                |
 | [JSON Modules](#json-modules)      | 91+                | :x:                | :x:                |
 | [CSS Modules](#css-modules)        | 95+                | :x:                | :x:                |
 | [import.meta.resolve](#resolve)    | :x:                | :x:                | :x:                |
