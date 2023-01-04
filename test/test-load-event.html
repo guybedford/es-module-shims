@@ -1,0 +1,31 @@
+<!doctype html>
+<body>
+<script type="module" src="../src/es-module-shims.js"></script>
+<script>
+  let loadEvents = [];
+  let loadScriptCallsNumber = 0;
+  const loadScript = (src, type) => {
+    loadScriptCallsNumber++;
+    const scriptTag = document.createElement('script');
+    scriptTag.onload = () => loadEvents.push(src);
+    if (type) scriptTag.type = type;
+    scriptTag.src = src;
+    document.body.appendChild(scriptTag);
+  };
+
+  loadScript('./fixtures/load-order/module.js', 'module');
+  loadScript('./fixtures/load-order/normal.js');
+  loadScript('./fixtures/load-order/module-shim.js', 'module-shim');
+  loadScript('./fixtures/load-order/module-2.js', 'module');
+  loadScript('./fixtures/load-order/normal-2.js');
+  loadScript('./fixtures/load-order/module-shim-2.js', 'module-shim');
+
+  setTimeout(() => {
+    const url = loadEvents.length === loadScriptCallsNumber
+      ? '/done'
+      : `/error?${encodeURIComponent(`Expected number of "load" events is ${loadScriptCallsNumber}, actual events: ${loadEvents.join(', ')}`)}`;
+    fetch(url);
+  }, 3000);
+
+</script>
+</body>

@@ -545,7 +545,14 @@ function processScript (script, ready = readyStateCompleteCnt > 0) {
   const isDomContentLoadedScript = domContentLoadedCnt > 0;
   if (isBlockingReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
-  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isBlockingReadyScript && lastStaticLoadPromise).catch(throwError);
+  const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isBlockingReadyScript && lastStaticLoadPromise)
+    .then(() => {
+      // if the type of the script tag "module-shim", browser does not dispatch a "load" event
+      // see https://github.com/guybedford/es-module-shims/issues/346
+      if (shimMode)
+        script.dispatchEvent(new Event('load'));
+    })
+    .catch(throwError);
   if (isBlockingReadyScript)
     lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
   if (isDomContentLoadedScript)
