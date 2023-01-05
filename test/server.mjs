@@ -47,7 +47,7 @@ function setBrowserTimeout () {
       setBrowserTimeout();
       start();
     }
-  }, 20000);
+  }, 60_000);
 }
 
 setBrowserTimeout();
