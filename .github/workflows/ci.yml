@@ -12,10 +12,10 @@ jobs:
     strategy:
       matrix:
         firefox: [
-          # '60.0', # modules support
-          # '67.0', # import(), import.meta
-          '89.0'  # top-level await
-          # '107.0.1'
+          '60.0', # modules support
+          '67.0', # import(), import.meta
+          '89.0',  # top-level await
+          '108.0'
         ]
     name: Firefox Browser Tests
     steps:
