@@ -14,8 +14,8 @@ jobs:
         firefox: [
           # '60.0', # modules support
           # '67.0', # import(), import.meta
-          # '89.0'  # top-level await
-          '107.0.1'
+          '89.0'  # top-level await
+          # '107.0.1'
         ]
     name: Firefox Browser Tests
     steps:
