@@ -31,6 +31,8 @@ jobs:
       - name: Clear Existing Firefox
         run: |
           sudo apt-get purge firefox
+      - name: Clear Firefox Profile
+        run: |
           sudo rm -rf ~/.mozilla && sudo rm -rf ~/.cache/mozilla/firefox sudo rm -rf /etc/firefox && sudo rm -rf /usr/lib/firefox && sudo rm -rf /usr/lib/firefox-addons
           sudo mkdir -p /etc/firefox/policies
           sudo echo '{"policies":{"BackgroundAppUpdate": false}}' > /etc/firefox/policies/policies.json
