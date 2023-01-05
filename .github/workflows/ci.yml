@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         firefox: [
-          # '60.0', # modules support
+          '65.0', # (60 = modules support, but not working)
           '67.0', # import(), import.meta
           '89.0',  # top-level await
           '108.0'
