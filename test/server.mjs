@@ -5,7 +5,7 @@ import path from "path";
 import {fileURLToPath} from "url";
 import open from "open";
 import kleur from 'kleur';
-import { spawn, exec } from 'child_process';
+import { spawn, execSync } from 'child_process';
 
 const port = parseInt(process.env.CI_PORT || '8080');
 
@@ -168,7 +168,9 @@ function start () {
     const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
     if (process.env.CI_BROWSER_FLUSH) {
       console.log('Flushing browser: ' + process.env.CI_BROWSER_FLUSH);
-      try { child_process.execSync(process.env.CI_BROWSER_FLUSH) } catch (e) {}
+      try { execSync(process.env.CI_BROWSER_FLUSH) } catch (e) {
+        console.log(e);
+      }
     }
     console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
     spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
