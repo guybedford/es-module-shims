@@ -62,6 +62,7 @@ run = 'node test/server.mjs test-${{ MATCH }}'
 
 [[task]]
 name = 'test:firefox'
+env = { CI_BROWSER = 'C:\Program Files\Mozilla Firefox\firefox.exe', CI_BROWSER_FLAGS = '-headless' }
 serial = true
 deps = ['npm:install', 'dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'test/test-#.html']
 run = 'node test/server.mjs test-${{ MATCH }}'
