@@ -28,15 +28,6 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
-      # - name: Clear Existing Firefox
-      #   run: |
-      #     sudo apt-get purge firefox
-      # - name: Clear Firefox Profile
-      #   run: |
-      #     sudo rm -rf ~/.mozilla && sudo rm -rf ~/.cache/mozilla/firefox sudo rm -rf /etc/firefox && sudo rm -rf /usr/lib/firefox && sudo rm -rf /usr/lib/firefox-addons
-      #     sudo mkdir -p /etc/firefox/policies
-      #     echo '{"policies":{"BackgroundAppUpdate": false}}' > ~/policies.json
-      #     sudo mv ~/policies.json /etc/firefox/policies/policies.json
       - name: Setup Firefox ${{ matrix.firefox }}
         uses: browser-actions/setup-firefox@latest
         with:
