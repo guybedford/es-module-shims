@@ -163,7 +163,7 @@ const server = http.createServer(async function (req, res) {
 
 let spawnPs;
 let baseURL;
-function start () {
+async function start () {
   if (process.env.CI_BROWSER) {
     const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
     if (process.env.CI_BROWSER_FLUSH) {
@@ -171,6 +171,7 @@ function start () {
       try { execSync(process.env.CI_BROWSER_FLUSH) } catch (e) {
         console.log(e);
       }
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
     spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
