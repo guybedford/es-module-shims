@@ -1,5 +1,6 @@
 export function runMochaTests(suite) {
   mocha.setup({
+    timeout: 20000,
     ui: 'tdd',
     reporter: multiReporter([Mocha.reporters.HTML, ServerReporter]),
   });

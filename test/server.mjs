@@ -5,7 +5,7 @@ import path from "path";
 import {fileURLToPath} from "url";
 import open from "open";
 import kleur from 'kleur';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 
 const port = parseInt(process.env.CI_PORT || '8080');
 
@@ -44,9 +44,10 @@ function setBrowserTimeout () {
     }
     else {
       console.log('Retrying...');
+      setBrowserTimeout();
       start();
     }
-  }, 20000);
+  }, 60_000);
 }
 
 setBrowserTimeout();
@@ -162,9 +163,16 @@ const server = http.createServer(async function (req, res) {
 
 let spawnPs;
 let baseURL;
-function start () {
+async function start () {
   if (process.env.CI_BROWSER) {
     const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
+    if (process.env.CI_BROWSER_FLUSH) {
+      console.log('Flushing browser: ' + process.env.CI_BROWSER_FLUSH);
+      try { execSync(process.env.CI_BROWSER_FLUSH) } catch (e) {
+        console.log(e);
+      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
     console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
     spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
   }

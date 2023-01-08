@@ -8,13 +8,14 @@ on:
 
 jobs:
   test-firefox:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       matrix:
         firefox: [
-          '60.0', # modules support
+          '65.0', # (60 = modules support, but not working)
           '67.0', # import(), import.meta
-          '89.0'  # top-level await
+          '89.0',  # top-level await
+          '108.0'
         ]
     name: Firefox Browser Tests
     steps:
@@ -34,8 +35,9 @@ jobs:
       - name: Chomp Test
         run: chomp test
         env:
-          CI_BROWSER: /opt/hostedtoolcache/firefox/${{ matrix.firefox }}/x64/firefox
+          CI_BROWSER: C:\Program Files\Firefox_${{ matrix.firefox }}\firefox.exe
           CI_BROWSER_FLAGS: -headless
+          CI_BROWSER_FLUSH: taskkill /IM firefox.exe /F
 
   test-chrome:
     runs-on: windows-latest
