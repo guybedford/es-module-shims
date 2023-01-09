@@ -451,7 +451,7 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
       const { r, b } = await resolve(n, load.r || load.u);
       if (b && (!supportsImportMaps || importMapSrcOrLazy))
         load.n = true;
-      if (d !== -1) return;      
+      if (d !== -1) return;
       if (skip && skip(r)) return { b: r };
       if (childFetchOpts.integrity)
         childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
@@ -477,11 +477,11 @@ function getFetchOpts (script) {
   const fetchOpts = {};
   if (script.integrity)
     fetchOpts.integrity = script.integrity;
-  if (script.referrerpolicy)
-    fetchOpts.referrerPolicy = script.referrerpolicy;
-  if (script.crossorigin === 'use-credentials')
+  if (script.referrerPolicy)
+    fetchOpts.referrerPolicy = script.referrerPolicy;
+  if (script.crossOrigin === 'use-credentials')
     fetchOpts.credentials = 'include';
-  else if (script.crossorigin === 'anonymous')
+  else if (script.crossOrigin === 'anonymous')
     fetchOpts.credentials = 'omit';
   else
     fetchOpts.credentials = 'same-origin';
