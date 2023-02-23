@@ -24,10 +24,11 @@
   }
 }
 </script>
-<script type="esms-options">
-{
-  "polyfillEnable": ["json-modules", "css-modules"]
-}
+<script nonce="asdf">
+  window.domLoad = 0;
+  document.addEventListener('DOMContentLoaded', () => {
+    window.domLoad++;
+  });
 </script>
 <script nonce="asdf">
   window.import2 = import('data');
