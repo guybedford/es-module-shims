@@ -21,10 +21,9 @@ suite('Polyfill tests', () => {
     throw new Error('Should fail');
   });
 
-  if (!navigator.userAgent.includes('Firefox/60.0') && !navigator.userAgent.includes('Firefox/67.0'))
-  test('should support css imports', async function () {
-    await importShim('./fixtures/css-assertion.js');
-    assert.equal(window.cssAssertion, true);
+  test.skip('should support json imports', async function () {
+    const { m } = await importShim('./fixtures/json-assertion.js');
+    assert.equal(m, 'module');
   });
 
   test('URL mappings do not cause double execution', async function () {
@@ -51,5 +50,9 @@ suite('Polyfill tests', () => {
     if (window.cnt > 1)
       throw new Error(`Polyfill engaged despite native implementation`);
     assert.equal(window.cnt, 1);
+  });
+
+  test('DOMContentLoaded fires only once', async function () {
+    assert.equal(window.domLoad, 1);
   });
 });

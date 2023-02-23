@@ -22,9 +22,15 @@
   }
 }
 </script>
-<script>window.esmsInitOptions = { polyfillEnable: ['json-modules', 'css-modules' ] }</script>
 <script type="module">
   import 'once';
+</script>
+<script>
+  window.domLoad = 0;
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('FIRE');
+    window.domLoad++;
+  });
 </script>
 
 <script type="module" src="../src/es-module-shims.js"></script>

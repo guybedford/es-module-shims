@@ -492,21 +492,20 @@ let lastStaticLoadPromise = Promise.resolve();
 
 let domContentLoadedCnt = 1;
 function domContentLoadedCheck () {
-  if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers)
+  if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough))
     document.dispatchEvent(new Event('DOMContentLoaded'));
 }
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
 if (hasDocument) {
   document.addEventListener('DOMContentLoaded', async () => {
     await initPromise;
-    if (shimMode || !baselinePassthrough)
-      domContentLoadedCheck();
+    domContentLoadedCheck();
   });
 }
 
 let readyStateCompleteCnt = 1;
 function readyStateCompleteCheck () {
-  if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers)
+  if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough))
     document.dispatchEvent(new Event('readystatechange'));
 }
 
