@@ -24,12 +24,19 @@
   }
 }
 </script>
-<script nonce="asdf">
+
+<script>
+  window.esmsInitOptions = {
+    onpolyfill () {
+      window.domLoad = 0;
+    }
+  };
   window.domLoad = 0;
   document.addEventListener('DOMContentLoaded', () => {
     window.domLoad++;
   });
 </script>
+
 <script nonce="asdf">
   window.import2 = import('data');
 </script>
