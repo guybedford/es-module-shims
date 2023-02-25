@@ -187,9 +187,9 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
   if (source && !shimMode && !load.n && !self.ESMS_DEBUG) {
-    const module = await dynamicImport(createBlob(source), { errUrl: source });
+    if (nativelyLoaded) return;
     if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
-    return module;
+    return await dynamicImport(createBlob(source), { errUrl: source });
   }
   if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
     onpolyfill();

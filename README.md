@@ -8,7 +8,7 @@ For the remaining 28% of users, the highly performant (see [benchmarks](#benchma
 
 The following modules features are polyfilled:
 
-* [Import Maps](#import-maps) support.
+* [Import Maps](#import-maps) polyfill.
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
 * [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions (when enabled).
@@ -84,9 +84,9 @@ For example:
 
 ```html
 <script type="module">
-  import './supported.js';
+  import './supported-relative-import.js';
   console.log('Static Ok');
-  import('react').then(x => {
+  import('unsupported-import-map').then(x => {
     console.log('Dynamic Ok');
   }, err => {
     console.log('Dynamic Fail');
@@ -110,9 +110,9 @@ If a static failure is not possible and dynamic import must be used, one alterna
 
 ```html
 <script type="module">
-  import './supported.js';
+  import './supported-relative-import.js';
   console.log('Static Ok');
-  importShim('react').then(x => {
+  importShim('unsupported-import-map').then(x => {
     console.log('Ok');
   }, err => {
     console.log('Fail');
@@ -175,7 +175,6 @@ If the polyfill is analyzing or applying to a module script that doesn't need to
   // ...
 </script>
 ```
-
 
 ### Polyfill Features
 
@@ -249,9 +248,9 @@ Browser compatibility **without** ES Module Shims:
 
 ### Import Maps
 
-> Stability: WhatWG Standard, Single Browser Implementer
+> Stability: WhatWG Standard, implemented in all browsers although only recently in Firefox and Safari
 
-Import maps allow for importing "bare specifiers" in JavaScript modules, which prior to import maps throw in all browsers with native modules support.
+Import maps allow for importing _"bare specifiers"_ in JavaScript modules, which prior to import maps throw in all browsers with native modules support.
 
 Using this polyfill we can write:
 
@@ -359,8 +358,10 @@ This tag also supports the `"integrity"`, `"crossorigin"` and `"referrerpolicy"`
 
 This tag just initiates a fetch request in the browser and thus works equally as a preload polyfill in both shimmed and unshimmed modes, with integrity validation support.
 
+In browsers that don't support modulepreload, polyfilled preloading behaviour is provided using an early `fetch()` call with the same request options as the module script, resulting in network-level cache sharing.
+
 Unlike the browser specification, the modulepreload polyfill does not request dependency modules by default, in order to avoid unnecessary
-code analysis in the polyfill scenarios. **It is recommended to preload deep imports anyway so that this feature shouldn't be necessary.**
+code analysis in the polyfill scenarios, _it is always recommended to preload deep imports so that this feature shouldn't be necessary._
 
 #### Preload shim
 
@@ -368,7 +369,7 @@ When in shim mode, `<link rel="modulepreload-shim" href="/module.js" />` must be
 
 ### CSP Support
 
-By default ES Module Shims provides full support for CSP by using the asm.js ES Module Lexer build. This is absolutely identical in performance to the Wasm version in Firefox and Chrome, while in Safari the asm.js version is actually faster than Wasm making this build preferable.
+By default ES Module Shims provides full support for CSP by using the asm.js ES Module Lexer build. This is absolutely identical in performance to the Wasm version in Firefox and Chrome (in Safari the asm.js version is actually faster than Wasm).
 
 The CSP nonce to use for module scripts will be picked up from the first script on the page or via the [`nonce` init option](#nonce).
 
@@ -491,18 +492,19 @@ const worker = new Worker(getWorkerScriptURL('myEsModule.js'));
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
 
-* [shimMode](#shim-mode-option)
-* [polyfillEnable](#polyfill-enable-option)
 * [enforceIntegrity](#enforce-integrity)
-* [nonce](#nonce)
+* [fetch](#fetch-hook)
+* [mapOverrides](#overriding-import-map-entries)
+* [modulepreload](#modulepreload)
 * [noLoadEventRetriggers](#no-load-event-retriggers)
-* [skip](#skip)
+* [nonce](#nonce)
 * [onerror](#error-hook)
 * [onpolyfill](#polyfill-hook)
+* [polyfillEnable](#polyfill-enable-option)
 * [resolve](#resolve-hook)
-* [fetch](#fetch-hook)
 * [revokeBlobURLs](#revoke-blob-urls)
-* [mapOverrides](#overriding-import-map-entries)
+* [shimMode](#shim-mode-option)
+* [skip](#skip)
 
 ```html
 <script>
@@ -519,7 +521,8 @@ window.esmsInitOptions = {
   skip: /^https:\/\/cdn\.com/, // defaults to null
   // Clean up blob URLs after execution
   revokeBlobURLs: true, // default false
-  // Secure mode to not support loading modules without integrity (integrity is always verified though)
+  // Secure mode to not support loading modules without integrity
+  // (integrity is always verified even when disabled though)
   enforceIntegrity: true, // default false
   // Permit overrides to import maps
   mapOverrides: true, // default false
