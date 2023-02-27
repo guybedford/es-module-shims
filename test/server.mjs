@@ -166,9 +166,9 @@ let baseURL;
 async function start () {
   if (process.env.CI_BROWSER) {
     const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
-    if (process.env.CI_BROWSER_FLUSH && spawnPs) {
-      console.log('Flushing browser: ' + process.env.CI_BROWSER_FLUSH + ' ' + spawnPs.spawnfile);
-      try { execSync(process.env.CI_BROWSER_FLUSH + ' ' + spawnPs.spawnfile) } catch (e) {
+    if (process.env.CI_BROWSER_FLUSH) {
+      console.log('Flushing browser: ' + process.env.CI_BROWSER_FLUSH);
+      try { execSync(process.env.CI_BROWSER_FLUSH) } catch (e) {
         console.log(e);
       }
       await new Promise(resolve => setTimeout(resolve, 500));
