@@ -37,7 +37,7 @@ jobs:
         env:
           CI_BROWSER: C:\Program Files\Firefox_${{ matrix.firefox }}\firefox.exe
           CI_BROWSER_FLAGS: -headless
-          CI_BROWSER_FLUSH: taskkill /IM C:\Program Files\Firefox_${{ matrix.firefox }}\firefox.exe /F
+          CI_BROWSER_FLUSH: taskkill /F /P
 
   test-chrome:
     runs-on: windows-latest
