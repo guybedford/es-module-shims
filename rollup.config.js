@@ -5,17 +5,18 @@ import path from 'path';
 const version = JSON.parse(fs.readFileSync('package.json')).version;
 
 export default [
-  config(true),
-  config(false),
+  config(true, false),
+  config(false, false),
+  config(false, true),
 ];
 
-function config (isWasm) {
+function config (isWasm, isDebug) {
   const name = 'es-module-shims'
 
   return {
     input: `src/${name}.js`,
     output: {
-      file: `dist/${name}${isWasm ? '.wasm' : ''}.js`,
+      file: `dist/${name}${isWasm ? '.wasm' : ''}${isDebug ? '.debug' : ''}.js`,
       format: 'iife',
       strict: false,
       sourcemap: false,
@@ -29,7 +30,7 @@ function config (isWasm) {
         }
       },
       replace({
-        'self.ESMS_DEBUG': 'false',
+        'self.ESMS_DEBUG': isDebug.toString(),
         preventAssignment: true
       }),
     ]

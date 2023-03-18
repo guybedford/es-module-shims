@@ -2,8 +2,6 @@ version = 0.1
 
 extensions = ['chomp@0.1:footprint', 'chomp@0.1:npm']
 
-default-task = 'build'
-
 [server]
 port = 8080
 root = "."
@@ -18,7 +16,7 @@ run = 'rm -rf bench/results'
 
 [[task]]
 name = 'build'
-targets = ['dist/es-module-shims.js', 'dist/es-module-shims.wasm.js']
+targets = ['dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'dist/es-module-shims.debug.js']
 deps = ['src/*.js', 'npm:install', 'README.md']
 run = 'rollup -c'
 
