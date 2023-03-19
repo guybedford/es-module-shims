@@ -5,7 +5,9 @@ import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled, hasDocu
 export let supportsJsonAssertions = false;
 export let supportsCssAssertions = false;
 
-export let supportsImportMaps = hasDocument && HTMLScriptElement.supports ? HTMLScriptElement.supports('importmap') : false;
+const supports = HTMLScriptElement.supports;
+
+export let supportsImportMaps = hasDocument && supports ? supports.name === 'supports' && supports('importmap') : false;
 export let supportsImportMeta = supportsImportMaps;
 
 const importMetaCheck = 'import.meta';
