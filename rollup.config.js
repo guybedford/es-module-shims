@@ -20,7 +20,7 @@ function config (isWasm, isDebug) {
       format: 'iife',
       strict: false,
       sourcemap: false,
-      banner: `/* ES Module Shims ${isWasm ? 'Wasm ' : ''}${version} */`
+      banner: `/* ES Module Shims ${isWasm ? 'Wasm ' : ''}${isDebug ? 'DEBUG BUILD ' : ''}${version} */`
     },
     plugins: [
       {
