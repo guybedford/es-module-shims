@@ -2,7 +2,7 @@
 
 Shims modern ES Modules features like import maps on top of the baseline modules support in browsers supported by [95% of users](https://caniuse.com/#feat=es6-module).
 
-When running in polyfill mode, [the 72% of users](https://caniuse.com/import-maps) with import maps entirely bypass the shim code entirely.
+When running in polyfill mode, [the 72% of users](https://caniuse.com/import-maps) with import maps bypass the shim code entirely.
 
 For the remaining 28% of users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
 
