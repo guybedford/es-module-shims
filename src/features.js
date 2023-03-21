@@ -5,17 +5,17 @@ import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled, hasDocu
 export let supportsJsonAssertions = false;
 export let supportsCssAssertions = false;
 
-const supports = HTMLScriptElement.supports;
+const supports = hasDocument && HTMLScriptElement.supports;
 
-export let supportsImportMaps = hasDocument && supports ? supports.name === 'supports' && supports('importmap') : false;
-export let supportsImportMeta = supportsImportMaps;
+export let supportsImportMaps = supports && supports.name === 'supports' && supports('importmap');
+export let supportsImportMeta = !!supports;
 
 const importMetaCheck = 'import.meta';
 const cssModulesCheck = `import"x"assert{type:"css"}`;
 const jsonModulesCheck = `import"x"assert{type:"json"}`;
 
-export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(() => {
-  if (!supportsDynamicImport || supportsImportMaps && !cssModulesEnabled && !jsonModulesEnabled)
+export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(() => {
+  if (!supportsDynamicImport)
     return;
 
   if (!hasDocument)
@@ -25,8 +25,10 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
       jsonModulesEnabled && dynamicImport(createBlob(jsonModulescheck.replace('x', createBlob('{}', 'text/json')))).then(() => supportsJsonAssertions = true, noop),
     ]);
 
+  if (supports || (!cssModulesEnabled && !jsonModulesEnabled))
+    return;
+
   return new Promise(resolve => {
-    if (self.ESMS_DEBUG) if (supportsImportMaps) console.info(`es-module-shims: import maps supported from HTMLScriptElement check`);
     if (self.ESMS_DEBUG) console.info(`es-module-shims: performing feature detections for ${`${supportsImportMaps ? '' : 'import maps, '}${cssModulesEnabled ? 'css modules, ' : ''}${jsonModulesEnabled ? 'json modules, ' : ''}`.slice(0, -2)}`);
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
@@ -36,7 +38,6 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
       supportsImportMeta = b;
       supportsCssAssertions = c;
       supportsJsonAssertions = d;
-      if (self.ESMS_DEBUG) console.info(`es-module-shims: detected native support - ${supportsDynamicImport ? '' : 'no '}dynamic import, ${supportsImportMeta ? '' : 'no '}import meta, ${supportsImportMaps ? '' : 'no '}import maps`);
       resolve();
       document.head.removeChild(iframe);
       window.removeEventListener('message', cb, false);
@@ -70,3 +71,8 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
       iframe.contentDocument.write(importMapTest);
   });
 });
+
+if (self.ESMS_DEBUG)
+  featureDetectionPromise = featureDetectionPromise.then(() => {
+    console.info(`es-module-shims: detected native support - ${supportsDynamicImport ? '' : 'no '}dynamic import, ${supportsImportMeta ? '' : 'no '}import meta, ${supportsImportMaps ? '' : 'no '}import maps`);
+  });
