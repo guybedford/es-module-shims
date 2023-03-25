@@ -25,9 +25,6 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
       jsonModulesEnabled && dynamicImport(createBlob(jsonModulescheck.replace('x', createBlob('{}', 'text/json')))).then(() => supportsJsonAssertions = true, noop),
     ]);
 
-  if (supports || (!cssModulesEnabled && !jsonModulesEnabled))
-    return;
-
   return new Promise(resolve => {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: performing feature detections for ${`${supportsImportMaps ? '' : 'import maps, '}${cssModulesEnabled ? 'css modules, ' : ''}${jsonModulesEnabled ? 'json modules, ' : ''}`.slice(0, -2)}`);
     const iframe = document.createElement('iframe');
@@ -47,6 +44,7 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
     const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
       supportsImportMaps ? 'true,true' : `'x',b('${importMetaCheck}')`}, ${cssModulesEnabled ? `b('${cssModulesCheck}'.replace('x',b('','text/css')))` : 'false'}, ${
       jsonModulesEnabled ? `b('${jsonModulesCheck}'.replace('x',b('{}','text/json')))` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(a,'*'))<${''}/script>`;
+    if (self.ESMS_DEBUG) console.info(`RUNNING FEATURE DETECTION TEST SCRIPT:\n${importMapTest}\n\n`);
 
     iframe.onload = () => {
       // WeChat browser doesn't support setting srcdoc scripts
