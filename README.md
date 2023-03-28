@@ -1,10 +1,10 @@
 # ES Module Shims
 
-Shims modern ES Modules features like import maps on top of the baseline modules support in browsers supported by [95% of users](https://caniuse.com/#feat=es6-module).
+Polyfills import maps and other ES Modules features on top of the baseline native ESM support in browsers.
 
-When running in polyfill mode, [the 72% of users](https://caniuse.com/import-maps) with import maps bypass the shim code entirely.
+With import maps now supported by all major browsers, ES Module Shims entirely bypasses processing for the [74% of users](https://caniuse.com/import-maps) with native import maps support.
 
-For the remaining 28% of users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
+For the remaining users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
 
 The following modules features are polyfilled:
 
@@ -12,7 +12,7 @@ The following modules features are polyfilled:
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
 * [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions (when enabled).
-* [`<link rel="modulepreload">` polyfill](#modulepreload) in non Chromium browsers for both shimmed and unshimmed preloading scenarios.
+* [`<link rel="modulepreload">` is shimmed](#modulepreload) in browsers without import maps support.
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
 
@@ -29,7 +29,7 @@ Because we are still using the native module loader the edge cases work out comp
 Include ES Module Shims with a `async` attribute on the script, then include an import map and module scripts normally:
 
 ```html
-<script async src="https://ga.jspm.io/npm:es-module-shims@1.7.0/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.7.1/dist/es-module-shims.js"></script>
 
 <!-- https://generator.jspm.io/#U2NhYGBkDM0rySzJSU1hKEpNTC5xMLTQM9Az0C1K1jMAAKFS5w0gAA -->
 <script type="importmap">
@@ -237,7 +237,7 @@ Browser compatibility **without** ES Module Shims:
 | [modulepreload](#modulepreload)    | 66+                | :x:                | :x:                |
 | [Dynamic Import](#dynamic-import)  | 63+                | 67+                | 11.1+              |
 | [import.meta.url](#importmetaurl)  | ~76+               | ~67+               | ~12+ ❕<sup>1</sup> |
-| [Import Maps](#import-maps)        | 89+                | 108+               | :x:                |
+| [Import Maps](#import-maps)        | 89+                | 108+               | 16.4+              |
 | [JSON Modules](#json-modules)      | 91+                | :x:                | :x:                |
 | [CSS Modules](#css-modules)        | 95+                | :x:                | :x:                |
 | [import.meta.resolve](#resolve)    | :x:                | :x:                | :x:                |
