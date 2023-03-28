@@ -5,15 +5,17 @@ import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled, hasDocu
 export let supportsJsonAssertions = false;
 export let supportsCssAssertions = false;
 
-export let supportsImportMaps = hasDocument && HTMLScriptElement.supports ? HTMLScriptElement.supports('importmap') : false;
-export let supportsImportMeta = supportsImportMaps;
+const supports = hasDocument && HTMLScriptElement.supports;
+
+export let supportsImportMaps = supports && supports.name === 'supports' && supports('importmap');
+export let supportsImportMeta = supportsDynamicImport;
 
 const importMetaCheck = 'import.meta';
 const cssModulesCheck = `import"x"assert{type:"css"}`;
 const jsonModulesCheck = `import"x"assert{type:"json"}`;
 
-export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(() => {
-  if (!supportsDynamicImport || supportsImportMaps && !cssModulesEnabled && !jsonModulesEnabled)
+export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(() => {
+  if (!supportsDynamicImport)
     return;
 
   if (!hasDocument)
@@ -24,14 +26,19 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
     ]);
 
   return new Promise(resolve => {
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: performing feature detections for ${`${supportsImportMaps ? '' : 'import maps, '}${cssModulesEnabled ? 'css modules, ' : ''}${jsonModulesEnabled ? 'json modules, ' : ''}`.slice(0, -2)}`);
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     iframe.setAttribute('nonce', nonce);
-    function cb ({ data: [a, b, c, d] }) {
-      supportsImportMaps = a;
-      supportsImportMeta = b;
-      supportsCssAssertions = c;
-      supportsJsonAssertions = d;
+    function cb ({ data }) {
+      // failed feature detection (security policy) -> revert to default assumptions
+      if (Array.isArray(data)) {
+        supportsImportMaps = data[0];
+        supportsImportMeta = data[1];
+        supportsCssAssertions = data[2];
+        supportsJsonAssertions = data[3];
+      }
+      else if (self.ESMS_DEBUG) console.info(`es-module-shims: feature detection failure, using defaults`);
       resolve();
       document.head.removeChild(iframe);
       window.removeEventListener('message', cb, false);
@@ -42,7 +49,14 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
       supportsImportMaps ? 'true,true' : `'x',b('${importMetaCheck}')`}, ${cssModulesEnabled ? `b('${cssModulesCheck}'.replace('x',b('','text/css')))` : 'false'}, ${
       jsonModulesEnabled ? `b('${jsonModulesCheck}'.replace('x',b('{}','text/json')))` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(a,'*'))<${''}/script>`;
 
-    iframe.onload = () => {
+    // Safari will call onload eagerly on head injection, but we don't want the Wechat
+    // path to trigger before setting srcdoc, therefore we track the timing
+    let readyForOnload = false, onloadCalledWhileNotReady = false;
+    function doOnload () {
+      if (!readyForOnload) {
+        onloadCalledWhileNotReady = true;
+        return;
+      }
       // WeChat browser doesn't support setting srcdoc scripts
       // But iframe sandboxes don't support contentDocument so we do this as a fallback
       const doc = iframe.contentDocument;
@@ -53,15 +67,26 @@ export const featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(
         s.innerHTML = importMapTest.slice(15 + (nonce ? nonce.length : 0), -9);
         doc.head.appendChild(s);
       }
-    };
+    }
+
+    iframe.onload = doOnload;
     // WeChat browser requires append before setting srcdoc
     document.head.appendChild(iframe);
+
     // setting srcdoc is not supported in React native webviews on iOS
     // setting src to a blob URL results in a navigation event in webviews
     // document.write gives usability warnings
+    readyForOnload = true;
     if ('srcdoc' in iframe)
       iframe.srcdoc = importMapTest;
     else
       iframe.contentDocument.write(importMapTest);
+    // retrigger onload for Safari only if necessary
+    if (onloadCalledWhileNotReady) doOnload();
   });
 });
+
+if (self.ESMS_DEBUG)
+  featureDetectionPromise = featureDetectionPromise.then(() => {
+    console.info(`es-module-shims: detected native support - ${supportsDynamicImport ? '' : 'no '}dynamic import, ${supportsImportMeta ? '' : 'no '}import meta, ${supportsImportMaps ? '' : 'no '}import maps`);
+  });

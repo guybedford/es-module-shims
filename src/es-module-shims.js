@@ -120,7 +120,8 @@ let importMap = { imports: {}, scopes: {} };
 let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
-  baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy && !self.ESMS_DEBUG;
+  baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy;
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: init ${shimMode ? 'shim mode' : 'polyfill mode'}, ${baselinePassthrough ? 'baseline passthrough' : 'polyfill engaged'}`);
   if (hasDocument) {
     if (!supportsImportMaps) {
       const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
@@ -174,6 +175,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, '');
   // early analysis opt-out - no need to even fetch if we have feature support
   if (!shimMode && baselinePassthrough) {
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: load skipping polyfill due to baseline passthrough applying: ${url}`);
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded)
       return null;
@@ -186,7 +188,7 @@ async function topLevelLoad (url, fetchOpts, source, nativelyLoaded, lastStaticL
   lastLoad = undefined;
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
-  if (source && !shimMode && !load.n && !self.ESMS_DEBUG) {
+  if (source && !shimMode && !load.n) {
     if (nativelyLoaded) return;
     if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
     return await dynamicImport(createBlob(source), { errUrl: source });
@@ -463,6 +465,7 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
 }
 
 function processScriptsAndPreloads (mapsOnly = false) {
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: processing scripts`);
   if (!mapsOnly)
     for (const link of document.querySelectorAll(shimMode ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]'))
       processPreload(link);
@@ -492,8 +495,10 @@ let lastStaticLoadPromise = Promise.resolve();
 
 let domContentLoadedCnt = 1;
 function domContentLoadedCheck () {
-  if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough))
+  if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: DOMContentLoaded refire`);
     document.dispatchEvent(new Event('DOMContentLoaded'));
+  }
 }
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
 if (hasDocument) {
@@ -505,8 +510,10 @@ if (hasDocument) {
 
 let readyStateCompleteCnt = 1;
 function readyStateCompleteCheck () {
-  if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough))
+  if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: readystatechange complete refire`);
     document.dispatchEvent(new Event('readystatechange'));
+  }
 }
 
 const hasNext = script => script.nextSibling || script.parentNode && hasNext(script.parentNode);
@@ -544,12 +551,15 @@ function processScript (script, ready = readyStateCompleteCnt > 0) {
   const isDomContentLoadedScript = domContentLoadedCnt > 0;
   if (isBlockingReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: processing ${script.src || '<inline>'}`);
   const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isBlockingReadyScript && lastStaticLoadPromise)
     .then(() => {
       // if the type of the script tag "module-shim", browser does not dispatch a "load" event
       // see https://github.com/guybedford/es-module-shims/issues/346
-      if (shimMode)
+      if (shimMode) {
+        if (self.ESMS_DEBUG) console.info(`es-module-shims: load even refire ${script.src || '<inline>'}`);
         script.dispatchEvent(new Event('load'));
+      }
     })
     .catch(throwError);
   if (isBlockingReadyScript)
