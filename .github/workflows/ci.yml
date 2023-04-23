@@ -19,15 +19,15 @@ jobs:
         ]
     name: Firefox Browser Tests
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Chomp
         uses: guybedford/chomp-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 
       - name: Setup Firefox ${{ matrix.firefox }}
         uses: browser-actions/setup-firefox@latest
         with:
@@ -50,15 +50,13 @@ jobs:
         ]
     name: Chrome Browser Tests
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Chomp
         uses: guybedford/chomp-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ matrix.node }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
       - name: Setup Chrome ${{ matrix.chrome }}
         uses: browser-actions/setup-chrome@latest
         with:
