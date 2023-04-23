@@ -31,14 +31,14 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
     iframe.style.display = 'none';
     iframe.setAttribute('nonce', nonce);
     function cb ({ data }) {
-      // failed feature detection (security policy) -> revert to default assumptions
-      if (Array.isArray(data)) {
-        supportsImportMaps = data[0];
-        supportsImportMeta = data[1];
-        supportsCssAssertions = data[2];
-        supportsJsonAssertions = data[3];
+      const isFeatureDetectionMessage = Array.isArray(data) && data[0] === 'esms'
+      if (!isFeatureDetectionMessage) {
+        return;
       }
-      else if (self.ESMS_DEBUG) console.info(`es-module-shims: feature detection failure, using defaults`);
+      supportsImportMaps = data[1];
+      supportsImportMeta = data[2];
+      supportsCssAssertions = data[3];
+      supportsJsonAssertions = data[4];
       resolve();
       document.head.removeChild(iframe);
       window.removeEventListener('message', cb, false);
@@ -47,7 +47,7 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
 
     const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
       supportsImportMaps ? 'true,true' : `'x',b('${importMetaCheck}')`}, ${cssModulesEnabled ? `b('${cssModulesCheck}'.replace('x',b('','text/css')))` : 'false'}, ${
-      jsonModulesEnabled ? `b('${jsonModulesCheck}'.replace('x',b('{}','text/json')))` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(a,'*'))<${''}/script>`;
+      jsonModulesEnabled ? `b('${jsonModulesCheck}'.replace('x',b('{}','text/json')))` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(['esms'].concat(a),'*'))<${''}/script>`;
 
     // Safari will call onload eagerly on head injection, but we don't want the Wechat
     // path to trigger before setting srcdoc, therefore we track the timing
