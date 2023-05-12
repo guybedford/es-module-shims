@@ -316,7 +316,8 @@ function resolveDeps (load, seen) {
   }
 
   let hasSourceURL = false;
-  resolvedSource = resolvedSource.replace(sourceMapURLRegEx, (match, isMapping, url) => (hasSourceURL = !isMapping, match.replace(url, () => new URL(url, load.r))));
+  resolvedSource = resolvedSource.replace(sourceURLRegEx, (match, url) => (hasSourceURL = true, match.replace(url, () => new URL(url, load.r))));
+  resolvedSource = resolvedSource.replace(sourceMapURLRegEx, (match, url) => match.replace(url, () => new URL(url, load.r)));
   if (!hasSourceURL)
     resolvedSource += '\n//# sourceURL=' + load.r;
 
@@ -326,7 +327,8 @@ function resolveDeps (load, seen) {
 
 // ; and // trailer support added for Ruby on Rails 7 source maps compatibility
 // https://github.com/guybedford/es-module-shims/issues/228
-const sourceMapURLRegEx = /\n\/\/# source(Mapping)?URL=([^\n]+)\s*((;|\/\/[^#][^\n]*)\s*)*$/;
+const sourceURLRegEx = /\n\/\/# sourceURL=([^\n]+)\s*((;|\/\/[^#][^\n]*)\s*)*(\n|$)/;
+const sourceMapURLRegEx = /\n\/\/# sourceMappingURL=([^\n]+)\s*((;|\/\/[^#][^\n]*)\s*)*(\n|$)/;
 
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
 const jsonContentType = /^(text|application)\/json(;|$)/;
