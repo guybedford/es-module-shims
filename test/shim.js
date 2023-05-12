@@ -489,6 +489,19 @@ suite('Source maps', () => {
     // Should not touch any other occurrences of `//# sourceMappingURL=` in the code.
     assert(blobContent.includes('//# sourceMappingURL=i-should-not-be-affected.no'));
   });
+
+  test('should preserve existing sourceURL if both sourceURL and sourceMappingURL already exist', async () => {
+    const moduleURL = new URL('./fixtures/es-modules/with-source-url-and-source-mapping-url.js', location.href).href;
+    await importShim(moduleURL);
+    const moduleBlobURL = importShim._r[moduleURL].b;
+    const blobContent = await fetch(moduleBlobURL).then(r => r.text());
+    assert(blobContent.endsWith(
+        `//# sourceURL=${new URL('/with-source-url-and-source-mapping-url.js', window.location.origin)}\n//# sourceMappingURL=https://example.com/module.js.map`
+    ));
+
+    // Should not touch any other occurrences of `//# sourceURL=` in the code.
+    assert(blobContent.includes('//# sourceURL=i-should-not-be-affected.no'));
+  });
 });
 
 
