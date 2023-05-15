@@ -116,6 +116,17 @@ async function loadAll (load, seen) {
     load.n = load.d.some(dep => dep.n);
 }
 
+function replaceSourceComment (source, commentPrefix, commentStart, baseUrl) {
+  const urlStart = commentStart + commentPrefix.length
+
+  const commentEnd = source.indexOf('\n', urlStart)
+  const urlEnd = commentEnd !== -1 ? commentEnd : undefined
+
+  const url = new URL(source.slice(urlStart, urlEnd), baseUrl).toString()
+
+  return source.slice(0, urlStart) + url + (urlEnd ? source.slice(urlEnd) : '')
+}
+
 let importMap = { imports: {}, scopes: {} };
 let baselinePassthrough;
 
@@ -315,20 +326,24 @@ function resolveDeps (load, seen) {
     pushStringTo(source.length);
   }
 
-  let hasSourceURL = false;
-  resolvedSource = resolvedSource.replace(sourceURLRegEx, (match, url) => (hasSourceURL = true, match.replace(url, () => new URL(url, load.r))));
-  resolvedSource = resolvedSource.replace(sourceMapURLRegEx, (match, url) => match.replace(url, () => new URL(url, load.r)));
-  if (!hasSourceURL)
-    resolvedSource += '\n//# sourceURL=' + load.r;
+  const sourceURLCommentStart = resolvedSource.lastIndexOf(sourceURLCommentPrefix)
+  if (sourceURLCommentStart !== -1) {
+    resolvedSource = replaceSourceComment(resolvedSource, sourceURLCommentPrefix, sourceURLCommentStart, load.r)
+  } else {
+    resolvedSource += sourceURLCommentPrefix + load.r;
+  }
+
+  const sourceMapURLCommentStart = resolvedSource.lastIndexOf(sourceMapURLCommentPrefix)
+  if (sourceMapURLCommentStart !== -1) {
+    resolvedSource = replaceSourceComment(resolvedSource, sourceMapURLCommentPrefix, sourceMapURLCommentStart, load.r)
+  }
 
   load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
 }
 
-// ; and // trailer support added for Ruby on Rails 7 source maps compatibility
-// https://github.com/guybedford/es-module-shims/issues/228
-const sourceURLRegEx = /\n\/\/# sourceURL=([^\n]+)\s*((;|\/\/[^#][^\n]*)\s*)*(\n|$)/;
-const sourceMapURLRegEx = /\n\/\/# sourceMappingURL=([^\n]+)\s*((;|\/\/[^#][^\n]*)\s*)*(\n|$)/;
+const sourceURLCommentPrefix = '\n//# sourceURL='
+const sourceMapURLCommentPrefix = '\n//# sourceMappingURL='
 
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
 const jsonContentType = /^(text|application)\/json(;|$)/;
