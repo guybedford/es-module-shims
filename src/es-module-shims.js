@@ -116,17 +116,6 @@ async function loadAll (load, seen) {
     load.n = load.d.some(dep => dep.n);
 }
 
-function replaceSourceComment (source, commentPrefix, commentStart, baseUrl) {
-  const urlStart = commentStart + commentPrefix.length
-
-  const commentEnd = source.indexOf('\n', urlStart)
-  const urlEnd = commentEnd !== -1 ? commentEnd : undefined
-
-  const url = new URL(source.slice(urlStart, urlEnd), baseUrl).toString()
-
-  return source.slice(0, urlStart) + url + (urlEnd ? source.slice(urlEnd) : '')
-}
-
 let importMap = { imports: {}, scopes: {} };
 let baselinePassthrough;
 
@@ -256,87 +245,102 @@ function resolveDeps (load, seen) {
   // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
   let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';
 
-  if (!imports.length) {
-    resolvedSource += source;
-  }
-  else {
-    // once all deps have loaded we can inline the dependency resolution blobs
-    // and define this blob
-    let lastIndex = 0, depIndex = 0, dynamicImportEndStack = [];
-    function pushStringTo (originalIndex) {
-      while (dynamicImportEndStack[dynamicImportEndStack.length - 1] < originalIndex) {
-        const dynamicImportEnd = dynamicImportEndStack.pop();
-        resolvedSource += `${source.slice(lastIndex, dynamicImportEnd)}, ${urlJsString(load.r)}`;
-        lastIndex = dynamicImportEnd;
-      }
-      resolvedSource += source.slice(lastIndex, originalIndex);
-      lastIndex = originalIndex;
+  // once all deps have loaded we can inline the dependency resolution blobs
+  // and define this blob
+  let lastIndex = 0, depIndex = 0, dynamicImportEndStack = [];
+  function pushStringTo (originalIndex) {
+    while (dynamicImportEndStack[dynamicImportEndStack.length - 1] < originalIndex) {
+      const dynamicImportEnd = dynamicImportEndStack.pop();
+      resolvedSource += `${source.slice(lastIndex, dynamicImportEnd)}, ${urlJsString(load.r)}`;
+      lastIndex = dynamicImportEnd;
     }
-    for (const { s: start, ss: statementStart, se: statementEnd, d: dynamicImportIndex } of imports) {
-      // dependency source replacements
-      if (dynamicImportIndex === -1) {
-        let depLoad = load.d[depIndex++], blobUrl = depLoad.b, cycleShell = !blobUrl;
-        if (cycleShell) {
-          // circular shell creation
-          if (!(blobUrl = depLoad.s)) {
-            blobUrl = depLoad.s = createBlob(`export function u$_(m){${
-              depLoad.a[1].map(({ s, e }, i) => {
-                const q = depLoad.S[s] === '"' || depLoad.S[s] === "'";
-                return `e$_${i}=m${q ? `[` : '.'}${depLoad.S.slice(s, e)}${q ? `]` : ''}`;
-              }).join(',')
-            }}${
-              depLoad.a[1].length ? `let ${depLoad.a[1].map((_, i) => `e$_${i}`).join(',')};` : ''
-            }export {${
-              depLoad.a[1].map(({ s, e }, i) => `e$_${i} as ${depLoad.S.slice(s, e)}`).join(',')
-            }}\n//# sourceURL=${depLoad.r}?cycle`);
-          }
-        }
+    resolvedSource += source.slice(lastIndex, originalIndex);
+    lastIndex = originalIndex;
+  }
 
-        pushStringTo(start - 1);
-        resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)}`;
-
-        // circular shell execution
-        if (!cycleShell && depLoad.s) {
-          resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
-          depLoad.s = undefined;
+  for (const { s: start, ss: statementStart, se: statementEnd, d: dynamicImportIndex } of imports) {
+    // dependency source replacements
+    if (dynamicImportIndex === -1) {
+      let depLoad = load.d[depIndex++], blobUrl = depLoad.b, cycleShell = !blobUrl;
+      if (cycleShell) {
+        // circular shell creation
+        if (!(blobUrl = depLoad.s)) {
+          blobUrl = depLoad.s = createBlob(`export function u$_(m){${
+            depLoad.a[1].map(({ s, e }, i) => {
+              const q = depLoad.S[s] === '"' || depLoad.S[s] === "'";
+              return `e$_${i}=m${q ? `[` : '.'}${depLoad.S.slice(s, e)}${q ? `]` : ''}`;
+            }).join(',')
+          }}${
+            depLoad.a[1].length ? `let ${depLoad.a[1].map((_, i) => `e$_${i}`).join(',')};` : ''
+          }export {${
+            depLoad.a[1].map(({ s, e }, i) => `e$_${i} as ${depLoad.S.slice(s, e)}`).join(',')
+          }}\n//# sourceURL=${depLoad.r}?cycle`);
         }
-        lastIndex = statementEnd;
       }
-      // import.meta
-      else if (dynamicImportIndex === -2) {
-        load.m = { url: load.r, resolve: metaResolve };
-        metaHook(load.m, load.u);
-        pushStringTo(start);
-        resolvedSource += `importShim._r[${urlJsString(load.u)}].m`;
-        lastIndex = statementEnd;
+
+      pushStringTo(start - 1);
+      resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/${urlJsString(blobUrl)}`;
+
+      // circular shell execution
+      if (!cycleShell && depLoad.s) {
+        resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
+        depLoad.s = undefined;
       }
-      // dynamic import
-      else {
-        pushStringTo(statementStart + 6);
-        resolvedSource += `Shim(`;
-        dynamicImportEndStack.push(statementEnd - 1);
-        lastIndex = start;
-      }
+      lastIndex = statementEnd;
     }
-
-    // support progressive cycle binding updates (try statement avoids tdz errors)
-    if (load.s)
-      resolvedSource += `\n;import{u$_}from'${load.s}';try{u$_({${exports.filter(e => e.ln).map(({ s, e, ln }) => `${source.slice(s, e)}:${ln}`).join(',')}})}catch(_){};\n`;
-
-    pushStringTo(source.length);
+    // import.meta
+    else if (dynamicImportIndex === -2) {
+      load.m = { url: load.r, resolve: metaResolve };
+      metaHook(load.m, load.u);
+      pushStringTo(start);
+      resolvedSource += `importShim._r[${urlJsString(load.u)}].m`;
+      lastIndex = statementEnd;
+    }
+    // dynamic import
+    else {
+      pushStringTo(statementStart + 6);
+      resolvedSource += `Shim(`;
+      dynamicImportEndStack.push(statementEnd - 1);
+      lastIndex = start;
+    }
   }
 
-  const sourceURLCommentStart = resolvedSource.lastIndexOf(sourceURLCommentPrefix)
-  if (sourceURLCommentStart !== -1) {
-    resolvedSource = replaceSourceComment(resolvedSource, sourceURLCommentPrefix, sourceURLCommentStart, load.r)
-  } else {
-    resolvedSource += sourceURLCommentPrefix + load.r;
+  // support progressive cycle binding updates (try statement avoids tdz errors)
+  if (load.s)
+    resolvedSource += `\n;import{u$_}from'${load.s}';try{u$_({${exports.filter(e => e.ln).map(({ s, e, ln }) => `${source.slice(s, e)}:${ln}`).join(',')}})}catch(_){};\n`;
+
+  function pushSourceURL (commentPrefix, commentStart) {
+    const urlStart = commentStart + commentPrefix.length;
+    const commentEnd = source.indexOf('\n', urlStart);
+    const urlEnd = commentEnd !== -1 ? commentEnd : source.length;
+    const url = new URL(source.slice(urlStart, urlEnd), load.r).toString();
+    resolvedSource += source.slice(lastIndex, urlStart) + url;
+    lastIndex = urlEnd;
   }
 
-  const sourceMapURLCommentStart = resolvedSource.lastIndexOf(sourceMapURLCommentPrefix)
+  let sourceURLCommentStart = source.lastIndexOf(sourceURLCommentPrefix);
+  let sourceMapURLCommentStart = source.lastIndexOf(sourceMapURLCommentPrefix);
+
+  // ignore sourceMap comments before already spliced code
+  if (sourceURLCommentStart < lastIndex) sourceURLCommentStart = -1;
+  if (sourceMapURLCommentStart < lastIndex) sourceMapURLCommentStart = -1;
+
+  // sourceURL first / only
+  if (sourceURLCommentStart !== -1 && (sourceMapURLCommentStart === -1 || sourceMapURLCommentStart > sourceURLCommentStart)) {
+    pushSourceURL(sourceURLCommentPrefix, sourceURLCommentStart);
+  }
+  // sourceMappingURL
   if (sourceMapURLCommentStart !== -1) {
-    resolvedSource = replaceSourceComment(resolvedSource, sourceMapURLCommentPrefix, sourceMapURLCommentStart, load.r)
+    pushSourceURL(sourceMapURLCommentPrefix, sourceMapURLCommentStart);
+    // sourceURL last
+    if (sourceURLCommentStart !== -1 && (sourceURLCommentStart > sourceMapURLCommentStart))
+      pushSourceURL(sourceURLCommentPrefix, sourceURLCommentStart);
   }
+
+  pushStringTo(source.length);
+
+  if (sourceURLCommentStart === -1)
+    resolvedSource += sourceURLCommentPrefix + load.r;
 
   load.b = lastLoad = createBlob(resolvedSource);
   load.S = undefined;
