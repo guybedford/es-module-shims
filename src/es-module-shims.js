@@ -313,8 +313,8 @@ function resolveDeps (load, seen) {
     const urlStart = commentStart + commentPrefix.length;
     const commentEnd = source.indexOf('\n', urlStart);
     const urlEnd = commentEnd !== -1 ? commentEnd : source.length;
-    const url = new URL(source.slice(urlStart, urlEnd), load.r).toString();
-    resolvedSource += source.slice(lastIndex, urlStart) + url;
+    pushStringTo(urlStart);
+    resolvedSource += new URL(source.slice(urlStart, urlEnd), load.r).href;
     lastIndex = urlEnd;
   }
 
