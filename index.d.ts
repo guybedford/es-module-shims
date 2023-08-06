@@ -8,7 +8,7 @@ interface ESMSInitOptions {
    * Enable polyfill features.
    * Currently supports ['css-modules', 'json-modules']
    */
-  polyfillEnable?: string[];
+  polyfillEnable?: Array<'css-modules' | 'json-modules'>
 
   /**
    * #### Enforce Integrity
@@ -16,7 +16,7 @@ interface ESMSInitOptions {
    * Set to *true* to enable secure mode to not support loading modules without integrity (integrity is always verified though).
    *
    */
-  enforceIntegrity: boolean;
+  enforceIntegrity?: boolean;
 
   /**
    * Nonce for CSP build
@@ -26,7 +26,7 @@ interface ESMSInitOptions {
   /**
    * Disable retriggering of document readystate
    */
-  noLoadEventRetriggers: true;
+  noLoadEventRetriggers?: true;
 
   /**
    * #### Skip Processing Stability
@@ -49,7 +49,7 @@ interface ESMSInitOptions {
    * By default, this expression supports jspm.dev, dev.jspm.io and
    * cdn.pika.dev.
    */
-  skip: RegExp;
+  skip?: RegExp;
 
   /**
    * #### Error hook
@@ -57,7 +57,7 @@ interface ESMSInitOptions {
    * Register a callback for any ES Module Shims module errors.
    *
    */
-  onerror: (e: any) => any;
+  onerror?: (e: any) => any;
 
   /**
    * #### Polyfill hook
@@ -65,7 +65,7 @@ interface ESMSInitOptions {
    * Register a callback invoked when polyfill mode first engages.
    *
    */
-  onpolyfill: () => void;
+  onpolyfill?: () => void;
 
   /**
    * #### Resolve Hook
@@ -74,7 +74,7 @@ interface ESMSInitOptions {
    *
    * Provide a custom resolver function.
    */
-  resolve: (
+  resolve?: (
     id: string,
     parentUrl: string,
     resolve: (id: string, parentUrl: string) => string
@@ -142,7 +142,7 @@ interface ESMSInitOptions {
    * }
    * ```
    */
-  fetch: (input: RequestInfo, init?: RequestInit) => Promise<Response>;
+  fetch?: (input: RequestInfo, init?: RequestInit) => Promise<Response>;
 
   /**
    * #### Revoke Blob URLs
@@ -151,7 +151,7 @@ interface ESMSInitOptions {
    * Can cost some compute time for large loads.
    *
    */
-  revokeBlobURLs: boolean;
+  revokeBlobURLs?: boolean;
 
   /**
    * #### Map Overrides
@@ -159,7 +159,7 @@ interface ESMSInitOptions {
    * Set to *true* to permit overrides to import maps.
    *
    */
-  mapOverrides: boolean;
+  mapOverrides?: boolean;
 
   /**
   * #### Meta hook
@@ -167,7 +167,7 @@ interface ESMSInitOptions {
   * Register a callback for import.meta construction.
   *
   */
-  meta: (meta: any, url: string) => void;
+  meta?: (meta: any, url: string) => void;
 
   /**
    * #### On import hook
@@ -175,7 +175,7 @@ interface ESMSInitOptions {
    * Register a callback for top-level imports.
    *
    */
-  onimport: (url: string, options: any, parentUrl: string) => void;
+  onimport?: (url: string, options: any, parentUrl: string) => void;
 }
 
 interface ImportMap {
