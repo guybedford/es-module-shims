@@ -356,7 +356,7 @@ suite('Errors', function () {
 
   test('404 error', async function () {
     var err = await getImportError('./fixtures/es-modules/load-non-existent.js');
-    assert(err.toString().startsWith('Error: 404 Not Found ' + new URL('./fixtures/es-modules/non-existent.js', baseURL).href));
+    assert(err.toString().startsWith('ResponseError: 404 Not Found ' + new URL('./fixtures/es-modules/non-existent.js', baseURL).href));
   });
 
   test('network error should include response', async function () {
