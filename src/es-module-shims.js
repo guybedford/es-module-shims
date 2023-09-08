@@ -394,7 +394,7 @@ async function doFetch (url, fetchOpts, parent) {
     popFetchPool();
   }
   if (!res.ok)
-    throw Error(`${res.status} ${res.statusText} ${res.url}${fromParent(parent)}`);
+    throw new ResponseError(`${res.status} ${res.statusText} ${res.url}${fromParent(parent)}`, {response: res});
   return res;
 }
 
