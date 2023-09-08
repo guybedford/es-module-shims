@@ -359,6 +359,11 @@ suite('Errors', function () {
     assert(err.toString().startsWith('Error: 404 Not Found ' + new URL('./fixtures/es-modules/non-existent.js', baseURL).href));
   });
 
+  test('network error should include response', async function () {
+    var err = await getImportError('./fixtures/es-modules/load-non-existent.js');
+    assert(err.response instanceof Response);
+  });
+
   this.timeout(10000);
 
   test('Dynamic import map shim', async function () {
