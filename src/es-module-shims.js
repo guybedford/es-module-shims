@@ -38,6 +38,14 @@ import {
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 
+class ResponseError extends Error {
+  constructor(message, {cause, response}) {
+    super(message, {cause});
+    this.name = 'ResponseError';
+    this.response = response;
+  }
+}
+
 async function _resolve (id, parentUrl) {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
   return {
