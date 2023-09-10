@@ -327,7 +327,7 @@ suite('Errors', function () {
       await importShim(module);
     }
     catch(e) {
-      return e.toString();
+      return e;
     }
     throw new Error('Test supposed to fail');
   }
@@ -340,23 +340,28 @@ suite('Errors', function () {
 
   test('should give a plain name error', async function () {
     var err = await getImportError('plain-name');
-    assert.equal(err.indexOf('Error: Unable to resolve specifier \'plain-name\' imported from'), 0);
+    assert.equal(err.toString().indexOf('Error: Unable to resolve specifier \'plain-name\' imported from'), 0);
   });
 
   test('should throw if on syntax error', async function () {
     Mocha.process.removeListener('uncaughtException');
     var err = await getImportError('./fixtures/es-modules/main.js');
-    assert.equal(err.toString(), 'dep error');
+    assert.equal(err.toString().toString(), 'dep error');
   });
 
   test('should throw what the script throws', async function () {
     var err = await getImportError('./fixtures/es-modules/deperror.js');
-    assert.equal(err, 'dep error');
+    assert.equal(err.toString(), 'dep error');
   });
 
   test('404 error', async function () {
     var err = await getImportError('./fixtures/es-modules/load-non-existent.js');
-    assert(err.toString().startsWith('Error: 404 Not Found ' + new URL('./fixtures/es-modules/non-existent.js', baseURL).href));
+    assert(err.toString().startsWith('TypeError: 404 Not Found ' + new URL('./fixtures/es-modules/non-existent.js', baseURL).href));
+  });
+
+  test('network error should include response', async function () {
+    var err = await getImportError('./fixtures/es-modules/load-non-existent.js');
+    assert(err.response instanceof Response);
   });
 
   this.timeout(10000);

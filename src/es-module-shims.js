@@ -385,8 +385,12 @@ async function doFetch (url, fetchOpts, parent) {
   finally {
     popFetchPool();
   }
-  if (!res.ok)
-    throw Error(`${res.status} ${res.statusText} ${res.url}${fromParent(parent)}`);
+
+  if (!res.ok) {
+    const error = new TypeError(`${res.status} ${res.statusText} ${res.url}${fromParent(parent)}`);
+    error.response = res;
+    throw error;
+  }
   return res;
 }
 
