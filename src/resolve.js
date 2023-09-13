@@ -34,6 +34,9 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
       relUrl.length === 1  && (relUrl += '/')) ||
       relUrl[0] === '/') {
     const parentProtocol = parentUrl.slice(0, parentUrl.indexOf(':') + 1);
+    if (parentProtocol === 'blob:') {
+      throw new Error(`Uncaught (in promise) TypeError: Failed to resolve module specifier "${relUrl}". Invalid relative url or base scheme isn't hierarchical.`);
+    }
     // Disabled, but these cases will give inconsistent results for deep backtracking
     //if (parentUrl[parentProtocol.length] !== '/')
     //  throw new Error('Cannot resolve');
