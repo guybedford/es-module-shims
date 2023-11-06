@@ -56,6 +56,8 @@ if (Array.isArray(skip)) {
 else if (typeof skip === 'string') {
   const r = new RegExp(skip);
   skip = s => r.test(s);
+} else if (skip instanceof RegExp) {
+  skip = s => skip.test(s);
 }
 
 const eoop = err => setTimeout(() => { throw err });
