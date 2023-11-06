@@ -49,7 +49,7 @@ interface ESMSInitOptions {
    * By default, this expression supports jspm.dev, dev.jspm.io and
    * cdn.pika.dev.
    */
-  skip?: RegExp;
+  skip?: RegExp | string[] | string
 
   /**
    * #### Error hook
