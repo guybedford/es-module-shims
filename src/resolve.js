@@ -4,19 +4,18 @@ export let importMap = { imports: Object.create(null), scopes: Object.create(nul
 
 const backslashRegEx = /\\/g;
 
-export function isURL (url) {
+export function asURL (url) {
   if (url.indexOf(':') === -1) return false;
   try {
-    new URL(url);
-    return true;
+    return new URL(url).href;
   }
   catch (_) {
-    return false;
+    return null;
   }
 }
 
 export function resolveUrl (relUrl, parentUrl) {
-  return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (isURL(relUrl) ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
+  return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (asURL(relUrl) || resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
@@ -101,6 +100,8 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
     return parentUrl.slice(0, parentUrl.length - pathname.length) + output.join('');
   }
 }
+
+console.log(resolveIfNotPlainOrUrl('http://site.com/asdf/asdf/./PKG/file.js'));
 
 export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
   const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes) };

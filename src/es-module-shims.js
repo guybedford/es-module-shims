@@ -39,7 +39,7 @@ import {
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 
 async function _resolve (id, parentUrl) {
-  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl);
+  const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
   return {
     r: resolveImportMap(importMap, urlResolved || id, parentUrl) || throwUnresolved(id, parentUrl),
     // b = bare specifier
