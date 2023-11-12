@@ -3,7 +3,7 @@ import {
   resolveUrl,
   resolveImportMap,
   resolveIfNotPlainOrUrl,
-  isURL,
+  asURL,
 } from './resolve.js'
 import {
   baseUrl as pageBaseUrl,
@@ -43,7 +43,7 @@ async function _resolve (id, parentUrl) {
   return {
     r: resolveImportMap(importMap, urlResolved || id, parentUrl) || throwUnresolved(id, parentUrl),
     // b = bare specifier
-    b: !urlResolved && !isURL(id)
+    b: !urlResolved && !asURL(id)
   };
 }
 
@@ -52,7 +52,7 @@ const resolve = resolveHook ? async (id, parentUrl) => {
   // will be deprecated in next major
   if (result && result.then)
     result = await result;
-  return result ? { r: result, b: !resolveIfNotPlainOrUrl(id, parentUrl) && !isURL(id) } : _resolve(id, parentUrl);
+  return result ? { r: result, b: !resolveIfNotPlainOrUrl(id, parentUrl) && !asURL(id) } : _resolve(id, parentUrl);
 } : _resolve;
 
 // importShim('mod');
