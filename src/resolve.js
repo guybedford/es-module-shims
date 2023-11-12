@@ -4,19 +4,16 @@ export let importMap = { imports: Object.create(null), scopes: Object.create(nul
 
 const backslashRegEx = /\\/g;
 
-export function isURL (url) {
-  if (url.indexOf(':') === -1) return false;
+export function asURL (url) {
   try {
-    new URL(url);
-    return true;
+    if (url.indexOf(':') !== -1)
+      return new URL(url).href;
   }
-  catch (_) {
-    return false;
-  }
+  catch (_) {}
 }
 
 export function resolveUrl (relUrl, parentUrl) {
-  return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (isURL(relUrl) ? relUrl : resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
+  return resolveIfNotPlainOrUrl(relUrl, parentUrl) || (asURL(relUrl) || resolveIfNotPlainOrUrl('./' + relUrl, parentUrl));
 }
 
 export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
