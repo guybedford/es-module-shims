@@ -5,13 +5,11 @@ export let importMap = { imports: Object.create(null), scopes: Object.create(nul
 const backslashRegEx = /\\/g;
 
 export function asURL (url) {
-  if (url.indexOf(':') === -1) return false;
   try {
-    return new URL(url).href;
+    if (url.indexOf(':') !== -1)
+      return new URL(url).href;
   }
-  catch (_) {
-    return null;
-  }
+  catch (_) {}
 }
 
 export function resolveUrl (relUrl, parentUrl) {
