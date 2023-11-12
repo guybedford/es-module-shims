@@ -101,8 +101,6 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
   }
 }
 
-console.log(resolveIfNotPlainOrUrl('http://site.com/asdf/asdf/./PKG/file.js'));
-
 export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
   const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes) };
 
