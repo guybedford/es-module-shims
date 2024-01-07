@@ -524,6 +524,8 @@ function getFetchOpts (script) {
     fetchOpts.integrity = script.integrity;
   if (script.referrerPolicy)
     fetchOpts.referrerPolicy = script.referrerPolicy;
+  if (script.fetchPriority)
+    fetchOpts.priority = script.fetchPriority;
   if (script.crossOrigin === 'use-credentials')
     fetchOpts.credentials = 'include';
   else if (script.crossOrigin === 'anonymous')
