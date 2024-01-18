@@ -411,8 +411,7 @@ async function fetchModule (url, fetchOpts, parent) {
     i = 0;
     s += `const instance = await WebAssembly.instantiate(importShim._w['${url}'], {${importObj}});\n`;
     for (const expt of WebAssembly.Module.exports(module)) {
-      s += `const expt${i} = instance.exports['${expt.name}'];\n`;
-      s += `export { expt${i++} as "${expt.name}" };\n`;
+      s += `export const ${expt.name} = instance.exports['${expt.name}'];\n`;
     }
     return { r: res.url, s, t: 'wasm' };
   }
