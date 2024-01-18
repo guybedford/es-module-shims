@@ -1,5 +1,5 @@
 import { dynamicImport, supportsDynamicImport, dynamicImportCheck } from './dynamic-import.js';
-import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled, hasDocument } from './env.js';
+import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled, wasmModulesEnabled, hasDocument } from './env.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsJsonAssertions = false;
@@ -9,20 +9,22 @@ const supports = hasDocument && HTMLScriptElement.supports;
 
 export let supportsImportMaps = supports && supports.name === 'supports' && supports('importmap');
 export let supportsImportMeta = supportsDynamicImport;
+export let supportsWasmModules = false;
 
 const importMetaCheck = 'import.meta';
-const cssModulesCheck = `import"x"assert{type:"css"}`;
-const jsonModulesCheck = `import"x"assert{type:"json"}`;
+const moduleCheck = 'import"x"';
+const cssModulesCheck = `assert{type:"css"}`;
+const jsonModulesCheck = `assert{type:"json"}`;
 
 export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(() => {
   if (!supportsDynamicImport)
     return;
-
   if (!hasDocument)
     return Promise.all([
       supportsImportMaps || dynamicImport(createBlob(importMetaCheck)).then(() => supportsImportMeta = true, noop),
-      cssModulesEnabled && dynamicImport(createBlob(cssModulesCheck.replace('x', createBlob('', 'text/css')))).then(() => supportsCssAssertions = true, noop),
-      jsonModulesEnabled && dynamicImport(createBlob(jsonModulescheck.replace('x', createBlob('{}', 'text/json')))).then(() => supportsJsonAssertions = true, noop),
+      cssModulesEnabled && dynamicImport(createBlob(moduleCheck.replace('x', createBlob('', 'text/css')) + cssModulesCheck)).then(() => supportsCssAssertions = true, noop),
+      jsonModulesEnabled && dynamicImport(createBlob(moduleCheck.replace('x', createBlob('{}', 'text/json')) + jsonModulesCheck)).then(() => supportsJsonAssertions = true, noop),
+      wasmModulesEnabled && dynamicImport(createBlob(moduleCheck.replace('x', createBlob(new Uint8Array([0,97,115,109,1,0,0,0]), 'application/wasm')))).then(() => supportsWasmModules = true, noop),
     ]);
 
   return new Promise(resolve => {

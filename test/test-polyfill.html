@@ -28,9 +28,7 @@
 
 <script>
   window.esmsInitOptions = {
-    onpolyfill () {
-      window.domLoad = 0;
-    }
+    polyfillEnable: ['css-modules', 'json-modules', 'wasm-modules'],
   };
   window.domLoad = 0;
   document.addEventListener('DOMContentLoaded', () => {

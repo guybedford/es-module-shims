@@ -20,6 +20,7 @@ import {
   noLoadEventRetriggers,
   cssModulesEnabled,
   jsonModulesEnabled,
+  wasmModulesEnabled,
   onpolyfill,
   enforceIntegrity,
   fromParent,
@@ -34,6 +35,7 @@ import {
   supportsImportMaps,
   supportsCssAssertions,
   supportsJsonAssertions,
+  supportsWasmModules,
   featureDetectionPromise,
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
@@ -121,7 +123,7 @@ let importMap = { imports: {}, scopes: {} };
 let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
-  baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && !importMapSrcOrLazy;
+  baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && (!wasmModulesEnabled || supportsWasmModules) && !importMapSrcOrLazy;
   if (self.ESMS_DEBUG) console.info(`es-module-shims: init ${shimMode ? 'shim mode' : 'polyfill mode'}, ${baselinePassthrough ? 'baseline passthrough' : 'polyfill engaged'}`);
   if (hasDocument) {
     if (!supportsImportMaps) {
@@ -409,7 +411,7 @@ async function fetchModule (url, fetchOpts, parent) {
     i = 0;
     s += `const instance = await WebAssembly.instantiate(importShim._w['${url}'], {${importObj}});\n`;
     for (const expt of WebAssembly.Module.exports(module)) {
-      s += `const expt${i} = instance['${expt.name}'];\n`;
+      s += `const expt${i} = instance.exports['${expt.name}'];\n`;
       s += `export { expt${i++} as "${expt.name}" };\n`;
     }
     return { r: res.url, s, t: 'wasm' };
@@ -469,9 +471,9 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
       let t;
       ({ r: load.r, s: source, t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
       if (t && !shimMode) {
-        if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled)
+        if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled || t === 'wasm' && !wasmModulesEnabled)
           throw Error(`${t}-modules require <script type="esms-options">{ "polyfillEnable": ["${t}-modules"] }<${''}/script>`);
-        if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions)
+        if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions || t === 'wasm' && !supportsWasmModules)
           load.n = true;
       }
     }

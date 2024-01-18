@@ -1,5 +1,5 @@
 <!doctype html>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-asdf' unpkg.com;" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-asdf' 'wasm-unsafe-eval' unpkg.com;" />
 <link rel="stylesheet" type="text/css" href="../node_modules/mocha/mocha.css"/>
 <script src="../node_modules/mocha/mocha.js"></script>
 <script src="https://unpkg.com/construct-style-sheets-polyfill@3.0.0/dist/adoptedStyleSheets.js"></script>
@@ -27,9 +27,7 @@
 
 <script nonce="asdf">
   window.esmsInitOptions = {
-    onpolyfill () {
-      window.domLoad = 0;
-    }
+    polyfillEnable: ['css-modules', 'json-modules', 'wasm-modules']
   };
   window.domLoad = 0;
   document.addEventListener('DOMContentLoaded', () => {
