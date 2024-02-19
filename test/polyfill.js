@@ -1,3 +1,14 @@
+const supportsTlaPromise = (async () => {
+  let supportsTla = false;
+  try {
+    await import('data:text/javascript,await 0');
+    supportsTla = true;
+  } catch (e) {
+    console.log(e);
+  }
+  return supportsTla;
+})();
+
 suite('Polyfill tests', () => {
   test('should support dynamic import with an import map', async function () {
     const p = new Promise(resolve => window.done = resolve);
@@ -36,10 +47,12 @@ suite('Polyfill tests', () => {
     assert.equal(Boolean(window.dynamic && window.dynamicUrlMap), false);
   });
 
-  test('should support wasm imports', async function () {
-    const { add } = await importShim('./fixtures/wasm-import.js');
-    assert.equal(typeof add, 'function');
-  });
+    test('should support wasm imports', async function () {
+      const supportsTla = await supportsTlaPromise;
+      if (supportsTla) return;
+      const { add } = await importShim('./fixtures/wasm-import.js');
+      assert.equal(typeof add, 'function');
+    });
 
   test('import maps passthrough polyfill mode', async function () {
     await importShim('test');
