@@ -47,12 +47,12 @@ suite('Polyfill tests', () => {
     assert.equal(Boolean(window.dynamic && window.dynamicUrlMap), false);
   });
 
-    test('should support wasm imports', async function () {
-      const supportsTla = await supportsTlaPromise;
-      if (supportsTla) return;
-      const { add } = await importShim('./fixtures/wasm-import.js');
-      assert.equal(typeof add, 'function');
-    });
+  test('should support wasm imports', async function () {
+    const supportsTla = await supportsTlaPromise;
+    if (!supportsTla) return;
+    const { add } = await importShim('./fixtures/wasm-import.js');
+    assert.equal(typeof add, 'function');
+  });
 
   test('import maps passthrough polyfill mode', async function () {
     await importShim('test');
