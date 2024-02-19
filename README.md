@@ -12,6 +12,7 @@ The following modules features are polyfilled:
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
 * [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions (when enabled).
+* [Wasm modules](#wasm-modules) when enabled.
 * [`<link rel="modulepreload">` is shimmed](#modulepreload) in browsers without import maps support.
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
@@ -182,7 +183,7 @@ If using more modern features like CSS Modules or JSON Modules, these need to be
 
 ```html
 <script>
-window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules'] }
+window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules', 'wasm-modules'] }
 </script>
 ```
 
@@ -222,6 +223,7 @@ Browser Compatibility on baseline ES modules support **with** ES Module Shims:
 | [Import Maps](#import-maps)                     | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [JSON Modules](#json-modules)                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [CSS Modules](#css-modules)                     | :heavy_check_mark:<sup>1</sup>       | :heavy_check_mark:<sup>1</sup>       | :heavy_check_mark:<sup>1</sup>       |
+| [Wasm Modules](#wasm-modules)                   | 89+                                  | 89+                                  | 15+                                  |
 | [import.meta.resolve](#resolve)                 | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Module Workers](#module-workers) (via wrapper) | 63+                                  | :x:<sup>2</sup>                      | 15+                                  |
 | Top-Level Await (unpolyfilled<sup>3</sup>)      | 89+                                  | 89+                                  | 15+                                  |
@@ -240,6 +242,7 @@ Browser compatibility **without** ES Module Shims:
 | [Import Maps](#import-maps)        | 89+                | 108+               | 16.4+              |
 | [JSON Modules](#json-modules)      | 91+                | :x:                | :x:                |
 | [CSS Modules](#css-modules)        | 95+                | :x:                | :x:                |
+| [Wasm Modules](#wasm-modules)      | :x:                | :x:                | :x:                |
 | [import.meta.resolve](#resolve)    | :x:                | :x:                | :x:                |
 | [Module Workers](#module-workers)  | ~68+               | :x:                | :x:                |
 | Top-Level Await                    | 89+                | 89+                | 15+                |
@@ -435,6 +438,26 @@ For more information see the [web.dev article](https://web.dev/css-module-script
 In addition CSS modules need to be served with a valid CSS content type.
 
 Checks for assertion failures are not currently included.
+
+### Wasm Modules
+
+> Stability: WebAssembly Standard, Unimplemented
+
+Implements the [WebAssembly ESM Integration](https://github.com/WebAssembly/esm-integration) spec (source phase imports omitted currently, tracking in https://github.com/guybedford/es-module-shims/issues/410).
+
+In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules require the `polyfillEnable: ['wasm-modules']` [init option](#polyfill-enable-option).
+
+WebAssembly module exports are made available as module exports and WebAssembly module imports will be resolved using the browser module loader.
+
+WebAssembly modules require native top-level await support to be polyfilled, see the [compatibility table](#browser-support) above.
+
+```html
+<script type="module">
+import { fn } from './app.wasm';
+</script>
+```
+
+If using CSP, make sure to add `'unsafe-wasm-eval'` to `script-src` which is needed when the shim or polyfill engages, note this policy is much much safer than eval due to the Wasm secure sandbox. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#unsafe_webassembly_execution.
 
 ### Resolve
 

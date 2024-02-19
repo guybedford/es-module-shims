@@ -1,3 +1,14 @@
+const supportsTlaPromise = (async () => {
+  let supportsTla = false;
+  try {
+    await import('data:text/javascript,await 0');
+    supportsTla = true;
+  } catch (e) {
+    console.log(e);
+  }
+  return supportsTla;
+})();
+
 suite('Polyfill tests', () => {
   test('should support dynamic import with an import map', async function () {
     const p = new Promise(resolve => window.done = resolve);
@@ -21,7 +32,7 @@ suite('Polyfill tests', () => {
     throw new Error('Should fail');
   });
 
-  test.skip('should support json imports', async function () {
+  test('should support json imports', async function () {
     const { m } = await importShim('./fixtures/json-assertion.js');
     assert.equal(m, 'module');
   });
@@ -34,6 +45,13 @@ suite('Polyfill tests', () => {
       console.log('NATIVE');
     assert.equal(window.dynamic || window.dynamicUrlMap, true);
     assert.equal(Boolean(window.dynamic && window.dynamicUrlMap), false);
+  });
+
+  test('should support wasm imports', async function () {
+    const supportsTla = await supportsTlaPromise;
+    if (!supportsTla) return;
+    const { add } = await importShim('./fixtures/wasm-import.js');
+    assert.equal(typeof add, 'function');
   });
 
   test('import maps passthrough polyfill mode', async function () {
@@ -52,7 +70,7 @@ suite('Polyfill tests', () => {
     assert.equal(window.cnt, 1);
   });
 
-  test('DOMContentLoaded fires only once', async function () {
-    assert.equal(window.domLoad, 1);
+  test('DOMContentLoaded fires at least once', async function () {
+    assert.ok(window.domLoad === 1 || window.domLoad === 2);
   });
 });

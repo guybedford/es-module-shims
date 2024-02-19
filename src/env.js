@@ -38,6 +38,7 @@ function globalHook (name) {
 const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
 export const cssModulesEnabled = enable.includes('css-modules');
 export const jsonModulesEnabled = enable.includes('json-modules');
+export const wasmModulesEnabled = enable.includes('wasm-modules');
 
 export const edge = !navigator.userAgentData && !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
 
