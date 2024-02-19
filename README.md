@@ -443,7 +443,7 @@ Checks for assertion failures are not currently included.
 
 > Stability: WebAssembly Standard, Unimplemented
 
-Implements the [WebAssembly ESM Integration](https://github.com/WebAssembly/esm-integration) spec (source phase imports omitted currently).
+Implements the [WebAssembly ESM Integration](https://github.com/WebAssembly/esm-integration) spec (source phase imports omitted currently, tracking in https://github.com/guybedford/es-module-shims/issues/410).
 
 In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules require the `polyfillEnable: ['wasm-modules']` [init option](#polyfill-enable-option).
 
