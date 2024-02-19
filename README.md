@@ -223,7 +223,7 @@ Browser Compatibility on baseline ES modules support **with** ES Module Shims:
 | [Import Maps](#import-maps)                     | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [JSON Modules](#json-modules)                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [CSS Modules](#css-modules)                     | :heavy_check_mark:<sup>1</sup>       | :heavy_check_mark:<sup>1</sup>       | :heavy_check_mark:<sup>1</sup>       |
-| [Wasm Modules](#wasm-modules)                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Wasm Modules](#wasm-modules)                   | 89+                                  | 89+                                  | 15+                                  |
 | [import.meta.resolve](#resolve)                 | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Module Workers](#module-workers) (via wrapper) | 63+                                  | :x:<sup>2</sup>                      | 15+                                  |
 | Top-Level Await (unpolyfilled<sup>3</sup>)      | 89+                                  | 89+                                  | 15+                                  |
@@ -448,6 +448,8 @@ Implements the [WebAssembly ESM Integration](https://github.com/WebAssembly/esm-
 In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules require the `polyfillEnable: ['wasm-modules']` [init option](#polyfill-enable-option).
 
 WebAssembly module exports are made available as module exports and WebAssembly module imports will be resolved using the browser module loader.
+
+WebAssembly modules require native top-level await support to be polyfilled, see the [compatibility table](#browser-support) above.
 
 ```html
 <script type="module">
