@@ -225,12 +225,11 @@ Browser Compatibility on baseline ES modules support **with** ES Module Shims:
 | [CSS Modules](#css-modules)                     | :heavy_check_mark:<sup>1</sup>       | :heavy_check_mark:<sup>1</sup>       | :heavy_check_mark:<sup>1</sup>       |
 | [Wasm Modules](#wasm-modules)                   | 89+                                  | 89+                                  | 15+                                  |
 | [import.meta.resolve](#resolve)                 | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Module Workers](#module-workers) (via wrapper) | 63+                                  | :x:<sup>2</sup>                      | 15+                                  |
+| [Module Workers](#module-workers) (via wrapper) | 63+                                  | ~113+                                | 15+                                  |
 | Top-Level Await (unpolyfilled<sup>3</sup>)      | 89+                                  | 89+                                  | 15+                                  |
 
 * 1: _CSS module support requires a separate [Constructable Stylesheets polyfill](https://github.com/calebdwilliams/construct-style-sheets#readme)._
-* 2: _Module worker support cannot yet be implemented in Firefox due to no dynamic import support in web workers._
-* 3: _Top-level await support is not currently polyfilled but is possible for ES Module Shims to implement for intermediate browser versions, with the feature request tracking in https://github.com/guybedford/es-module-shims/issues/5. The compatibility gap with native modules is currently < 5% of users so it may not even be necessary._
+* 2: _Top-level await support is not currently polyfilled but is possible for ES Module Shims to implement for intermediate browser versions, with the feature request tracking in https://github.com/guybedford/es-module-shims/issues/5. The compatibility gap with native modules is currently < 5% of users so it may not even be necessary._
 
 Browser compatibility **without** ES Module Shims:
 
