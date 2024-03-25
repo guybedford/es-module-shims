@@ -442,11 +442,13 @@ Checks for assertion failures are not currently included.
 
 > Stability: WebAssembly Standard, Unimplemented
 
-Implements the [WebAssembly ESM Integration](https://github.com/WebAssembly/esm-integration) spec (source phase imports omitted currently, tracking in https://github.com/guybedford/es-module-shims/issues/410).
+Implements the [WebAssembly ESM Integration](https://github.com/WebAssembly/esm-integration) spec, including support for source phase imports.
 
 In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules require the `polyfillEnable: ['wasm-modules']` [init option](#polyfill-enable-option).
 
 WebAssembly module exports are made available as module exports and WebAssembly module imports will be resolved using the browser module loader.
+
+When using the source phase import form, 
 
 WebAssembly modules require native top-level await support to be polyfilled, see the [compatibility table](#browser-support) above.
 

@@ -10,11 +10,7 @@ const supports = hasDocument && HTMLScriptElement.supports;
 export let supportsImportMaps = supports && supports.name === 'supports' && supports('importmap');
 export let supportsImportMeta = supportsDynamicImport;
 export let supportsWasmModules = false;
-
-const importMetaCheck = 'import.meta';
-const moduleCheck = 'import"x"';
-const cssModulesCheck = `assert{type:"css"}`;
-const jsonModulesCheck = `assert{type:"json"}`;
+export let supportsSourcePhase = false;
 
 export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(() => {
   if (!supportsDynamicImport)
@@ -22,9 +18,10 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
   if (!hasDocument)
     return Promise.all([
       supportsImportMaps || dynamicImport(createBlob(importMetaCheck)).then(() => supportsImportMeta = true, noop),
-      cssModulesEnabled && dynamicImport(createBlob(moduleCheck.replace('x', createBlob('', 'text/css')) + cssModulesCheck)).then(() => supportsCssAssertions = true, noop),
-      jsonModulesEnabled && dynamicImport(createBlob(moduleCheck.replace('x', createBlob('{}', 'text/json')) + jsonModulesCheck)).then(() => supportsJsonAssertions = true, noop),
-      wasmModulesEnabled && dynamicImport(createBlob(moduleCheck.replace('x', createBlob(new Uint8Array([0,97,115,109,1,0,0,0]), 'application/wasm')))).then(() => supportsWasmModules = true, noop),
+      cssModulesEnabled && dynamicImport(createBlob(`import"${createBlob('', 'text/css')}"assert{type:"css"}`)).then(() => supportsCssAssertions = true, noop),
+      jsonModulesEnabled && dynamicImport(createBlob(`import"${createBlob('{}', 'text/json')}assert{type:"json"}`)).then(() => supportsJsonAssertions = true, noop),
+      wasmModulesEnabled && dynamicImport(createBlob(`import"${createBlob(new Uint8Array([0,97,115,109,1,0,0,0]), 'application/wasm')}"`)).then(() => supportsWasmModules = true, noop),
+      wasmModulesEnabled && dynamicImport(createBlob(`import source x from"${createBlob(new Uint8Array([0,97,115,109,1,0,0,0]), 'application/wasm')}"`)).then(() => supportsWasmModules = true, noop),
     ]);
 
   return new Promise(resolve => {
