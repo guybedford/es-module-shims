@@ -519,7 +519,7 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
       ({ r: load.r, s: load.S, t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
       if (t && !shimMode) {
         if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled || t === 'wasm' && !wasmModulesEnabled)
-          throw Error(`${t}-modules require <script type="esms-options">{ "polyfillEnable": ["${t}-modules"] }<${''}/script>`);
+          throw featErr(`${t}-modules`);
         if (t === 'css' && !supportsCssAssertions || t === 'json' && !supportsJsonAssertions || t === 'wasm' && !supportsWasmModules)
           load.n = true;
       }
@@ -536,12 +536,16 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
   return load;
 }
 
+const featErr = feat => Error(`${feat} feature must be enabled via <script type="esms-options">{ "polyfillEnable": ["${feat}"] }<${''}/script>`);
+
 function linkLoad (load, fetchOpts) {
   if (load.L) return;
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
     load.d = (await Promise.all(load.a[0].map(async ({ n, d, t }) => {
       const sourcePhase = t >= 4;
+      if (sourcePhase && !sourcePhaseEnabled)
+        throw featErr('source-phase');
       if (d >= 0 && !supportsDynamicImport || d === -2 && !supportsImportMeta || sourcePhase && !supportsSourcePhase)
         load.n = true;
       if (d !== -1 || !n) return;
