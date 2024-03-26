@@ -39,6 +39,7 @@ const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.p
 export const cssModulesEnabled = enable.includes('css-modules');
 export const jsonModulesEnabled = enable.includes('json-modules');
 export const wasmModulesEnabled = enable.includes('wasm-modules');
+export const sourcePhaseEnabled = enable.includes('source-phase');
 
 export const edge = !navigator.userAgentData && !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
 

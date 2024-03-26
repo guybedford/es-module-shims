@@ -54,6 +54,20 @@ suite('Polyfill tests', () => {
     assert.equal(typeof add, 'function');
   });
 
+  test('should support source phase imports', async function () {
+    const supportsTla = await supportsTlaPromise;
+    if (!supportsTla) return;
+    const { add } = await importShim('./fixtures/source-phase-import.js');
+    assert.equal(typeof add, 'function');
+  });
+
+  test('should support dynamic source phase imports', async function () {
+    const supportsTla = await supportsTlaPromise;
+    if (!supportsTla) return;
+    const { add } = await importShim('./fixtures/source-phase-import.js');
+    assert.equal(typeof add, 'function');
+  });
+
   test('import maps passthrough polyfill mode', async function () {
     await importShim('test');
   });
