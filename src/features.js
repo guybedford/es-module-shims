@@ -20,8 +20,8 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
   if (!hasDocument)
     return Promise.all([
       supportsImportMaps || dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, noop),
-      cssModulesEnabled && dynamicImport(createBlob(`import"${createBlob('', 'text/css')}"assert{type:"css"}`)).then(() => supportsCssAssertions = true, noop),
-      jsonModulesEnabled && dynamicImport(createBlob(`import"${createBlob('{}', 'text/json')}"assert{type:"json"}`)).then(() => supportsJsonAssertions = true, noop),
+      cssModulesEnabled && dynamicImport(createBlob(`import"${createBlob('', 'text/css')}"with{type:"css"}`)).then(() => supportsCssAssertions = true, noop),
+      jsonModulesEnabled && dynamicImport(createBlob(`import"${createBlob('{}', 'text/json')}"with{type:"json"}`)).then(() => supportsJsonAssertions = true, noop),
       wasmModulesEnabled && dynamicImport(createBlob(`import"${createBlob(new Uint8Array(wasmBytes), 'application/wasm')}"`)).then(() => supportsWasmModules = true, noop),
       wasmModulesEnabled && sourcePhaseEnabled && dynamicImport(createBlob(`import source x from"${createBlob(new Uint8Array(wasmBytes), 'application/wasm')}"`)).then(() => supportsSourcePhase = true, noop),
     ]);
@@ -35,7 +35,7 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
       const isFeatureDetectionMessage = Array.isArray(data) && data[0] === 'esms';
       if (!isFeatureDetectionMessage)
         return;
-      [, supportsImportMaps, supportsImportMeta, supportsCssAssertions, supportsJsonAssertions, supportsWasmModules, supportsSourcePhase] = data;
+      [, supportsImportMeta, supportsCssAssertions, supportsJsonAssertions, supportsWasmModules, supportsSourcePhase] = data;
       resolve();
       document.head.removeChild(iframe);
       window.removeEventListener('message', cb, false);
@@ -44,10 +44,10 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
 
     const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
       supportsImportMaps ? 'true' : `b('import.meta')`}, ${
-      cssModulesEnabled ? `b(\`import"\${b('','text/css')}"assert{type:"css"}\`)` : 'false'}, ${
-      jsonModulesEnabled ? `b(\`import"\${b('{}','text/json')\}"\`)` : 'false'}, ${
+      cssModulesEnabled ? `b(\`import"\${b('','text/css')}"with{type:"css"}\`)` : 'false'}, ${
+      jsonModulesEnabled ? `b(\`import"\${b('{}','text/json')\}"with{type:"json"}\`)` : 'false'}, ${
       wasmModulesEnabled ? `b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)` : 'false'}, ${
-      wasmModulesEnabled && sourcePhaseEnabled ? `b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(['esms'].concat(a),'*'))<${''}/script>`;
+      wasmModulesEnabled && sourcePhaseEnabled ? `b(\`import source x from "\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)` : 'false'}].map(x =>typeof x==='string'?import(x).then(()=>true,()=>false):x)).then(a=>parent.postMessage(['esms'].concat(a),'*'))<${''}/script>`;
 
     // Safari will call onload eagerly on head injection, but we don't want the Wechat
     // path to trigger before setting srcdoc, therefore we track the timing

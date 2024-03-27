@@ -12,7 +12,7 @@ The following modules features are polyfilled:
 * Dynamic `import()` shimming when necessary in eg older Firefox versions.
 * `import.meta` and `import.meta.url`.
 * [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions (when enabled).
-* [Wasm modules](#wasm-modules) when enabled.
+* [Wasm modules](#wasm-modules) with support for Source Phase Imports (when enabled).
 * [`<link rel="modulepreload">` is shimmed](#modulepreload) in browsers without import maps support.
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
@@ -404,13 +404,11 @@ JSON Modules are currently supported in Chrome when using them via an import ass
 
 ```html
 <script type="module">
-import json from 'https://site.com/data.json' assert { type: 'json' };
+import json from 'https://site.com/data.json' with { type: 'json' };
 </script>
 ```
 
 In addition JSON modules need to be served with a valid JSON content type.
-
-Checks for assertion failures are not currently included.
 
 ### CSS Modules
 
@@ -422,7 +420,7 @@ CSS Modules are currently supported in Chrome when using them via an import asse
 
 ```html
 <script type="module">
-import sheet from 'https://site.com/sheet.css' assert { type: 'css' };
+import sheet from 'https://site.com/sheet.css' with { type: 'css' };
 </script>
 ```
 
@@ -435,8 +433,6 @@ To support the polyfill or shim of this feature, the [Constructable Stylesheets 
 For more information see the [web.dev article](https://web.dev/css-module-scripts/).
 
 In addition CSS modules need to be served with a valid CSS content type.
-
-Checks for assertion failures are not currently included.
 
 ### Wasm Modules
 

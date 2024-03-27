@@ -1,7 +1,7 @@
 const supportsTlaPromise = (async () => {
   let supportsTla = false;
   try {
-    await import('data:text/javascript,await 0');
+    await import('./fixtures/tla.js');
     supportsTla = true;
   } catch (e) {
     console.log(e);
