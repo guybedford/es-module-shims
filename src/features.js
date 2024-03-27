@@ -35,7 +35,7 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
       const isFeatureDetectionMessage = Array.isArray(data) && data[0] === 'esms';
       if (!isFeatureDetectionMessage)
         return;
-      [, supportsImportMeta, supportsCssAssertions, supportsJsonAssertions, supportsWasmModules, supportsSourcePhase] = data;
+      [, supportsImportMaps, supportsImportMeta, supportsCssAssertions, supportsJsonAssertions, supportsWasmModules, supportsSourcePhase] = data;
       resolve();
       document.head.removeChild(iframe);
       window.removeEventListener('message', cb, false);
@@ -43,7 +43,7 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
     window.addEventListener('message', cb, false);
 
     const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
-      supportsImportMaps ? 'true' : `b('import.meta')`}, ${
+      supportsImportMaps ? 'true,true' : `'x',b('import.meta')`}, ${
       cssModulesEnabled ? `b(\`import"\${b('','text/css')}"with{type:"css"}\`)` : 'false'}, ${
       jsonModulesEnabled ? `b(\`import"\${b('{}','text/json')\}"with{type:"json"}\`)` : 'false'}, ${
       wasmModulesEnabled ? `b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)` : 'false'}, ${
