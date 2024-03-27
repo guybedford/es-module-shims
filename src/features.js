@@ -27,7 +27,7 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
     ]);
 
   return new Promise(resolve => {
-    if (self.ESMS_DEBUG) console.info(`es-module-shims: performing feature detections for ${`${supportsImportMaps ? '' : 'import maps, '}${cssModulesEnabled ? 'css modules, ' : ''}${jsonModulesEnabled ? 'json modules, ' : ''}`.slice(0, -2)}`);
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: performing feature detections for ${`${supportsImportMaps ? '' : 'import maps, '}${cssModulesEnabled ? 'css modules, ' : ''}${jsonModulesEnabled ? 'json modules, ' : ''}${wasmModulesEnabled ? 'wasm modules, ' : ''}${wasmModulesEnabled && sourcePhaseEnabled ? 'source phase, ' : ''}`.slice(0, -2)}`);
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     iframe.setAttribute('nonce', nonce);
