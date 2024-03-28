@@ -4977,6 +4977,7 @@ table#results span.actual {\
 
 // ADDITIONS:
 window.esmsInitOptions = {
+    globalLoadEventRetrigger: true,
     polyfillEnable: ['wasm-modules', 'source-phase']
 };
 document.write('<' + 'script src="../dist/es-module-shims.js"></script>' + '<' + `script>
