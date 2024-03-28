@@ -4994,6 +4994,17 @@ window.addEventListener = function (evt, callback) {
         callback(e);
     });
 };
+
+(async () => {
+try {
+    await import('./fixtures/tla.js');
+} catch (e) {
+    // Does not support TLA -> skip test
+    await fetch('/TLA UNSUPPORTED');
+    fetch('/done');
+}
+})();
+
 </script>`);
 setup({ allow_uncaught_exception: true });
 add_completion_callback((tests, status, asserts) => {
