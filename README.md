@@ -243,7 +243,7 @@ Browser compatibility **without** ES Module Shims:
 | [CSS Modules](#css-modules)        | 95+                | :x:                | :x:                |
 | [Wasm Modules](#wasm-modules)      | :x:                | :x:                | :x:                |
 | [import.meta.resolve](#resolve)    | :x:                | :x:                | :x:                |
-| [Module Workers](#module-workers)  | ~68+               | :x:                | :x:                |
+| [Module Workers](#module-workers)  | ~68+               | ~113+              | 15+                |
 | Top-Level Await                    | 89+                | 89+                | 15+                |
 
 * ❕<sup>1</sup>: On module redirects, Safari returns the request URL in `import.meta.url` instead of the response URL as per the spec.
@@ -490,7 +490,7 @@ Node.js also implements a similar API, although it's in the process of shifting 
 
 ### Module Workers
 
-ES Module Shims can be used in module workers in browsers that provide dynamic import in worker environments, which at the moment are Chrome(80+), Edge(80+) and Safari(15+).
+ES Module Shims can be used in module workers in browsers that provide dynamic import in worker environments, which at the moment are Chrome(80+), Edge(80+), Firefox(~113+) and Safari(15+).
 
 By default, when there is no DOM present, ES Module Shims will switch into shim mode. An example of ES Module Shims usage through shim mode in web workers is provided below:
 
@@ -528,6 +528,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [mapOverrides](#overriding-import-map-entries)
 * [modulepreload](#modulepreload)
 * [noLoadEventRetriggers](#no-load-event-retriggers)
+* [globalLoadEventRetrigger](#global-load-event-retrigger)
 * [nonce](#nonce)
 * [onerror](#error-hook)
 * [onpolyfill](#polyfill-hook)
@@ -546,8 +547,10 @@ window.esmsInitOptions = {
   polyfillEnable: ['css-modules', 'json-modules'], // default empty
   // Custom CSP nonce
   nonce: 'n0nce', // default is automatic detection
-  // Don't retrigger load events on module scripts
+  // Don't retrigger load events on module scripts (DOMContentLoaded, domready)
   noLoadEventRetriggers: true, // default false
+  // Retrigger window 'load' event (will be combined into load event above on next major)
+  globalLoadEventRetrigger: true, // default false
   // Skip source analysis of certain URLs for full native passthrough
   skip: /^https:\/\/cdn\.com/, // defaults to null
   // Clean up blob URLs after execution
@@ -667,7 +670,7 @@ Alternatively, add a `blob:` URL policy with the CSP build to get CSP compatibil
 
 ### No Load Event Retriggers
 
-Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `load`, `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
+Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
 
 In addition, script elements will also have their load events refired when polyfilled.
 
@@ -678,12 +681,19 @@ In such a case, this double event firing can be disabled with the `noLoadEventRe
 ```js
 <script type="esms-options">
 {
-  // do not re-trigger DOM events (load, onreadystatechange, DOMContentLoaded)
+  // do not re-trigger DOM events (onreadystatechange, DOMContentLoaded)
   "noLoadEventRetriggers": true
 }
 </script>
 <script async src="es-module-shims.js"></script>
 ```
+
+### Global Load Event Retrigger
+
+In ES Module Shims 1.x, load event retriggers only apply to `DOMContentLoaded` and `readystatechange` and not to the window `load` event.
+To enable the window / worker `'load'` event, set `globalLoadEventRetrigger: true`.
+
+In the next major version, this will be the default for load events, at which point only `noLoadEventRetriggers` will remain.
 
 ### Skip
 
