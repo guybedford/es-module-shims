@@ -613,11 +613,22 @@ function domContentLoadedCheck () {
     document.dispatchEvent(new Event('DOMContentLoaded'));
   }
 }
+let loadCnt = 1;
+function loadCheck () {
+  if (--loadCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: load refire`);
+    window.dispatchEvent(new Event('load'));
+  }
+}
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
 if (hasDocument) {
   document.addEventListener('DOMContentLoaded', async () => {
     await initPromise;
     domContentLoadedCheck();
+  });
+  window.addEventListener('load', async () => {
+    await initPromise;
+    loadCheck();
   });
 }
 
@@ -662,23 +673,20 @@ function processScript (script, ready = readyStateCompleteCnt > 0) {
   const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
   // does this load block DOMContentLoaded
   const isDomContentLoadedScript = domContentLoadedCnt > 0;
+  const isLoadScript = loadCnt > 0;
+  if (isLoadScript) loadCnt++;
   if (isBlockingReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   if (self.ESMS_DEBUG) console.info(`es-module-shims: processing ${script.src || '<inline>'}`);
   const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isBlockingReadyScript && lastStaticLoadPromise)
-    .then(() => {
-      // if the type of the script tag "module-shim", browser does not dispatch a "load" event
-      // see https://github.com/guybedford/es-module-shims/issues/346
-      if (shimMode) {
-        if (self.ESMS_DEBUG) console.info(`es-module-shims: load even refire ${script.src || '<inline>'}`);
-        script.dispatchEvent(new Event('load'));
-      }
-    })
-    .catch(throwError);
+    .catch(throwError)  
+    .then(() => script.dispatchEvent(new Event('load')));
   if (isBlockingReadyScript)
     lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
   if (isDomContentLoadedScript)
     loadPromise.then(domContentLoadedCheck);
+  if (isLoadScript)
+    loadPromise.then(loadCheck);
 }
 
 const fetchCache = {};
