@@ -56,4 +56,15 @@
 
   fetch('/done');
 </script>
+<script>
+  (async () => {
+    try {
+      await import('./fixtures/tla.js');
+    } catch (e) {
+      // Does not support TLA -> skip test
+      await fetch('/TLA UNSUPPORTED');
+      fetch('/done');
+    }
+  })();
+</script>
 <body></body>
