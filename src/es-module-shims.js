@@ -98,10 +98,7 @@ importShim.source = async function importShimSource (...args) {
     firstPolyfillLoad = false;
   }
   await load.f;
-  const blobUrl = createBlob(`export default importShim._s[${urlJsString(load.r)}]`);
-  const module = await dynamicImport(blobUrl, { errUrl: load.u });
-  if (revokeBlobURLs) URL.revokeObjectURL(blobUrl);
-  return module;
+  return importShim._s[load.r];
 };
 
 self.importShim = importShim;
@@ -164,10 +161,10 @@ const initPromise = featureDetectionPromise.then(() => {
       }
     }
     const { Module: wasmModule, compile: wasmCompile, compileStreaming: wasmCompileStreaming } = WebAssembly;
-    Object.setPrototypeOf(wasmModule.prototype, AbstractModuleSource.prototype);
     WebAssembly.Module = Object.setPrototypeOf(Object.assign(function Module (...args) {
       return brand(new wasmModule(...args));
     }, wasmModule), AbstractModuleSource);
+    WebAssembly.Module.prototype = Object.setPrototypeOf(wasmModule.prototype, AbstractModuleSource.prototype);
     WebAssembly.compile = function compile (...args) {
       return wasmCompile(...args).then(brand);
     };
