@@ -1,7 +1,7 @@
 const supportsTlaPromise = (async () => {
   let supportsTla = false;
   try {
-    await import('data:text/javascript,await 0');
+    await import('./fixtures/tla.js');
     supportsTla = true;
   } catch (e) {
     console.log(e);
@@ -54,6 +54,20 @@ suite('Polyfill tests', () => {
     assert.equal(typeof add, 'function');
   });
 
+  test('should support source phase imports', async function () {
+    const supportsTla = await supportsTlaPromise;
+    if (!supportsTla) return;
+    const { add } = await importShim('./fixtures/source-phase-import.js');
+    assert.equal(typeof add, 'function');
+  });
+
+  test('should support dynamic source phase imports', async function () {
+    const supportsTla = await supportsTlaPromise;
+    if (!supportsTla) return;
+    const { add } = await importShim('./fixtures/source-phase-import.js');
+    assert.equal(typeof add, 'function');
+  });
+
   test('import maps passthrough polyfill mode', async function () {
     await importShim('test');
   });
@@ -72,5 +86,43 @@ suite('Polyfill tests', () => {
 
   test('DOMContentLoaded fires at least once', async function () {
     assert.ok(window.domLoad === 1 || window.domLoad === 2);
+  });
+});
+
+// adapted from wasm/jsapi/module/moduleSource.tentative.any.js
+suite('Source Phase WPT', () => {
+  const emptyModuleBinary = new Uint8Array([0,97,115,109,1,0,0,0]);
+  
+  test("AbstractModuleSource not defined", () => {
+    assert.equal(typeof AbstractModuleSource, "undefined");
+  });
+
+  test("AbstractModuleSource intrinsic", () => {
+    const AbstractModuleSource = Object.getPrototypeOf(WebAssembly.Module);
+    assert.equal(AbstractModuleSource.name, "AbstractModuleSource");
+    assert.ok(AbstractModuleSource !== Function);
+  });
+  
+  test("AbstractModuleSourceProto intrinsic", () => {
+    const AbstractModuleSourceProto = Object.getPrototypeOf(WebAssembly.Module.prototype);
+    assert.ok(AbstractModuleSourceProto !== Object.prototype);
+    const AbstractModuleSource = Object.getPrototypeOf(WebAssembly.Module);
+    assert.equal(AbstractModuleSource.prototype, AbstractModuleSourceProto);
+  });
+  
+  test("AbstractModuleSourceProto toStringTag brand check", () => {
+    const module = new WebAssembly.Module(emptyModuleBinary);
+  
+    const AbstractModuleSource = Object.getPrototypeOf(WebAssembly.Module);
+    const toStringTag = Object.getOwnPropertyDescriptor(AbstractModuleSource.prototype, Symbol.toStringTag).get;
+  
+    assert.equal(toStringTag.call(module), "WebAssembly.Module");
+
+    try {
+      toStringTag.call({});
+      assert.fail("expected an error");
+    } catch (e) {
+      assert.ok(e instanceof TypeError);
+    }
   });
 });

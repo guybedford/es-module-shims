@@ -1,5 +1,5 @@
 import { dynamicImport, supportsDynamicImport, dynamicImportCheck } from './dynamic-import.js';
-import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled, wasmModulesEnabled, hasDocument } from './env.js';
+import { createBlob, noop, nonce, cssModulesEnabled, jsonModulesEnabled, wasmModulesEnabled, sourcePhaseEnabled, hasDocument } from './env.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsJsonAssertions = false;
@@ -10,37 +10,32 @@ const supports = hasDocument && HTMLScriptElement.supports;
 export let supportsImportMaps = supports && supports.name === 'supports' && supports('importmap');
 export let supportsImportMeta = supportsDynamicImport;
 export let supportsWasmModules = false;
+export let supportsSourcePhase = false;
 
-const importMetaCheck = 'import.meta';
-const moduleCheck = 'import"x"';
-const cssModulesCheck = `assert{type:"css"}`;
-const jsonModulesCheck = `assert{type:"json"}`;
+const wasmBytes = [0,97,115,109,1,0,0,0];
 
 export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(() => {
   if (!supportsDynamicImport)
     return;
   if (!hasDocument)
     return Promise.all([
-      supportsImportMaps || dynamicImport(createBlob(importMetaCheck)).then(() => supportsImportMeta = true, noop),
-      cssModulesEnabled && dynamicImport(createBlob(moduleCheck.replace('x', createBlob('', 'text/css')) + cssModulesCheck)).then(() => supportsCssAssertions = true, noop),
-      jsonModulesEnabled && dynamicImport(createBlob(moduleCheck.replace('x', createBlob('{}', 'text/json')) + jsonModulesCheck)).then(() => supportsJsonAssertions = true, noop),
-      wasmModulesEnabled && dynamicImport(createBlob(moduleCheck.replace('x', createBlob(new Uint8Array([0,97,115,109,1,0,0,0]), 'application/wasm')))).then(() => supportsWasmModules = true, noop),
+      supportsImportMaps || dynamicImport(createBlob('import.meta')).then(() => supportsImportMeta = true, noop),
+      cssModulesEnabled && dynamicImport(createBlob(`import"${createBlob('', 'text/css')}"with{type:"css"}`)).then(() => supportsCssAssertions = true, noop),
+      jsonModulesEnabled && dynamicImport(createBlob(`import"${createBlob('{}', 'text/json')}"with{type:"json"}`)).then(() => supportsJsonAssertions = true, noop),
+      wasmModulesEnabled && dynamicImport(createBlob(`import"${createBlob(new Uint8Array(wasmBytes), 'application/wasm')}"`)).then(() => supportsWasmModules = true, noop),
+      wasmModulesEnabled && sourcePhaseEnabled && dynamicImport(createBlob(`import source x from"${createBlob(new Uint8Array(wasmBytes), 'application/wasm')}"`)).then(() => supportsSourcePhase = true, noop),
     ]);
 
   return new Promise(resolve => {
-    if (self.ESMS_DEBUG) console.info(`es-module-shims: performing feature detections for ${`${supportsImportMaps ? '' : 'import maps, '}${cssModulesEnabled ? 'css modules, ' : ''}${jsonModulesEnabled ? 'json modules, ' : ''}`.slice(0, -2)}`);
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: performing feature detections for ${`${supportsImportMaps ? '' : 'import maps, '}${cssModulesEnabled ? 'css modules, ' : ''}${jsonModulesEnabled ? 'json modules, ' : ''}${wasmModulesEnabled ? 'wasm modules, ' : ''}${wasmModulesEnabled && sourcePhaseEnabled ? 'source phase, ' : ''}`.slice(0, -2)}`);
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     iframe.setAttribute('nonce', nonce);
     function cb ({ data }) {
-      const isFeatureDetectionMessage = Array.isArray(data) && data[0] === 'esms'
-      if (!isFeatureDetectionMessage) {
+      const isFeatureDetectionMessage = Array.isArray(data) && data[0] === 'esms';
+      if (!isFeatureDetectionMessage)
         return;
-      }
-      supportsImportMaps = data[1];
-      supportsImportMeta = data[2];
-      supportsCssAssertions = data[3];
-      supportsJsonAssertions = data[4];
+      [, supportsImportMaps, supportsImportMeta, supportsCssAssertions, supportsJsonAssertions, supportsWasmModules, supportsSourcePhase] = data;
       resolve();
       document.head.removeChild(iframe);
       window.removeEventListener('message', cb, false);
@@ -48,8 +43,11 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
     window.addEventListener('message', cb, false);
 
     const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
-      supportsImportMaps ? 'true,true' : `'x',b('${importMetaCheck}')`}, ${cssModulesEnabled ? `b('${cssModulesCheck}'.replace('x',b('','text/css')))` : 'false'}, ${
-      jsonModulesEnabled ? `b('${jsonModulesCheck}'.replace('x',b('{}','text/json')))` : 'false'}].map(x =>typeof x==='string'?import(x).then(x =>!!x,()=>false):x)).then(a=>parent.postMessage(['esms'].concat(a),'*'))<${''}/script>`;
+      supportsImportMaps ? 'true,true' : `'x',b('import.meta')`}, ${
+      cssModulesEnabled ? `b(\`import"\${b('','text/css')}"with{type:"css"}\`)` : 'false'}, ${
+      jsonModulesEnabled ? `b(\`import"\${b('{}','text/json')\}"with{type:"json"}\`)` : 'false'}, ${
+      wasmModulesEnabled ? `b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)` : 'false'}, ${
+      wasmModulesEnabled && sourcePhaseEnabled ? `b(\`import source x from "\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)` : 'false'}].map(x =>typeof x==='string'?import(x).then(()=>true,()=>false):x)).then(a=>parent.postMessage(['esms'].concat(a),'*'))<${''}/script>`;
 
     // Safari will call onload eagerly on head injection, but we don't want the Wechat
     // path to trigger before setting srcdoc, therefore we track the timing
