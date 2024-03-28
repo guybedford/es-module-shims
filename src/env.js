@@ -25,9 +25,6 @@ if (!nonce && hasDocument) {
 }
 
 export const onerror = globalHook(esmsInitOptions.onerror || noop);
-export const onpolyfill = esmsInitOptions.onpolyfill ? globalHook(esmsInitOptions.onpolyfill) : () => {
-  console.log('%c^^ Module TypeError above is polyfilled and can be ignored ^^', 'font-weight:900;color:#391');
-};
 
 export const { revokeBlobURLs, noLoadEventRetriggers, enforceIntegrity } = esmsInitOptions;
 
@@ -40,6 +37,10 @@ export const cssModulesEnabled = enable.includes('css-modules');
 export const jsonModulesEnabled = enable.includes('json-modules');
 export const wasmModulesEnabled = enable.includes('wasm-modules');
 export const sourcePhaseEnabled = enable.includes('source-phase');
+
+export const onpolyfill = esmsInitOptions.onpolyfill ? globalHook(esmsInitOptions.onpolyfill) : () => {
+  console.log(`%c^^ Module error above is polyfilled and can be ignored ^^`, 'font-weight:900;color:#391');
+};
 
 export const edge = !navigator.userAgentData && !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
 

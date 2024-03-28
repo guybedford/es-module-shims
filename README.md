@@ -72,7 +72,7 @@ If one is found, it will then be reexecuted through ES Module Shims using its in
 When the polyfill kicks in another console log message is output(which can be disabled or customized via the [polyfill hook](#polyfill-hook)):
 
 ```
-^^ Module TypeError above is polyfilled and can be ignored ^^
+^^ Module error above is polyfilled and can be ignored ^^
 ```
 
 ### Polyfill Edge Case: Dynamic Import
