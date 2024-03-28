@@ -63,9 +63,9 @@ else if (typeof skip === 'string') {
   skip = s => skip.test(s);
 }
 
-const eoop = err => setTimeout(() => { throw err });
+const dispatchError = error => self.dispatchEvent(Object.assign(new Event('error'), { error }));
 
-export const throwError = err => { (self.reportError || hasWindow && window.safari && console.error || eoop)(err), void onerror(err) };
+export const throwError = err => { (self.reportError || dispatchError)(err), void onerror(err) };
 
 export function fromParent (parent) {
   return parent ? ` imported from ${parent}` : '';

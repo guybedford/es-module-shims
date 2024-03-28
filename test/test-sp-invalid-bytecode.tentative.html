@@ -8,7 +8,10 @@
 
     window.log = [];
 
-    window.addEventListener("error", ev => log.push(ev.error));
+    window.addEventListener("error", ev => {
+      console.log(ev.error);
+      log.push(ev.error)
+    });
 
     const test_load = async_test(
         "Test that imports of invalid WebAssembly modules leads to WebAssembly.CompileError on window.");
