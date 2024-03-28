@@ -446,6 +446,8 @@ WebAssembly module exports are made available as module exports and WebAssembly 
 
 When using the source phase import form, this must be enabled separately via the `polyfillEnabe: ['wasm-modules', 'source-phase']` [init option](#polyfill-enable-option) to support source imports to WebAssembly modules.
 
+When enabling `'source-phase'`, `WebAssembly.Module` is also polyfilled to extend from `AbstractModuleSource` per the source phase proposal.
+
 WebAssembly modules require native top-level await support to be polyfilled, see the [compatibility table](#browser-support) above.
 
 ```html

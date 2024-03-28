@@ -59,11 +59,12 @@ const resolve = resolveHook ? async (id, parentUrl) => {
   return result ? { r: result, b: !resolveIfNotPlainOrUrl(id, parentUrl) && !asURL(id) } : _resolve(id, parentUrl);
 } : _resolve;
 
-// importShim('mod');
-// importShim('mod', { opts });
-// importShim('mod', { opts }, parentUrl);
-// importShim('mod', parentUrl);
-async function importShim (id, ...args) {
+// supports:
+// import('mod');
+// import('mod', { opts });
+// import('mod', { opts }, parentUrl);
+// import('mod', parentUrl);
+async function importHandler (id, ...args) {
   // parentUrl if present will be the last argument
   let parentUrl = args[args.length - 1];
   if (typeof parentUrl !== 'string')
@@ -78,28 +79,19 @@ async function importShim (id, ...args) {
       acceptingImportMaps = false;
   }
   await importMapPromise;
-  return topLevelLoad((await resolve(id, parentUrl)).r, { credentials: 'same-origin' });
+  return (await resolve(id, parentUrl)).r;
 }
 
-// importShim.source('mod');
-// importShim.source('mod', { opts });
-// importShim.source('mod', { opts }, parentUrl);
-// importShim.source('mod', parentUrl);
-importShim.source = async function importShimSource (id, ...args) {
-  // parentUrl if present will be the last argument
-  let parentUrl = args[args.length - 1];
-  if (typeof parentUrl !== 'string')
-    parentUrl = pageBaseUrl;
-  // needed for shim check
-  await initPromise;
-  if (acceptingImportMaps || shimMode || !baselinePassthrough) {
-    if (hasDocument)
-      processScriptsAndPreloads(true);
-    if (!shimMode)
-      acceptingImportMaps = false;
-  }
-  await importMapPromise;
-  const load = getOrCreateLoad((await resolve(id, parentUrl)).r, { credentials: 'same-origin' }, null, null);
+// import()
+async function importShim (...args) {
+  return topLevelLoad(await importHandler(...args), { credentials: 'same-origin' });
+}
+
+// import.source()
+if (sourcePhaseEnabled)
+importShim.source = async function importShimSource (...args) {
+  const url = await importHandler(...args);
+  const load = getOrCreateLoad(url, { credentials: 'same-origin' }, null, null);
   lastLoad = undefined;
   if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
     onpolyfill();
@@ -162,6 +154,27 @@ let baselinePassthrough;
 const initPromise = featureDetectionPromise.then(() => {
   baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && (!wasmModulesEnabled || supportsWasmModules) && (!sourcePhaseEnabled || supportsSourcePhase) && !importMapSrcOrLazy;
   if (self.ESMS_DEBUG) console.info(`es-module-shims: init ${shimMode ? 'shim mode' : 'polyfill mode'}, ${baselinePassthrough ? 'baseline passthrough' : 'polyfill engaged'}`);
+  if (sourcePhaseEnabled && typeof WebAssembly !== 'undefined' && !Object.getPrototypeOf(WebAssembly.Module).name) {
+    const s = Symbol();
+    const brand = m => Object.defineProperty(m, s, { writable: false, configurable: false, value: 'WebAssembly.Module' });
+    class AbstractModuleSource {
+      get [Symbol.toStringTag]() {
+        if (this[s]) return this[s];
+        throw new TypeError('Not an AbstractModuleSource');
+      }
+    }
+    const { Module: wasmModule, compile: wasmCompile, compileStreaming: wasmCompileStreaming } = WebAssembly;
+    Object.setPrototypeOf(wasmModule.prototype, AbstractModuleSource.prototype);
+    WebAssembly.Module = Object.setPrototypeOf(Object.assign(function Module (...args) {
+      return brand(new wasmModule(...args));
+    }, wasmModule), AbstractModuleSource);
+    WebAssembly.compile = function compile (...args) {
+      return wasmCompile(...args).then(brand);
+    };
+    WebAssembly.compileStreaming = function compileStreaming(...args) {
+      return wasmCompileStreaming(...args).then(brand);
+    };
+  }
   if (hasDocument) {
     if (!supportsImportMaps) {
       const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
