@@ -679,8 +679,9 @@ function processScript (script, ready = readyStateCompleteCnt > 0) {
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   if (self.ESMS_DEBUG) console.info(`es-module-shims: processing ${script.src || '<inline>'}`);
   const loadPromise = topLevelLoad(script.src || pageBaseUrl, getFetchOpts(script), !script.src && script.innerHTML, !shimMode, isBlockingReadyScript && lastStaticLoadPromise)
-    .catch(throwError)  
-    .then(() => script.dispatchEvent(new Event('load')));
+    .catch(throwError);
+  if (!noLoadEventRetriggers)
+    loadPromise.then(() => script.dispatchEvent(new Event('load')));
   if (isBlockingReadyScript)
     lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
   if (isDomContentLoadedScript)

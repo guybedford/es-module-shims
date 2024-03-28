@@ -667,7 +667,9 @@ Alternatively, add a `blob:` URL policy with the CSP build to get CSP compatibil
 
 ### No Load Event Retriggers
 
-Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
+Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `load`, `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
+
+In addition, script elements will also have their load events refired when polyfilled.
 
 In order to ensure libraries that rely on these event still behave correctly, ES Module Shims will always double trigger these events that would normally have executed before the document ready state transition to completion, once all the static module scripts in the page have been completely executed through ES module shims.
 
@@ -676,7 +678,7 @@ In such a case, this double event firing can be disabled with the `noLoadEventRe
 ```js
 <script type="esms-options">
 {
-  // do not re-trigger DOM events (onreadystatechange, DOMContentLoaded)
+  // do not re-trigger DOM events (load, onreadystatechange, DOMContentLoaded)
   "noLoadEventRetriggers": true
 }
 </script>
