@@ -467,8 +467,9 @@ async function fetchModule (url, fetchOpts, parent) {
     sourceCache[r] = module;
     let s = '', i = 0, importObj = '';
     for (const impt of WebAssembly.Module.imports(module)) {
-      s += `import * as impt${i} from '${impt.module}';\n`;
-      importObj += `'${impt.module}':impt${i++},`;
+      const specifier = urlJsString(impt.module);
+      s += `import * as impt${i} from ${specifier};\n`;
+      importObj += `${specifier}:impt${i++},`;
     }
     i = 0;
     s += `const instance = await WebAssembly.instantiate(importShim._s[${urlJsString(r)}], {${importObj}});\n`;

@@ -5009,8 +5009,8 @@ try {
 setup({ allow_uncaught_exception: true });
 add_completion_callback((tests, status, asserts) => {
     const err = tests.find(test => test.status !== 0);
-    if (!err)
+    if (!err && tests.length > 0)
         fetch('/done');
     else
-        fetch('/error?' + encodeURI(err.message));
+        fetch('/error?' + encodeURI(err ? err.message : 'no tests'));
 });
