@@ -370,7 +370,7 @@ function resolveDeps (load, seen) {
   }
 
   // support progressive cycle binding updates (try statement avoids tdz errors)
-  if (load.s)
+  if (load.s && (imports.length === 0 || imports[imports.length - 1].d === -1))
     resolvedSource += `\n;import{u$_}from'${load.s}';try{u$_({${exports.filter(e => e.ln).map(({ s, e, ln }) => `${source.slice(s, e)}:${ln}`).join(',')}})}catch(_){};\n`;
 
   function pushSourceURL (commentPrefix, commentStart) {
