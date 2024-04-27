@@ -293,7 +293,7 @@ suite('Get import map', () => {
     const sortEntriesByKey = (entries) => [...entries].sort(([key1], [key2]) => key1.localeCompare(key2));
     const baseURL = document.location.href.replace(/\/test\/.*/, '/');
 
-    assert.equal(JSON.stringify(Object.keys(importMap)), JSON.stringify(["imports", "scopes"]));
+    assert.equal(JSON.stringify(Object.keys(importMap)), JSON.stringify(["imports", "scopes", "integrity"]));
     assert.equal(
       JSON.stringify(sortEntriesByKey(Object.entries(importMap.imports))),
       JSON.stringify(sortEntriesByKey(Object.entries({
@@ -376,6 +376,9 @@ suite('Errors', function () {
           "scheduler": "https://ga.jspm.io/npm:scheduler@0.20.2/dev.index.js",
           "scheduler/tracing": "https://ga.jspm.io/npm:scheduler@0.20.2/dev.tracing.js"
         }
+      },
+      "integrity": {
+        "//ga.jspm.io/npm:scheduler@0.20.2/dev.index.js": "sha384-qF0Jy83btjdPADN4QLKKmk/aUUyJnDqT+kYomKiUQk4nWrBsHVkM67Pua+8nHYUt"
       }
     });
     const [React, ReactDOM] = await Promise.all([
@@ -394,7 +397,7 @@ suite('Errors', function () {
     });
     const lodash = await importShim("lodash");
     assert.ok(lodash);
-  })
+  });
 
   test('Dynamic import map shim with override attempt', async function () {
     const listeningForError = new Promise((resolve, reject) => {
@@ -415,7 +418,7 @@ suite('Errors', function () {
     removeImportMap();
 
     assert(error.message.match(new RegExp(String.raw`Rejected map override \"global1\" from http://[^/]+/test/fixtures/es-modules/global1.js to data:text/javascript,throw new Error\('Shim should not allow dynamic import map to override existing entries'\);\.`)));
-  })
+  });
 
   test('Dynamic import map shim with override to the same mapping is allowed', async function () {
     const expectingNoError = new Promise((resolve, reject) => {
@@ -436,7 +439,7 @@ suite('Errors', function () {
     await expectingNoError;
 
     removeImportMap();
-  })
+  });
 
   function insertDynamicImportMap(importMap) {
     const script = Object.assign(document.createElement('script'), {

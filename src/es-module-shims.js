@@ -146,7 +146,7 @@ async function loadAll (load, seen) {
     load.n = load.d.some(dep => dep.l.n);
 }
 
-let importMap = { imports: {}, scopes: {} };
+let importMap = { imports: {}, scopes: {}, integrity: {} };
 let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {

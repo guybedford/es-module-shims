@@ -1,7 +1,5 @@
 import { mapOverrides, shimMode } from './env.js';
 
-export let importMap = { imports: {}, scopes: {}, integrity: {} };
-
 const backslashRegEx = /\\/g;
 
 export function asURL (url) {
