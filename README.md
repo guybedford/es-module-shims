@@ -266,6 +266,9 @@ Using this polyfill we can write:
     "/": {
       "test-dep": "/test-dep.js"
     }
+  },
+  "integrity": {
+    "/test.js": "sha386-..."
   }
 }
 </script>
@@ -276,6 +279,11 @@ Using this polyfill we can write:
 ```
 
 All modules are still loaded with the native browser module loader, but with their specifiers rewritten then executed as Blob URLs, so there is a relatively minimal overhead to using a polyfill approach like this.
+
+#### Integrity
+
+The `"integrity"` field for import maps is supported when possible, throwing an error in es-module-shims when the integrity does not match
+the expected value.
 
 #### Multiple Import Maps
 
@@ -636,17 +644,24 @@ This option can also be set to `true` to entirely disable the native passthrough
 
 ### Enforce Integrity
 
-When enabled, `enforceIntegrity` will ensure that all modules loaded through ES Module Shims must have integrity defined either on a `<link rel="modulepreload" integrity="...">` or on
-a `<link rel="modulepreload-shim" integrity="...">` preload tag in shim mode. Modules without integrity will throw at fetch time.
+When enabled, `enforceIntegrity` will ensure that all modules loaded through ES Module Shims must have integrity defined either on a `<link rel="modulepreload" integrity="...">`, a `<link rel="modulepreload-shim" integrity="...">` preload tag in shim mode, or the `"integrity"` field in the import map. Modules without integrity will throw at fetch time.
 
 For example in the following, only the listed `app.js` and `dep.js` modules will be able to execute with the provided integrity:
 
 ```html
+<script type="importmap">
+{
+  "integrity": {
+    "/another.js": "sha384-..."
+  }
+}
+</script>
 <script type="esms-options">{ "enforceIntegrity": true }</script>
 <link rel="modulepreload-shim" href="/app.js" integrity="sha384-..." />\
 <link rel="modulepreload-shim" href="/dep.js" integrity="sha384-..." />
 <script type="module-shim">
   import '/app.js';
+  import '/another.js';
 </script>
 ```
 
