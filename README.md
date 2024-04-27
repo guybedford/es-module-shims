@@ -444,7 +444,7 @@ In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules 
 
 WebAssembly module exports are made available as module exports and WebAssembly module imports will be resolved using the browser module loader.
 
-When using the source phase import form, this must be enabled separately via the `polyfillEnabe: ['wasm-modules', 'source-phase']` [init option](#polyfill-enable-option) to support source imports to WebAssembly modules.
+When using the source phase import form, this must be enabled separately via the `polyfillEnable: ['wasm-modules', 'source-phase']` [init option](#polyfill-enable-option) to support source imports to WebAssembly modules.
 
 When enabling `'source-phase'`, `WebAssembly.Module` is also polyfilled to extend from `AbstractModuleSource` per the source phase proposal.
 
