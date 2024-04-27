@@ -282,8 +282,7 @@ All modules are still loaded with the native browser module loader, but with the
 
 #### Integrity
 
-The `"integrity"` field for import maps is supported when possible, throwing an error in es-module-shims when the integrity does not match
-the expected value.
+The `"integrity"` field for import maps is supported when possible, throwing an error in es-module-shims when the integrity does not match the expected value.
 
 #### Multiple Import Maps
 
@@ -646,7 +645,7 @@ This option can also be set to `true` to entirely disable the native passthrough
 
 When enabled, `enforceIntegrity` will ensure that all modules loaded through ES Module Shims must have integrity defined either on a `<link rel="modulepreload" integrity="...">`, a `<link rel="modulepreload-shim" integrity="...">` preload tag in shim mode, or the `"integrity"` field in the import map. Modules without integrity will throw at fetch time.
 
-For example in the following, only the listed `app.js` and `dep.js` modules will be able to execute with the provided integrity:
+For example in the following, only the listed `app.js`, `dep.js` and `another.js` modules will be able to execute with the provided integrity:
 
 ```html
 <script type="importmap">
