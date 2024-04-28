@@ -17,6 +17,9 @@
     "/test/fixtures/es-modules/import-relative-path.js": {
       "./fixtures/es-modules/relative-path": "./fixtures/es-modules/es6-dep.js"
     }
+  },
+  "integrity": {
+    "./fixtures/es-modules/es6-dep.js": "sha384-WBlJ+EO4b/8SuvC2RFiCt9z42esd35mcYuzHGIlqiltBvS6X11jqp06aksdZWflh"
   }
 }
 </script>
@@ -66,14 +69,14 @@
 </script>
 <script>
   window.resolveHook = (id, parentUrl, defaultResolve) => defaultResolve(id, parentUrl);
-  window.fetchHook = url => fetch(url);
+  window.fetchHook = (url, opts) => fetch(url, opts);
   window.esmsInitOptions = {
     shimMode: true,
     resolve (id, parentUrl, defaultResolve) {
       return window.resolveHook(id, parentUrl, defaultResolve);
     },
-    fetch (url) {
-      return window.fetchHook(url);
+    fetch (url, opts) {
+      return window.fetchHook(url, opts);
     },
     onerror: e => window.e = e,
   };

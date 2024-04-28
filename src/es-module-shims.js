@@ -146,7 +146,7 @@ async function loadAll (load, seen) {
     load.n = load.d.some(dep => dep.l.n);
 }
 
-let importMap = { imports: {}, scopes: {} };
+let importMap = { imports: {}, scopes: {}, integrity: {} };
 let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
@@ -458,7 +458,8 @@ async function doFetch (url, fetchOpts, parent) {
 }
 
 async function fetchModule (url, fetchOpts, parent) {
-  const res = await doFetch(url, fetchOpts, parent);
+  const mapIntegrity = importMap.integrity[url];
+  const res = await doFetch(url, mapIntegrity && !fetchOpts.integrity ? Object.assign({}, fetchOpts, { integrity: mapIntegrity }) : fetchOpts, parent);
   const r = res.url;
   const contentType = res.headers.get('content-type');
   if (jsContentType.test(contentType))

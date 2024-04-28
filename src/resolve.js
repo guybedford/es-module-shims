@@ -1,7 +1,5 @@
 import { mapOverrides, shimMode } from './env.js';
 
-export let importMap = { imports: Object.create(null), scopes: Object.create(null) };
-
 const backslashRegEx = /\\/g;
 
 export function asURL (url) {
@@ -100,7 +98,7 @@ export function resolveIfNotPlainOrUrl (relUrl, parentUrl) {
 }
 
 export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
-  const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes) };
+  const outMap = { imports: Object.assign({}, parentMap.imports), scopes: Object.assign({}, parentMap.scopes), integrity: Object.assign({}, parentMap.integrity) };
 
   if (json.imports)
     resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null);
@@ -110,6 +108,9 @@ export function resolveAndComposeImportMap (json, baseUrl, parentMap) {
       const resolvedScope = resolveUrl(s, baseUrl);
       resolveAndComposePackages(json.scopes[s], outMap.scopes[resolvedScope] || (outMap.scopes[resolvedScope] = {}), baseUrl, parentMap);
     }
+
+  if (json.integrity)
+    resolveAndComposeIntegrity(json.integrity, outMap.integrity, baseUrl);
 
   return outMap;
 }
@@ -161,5 +162,15 @@ function resolveAndComposePackages (packages, outPackages, baseUrl, parentMap) {
       continue;
     }
     console.warn(`Mapping "${p}" -> "${packages[p]}" does not resolve`);
+  }
+}
+
+function resolveAndComposeIntegrity (integrity, outIntegrity, baseUrl) {
+  for (let p in integrity) {
+    const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
+    if ((!shimMode || !mapOverrides) && outIntegrity[resolvedLhs] && (outIntegrity[resolvedLhs] !== integrity[resolvedLhs])) {
+      throw Error(`Rejected map integrity override "${resolvedLhs}" from ${outIntegrity[resolvedLhs]} to ${integrity[resolvedLhs]}.`);
+    }
+    outIntegrity[resolvedLhs] = integrity[p];
   }
 }
