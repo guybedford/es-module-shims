@@ -2,7 +2,7 @@
 
 Polyfills import maps and other ES Modules features on top of the baseline native ESM support in browsers.
 
-With import maps now supported by all major browsers, ES Module Shims entirely bypasses processing for the [74% of users](https://caniuse.com/import-maps) with native import maps support.
+With import maps now supported by all major browsers, ES Module Shims entirely bypasses processing for the [91% of users](https://caniuse.com/import-maps) with native import maps support.
 
 For the remaining users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
 
