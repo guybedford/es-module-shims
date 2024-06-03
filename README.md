@@ -232,7 +232,7 @@ Browser compatibility **without** ES Module Shims:
 | [JSON Modules](#json-modules)                 | 123+               | :x:                | 17.2+              |
 | [CSS Modules](#css-modules)                   | 123+               | :x:                | :x:                |
 | [Wasm Modules](#wasm-modules)                 | :x:                | :x:                | :x:                |
-| [import.meta.resolve](#resolve)               | 105+               | 106+               | 16.4+              |
+| import.meta.resolve                           | 105+               | 106+               | 16.4+              |
 | [Module Workers](#module-workers)             | ~68+               | ~113+              | 15+                |
 | Top-Level Await                               | 89+                | 89+                | 15+                |
 
