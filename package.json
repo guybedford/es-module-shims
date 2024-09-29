@@ -20,14 +20,17 @@
   "types": "index.d.ts",
   "type": "module",
   "files": [
-    "CHANGELOG.md",
-    "dist",
+    "dist/es-module-shims.debug.js",
+    "dist/es-module-shims.dev.js",
+    "dist/es-module-shims.js",
+    "dist/es-module-shims.wasm.js",
     "index.d.ts"
   ],
   "author": "Guy Bedford",
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-replace": "^2.4.2",
+    "amaro": "^0.1.8",
     "es-module-lexer": "1.6.0",
     "kleur": "^4.1.4",
     "mime-types": "^2.1.33",

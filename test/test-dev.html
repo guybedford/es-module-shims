@@ -1,0 +1,18 @@
+<!doctype html>
+<link rel="stylesheet" type="text/css" href="../node_modules/mocha/mocha.css"/>
+<script src="../node_modules/mocha/mocha.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "dep": "/test/fixtures/test.ts"
+  }
+}
+</script>
+<script type="module" src="../dist/es-module-shims.dev.js"></script>
+<script type="module" src="/test/fixtures/test.ts"></script>
+<script type="module" noshim>
+  import { runMochaTests } from "./runMochaTests.js";
+  runMochaTests('dev');
+</script>
+
+<div id="mocha"></div>
