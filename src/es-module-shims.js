@@ -176,11 +176,8 @@ const initPromise = featureDetectionPromise.then(() => {
     (!wasmModulesEnabled || supportsWasmModules) &&
     (!sourcePhaseEnabled || supportsSourcePhase) &&
     (!multipleImportMaps || supportsMultipleImportMaps) &&
-    !importMapSrc;
-  if (self.ESMS_DEBUG)
-    console.info(
-      `es-module-shims: init ${shimMode ? 'shim mode' : 'polyfill mode'}, ${baselinePassthrough ? 'baseline passthrough' : 'polyfill engaged'}`
-    );
+    !importMapSrc &&
+    !self.TRANSFORM_HOOK;
   if (sourcePhaseEnabled && typeof WebAssembly !== 'undefined' && !Object.getPrototypeOf(WebAssembly.Module).name) {
     const s = Symbol();
     const brand = m =>
@@ -557,6 +554,8 @@ async function fetchModule(url, fetchOpts, parent) {
       )});export default s;`,
       t: 'css'
     };
+  } else if (self.TRANSFORM_HOOK) {
+    return { r, s: await res.text(), t: 'unknown' };
   } else
     throw Error(
       `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
@@ -617,7 +616,12 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     if (!load.S) {
       // preload fetch options override fetch options (race)
       ({ r: load.r, s: load.S, t: load.t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
-      if (load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
+      const T = self.TRANSFORM_HOOK ? self.TRANSFORM_HOOK(load.r, load.S, load.t) : undefined;
+      if (T !== undefined) {
+        load.S = T;
+        load.n = true;
+      }
+      if (!load.n && load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
         load.n = true;
       }
     }
