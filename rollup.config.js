@@ -5,22 +5,23 @@ import path from 'path';
 const version = JSON.parse(fs.readFileSync('package.json')).version;
 
 export default [
-  config(true, false),
-  config(false, false),
-  config(false, true),
+  config(true, false, false),
+  config(false, false, false),
+  config(false, true, false),
+  config(true, false, true),
 ];
 
-function config (isWasm, isDebug) {
+function config (isWasm, isDebug, isTransform) {
   const name = 'es-module-shims'
 
   return {
     input: `src/${name}.js`,
     output: {
-      file: `dist/${name}${isWasm ? '.wasm' : ''}${isDebug ? '.debug' : ''}.js`,
+      file: `dist/${name}${isWasm ? '.wasm' : ''}${isDebug ? '.debug' : ''}${isTransform ? '.dev' : ''}.js`,
       format: 'iife',
       strict: false,
       sourcemap: false,
-      banner: `/* ES Module Shims ${isWasm ? 'Wasm ' : ''}${isDebug ? 'DEBUG BUILD ' : ''}${version} */`
+      banner: `/* ES Module Shims ${isWasm ? 'Wasm ' : ''}${isTransform ? 'DEV BUILD ' : isDebug ? 'DEBUG BUILD ' : ''}${version} */`
     },
     plugins: [
       {
@@ -31,7 +32,10 @@ function config (isWasm, isDebug) {
       },
       replace({
         'self.ESMS_DEBUG': isDebug.toString(),
-        preventAssignment: true
+        preventAssignment: true,
+        ...isTransform ? {} : {
+          'self.TRANSFORM_HOOK': 'undefined'
+        }
       }),
     ]
   };

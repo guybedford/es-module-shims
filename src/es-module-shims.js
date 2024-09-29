@@ -150,7 +150,7 @@ let importMap = { imports: {}, scopes: {}, integrity: {} };
 let baselinePassthrough;
 
 const initPromise = featureDetectionPromise.then(() => {
-  baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && (!wasmModulesEnabled || supportsWasmModules) && (!sourcePhaseEnabled || supportsSourcePhase) && !importMapSrcOrLazy;
+  baselinePassthrough = esmsInitOptions.polyfillEnable !== true && supportsDynamicImport && supportsImportMeta && supportsImportMaps && (!jsonModulesEnabled || supportsJsonAssertions) && (!cssModulesEnabled || supportsCssAssertions) && (!wasmModulesEnabled || supportsWasmModules) && (!sourcePhaseEnabled || supportsSourcePhase) && !importMapSrcOrLazy && !self.TRANSFORM_HOOK;
   if (self.ESMS_DEBUG) console.info(`es-module-shims: init ${shimMode ? 'shim mode' : 'polyfill mode'}, ${baselinePassthrough ? 'baseline passthrough' : 'polyfill engaged'}`);
   if (sourcePhaseEnabled && typeof WebAssembly !== 'undefined' && !Object.getPrototypeOf(WebAssembly.Module).name) {
     const s = Symbol();
@@ -463,7 +463,7 @@ async function fetchModule (url, fetchOpts, parent) {
   const r = res.url;
   const contentType = res.headers.get('content-type');
   if (jsContentType.test(contentType))
-    return { r, s: await res.text(), sp: null, t: 'js' };
+    return { r, s: await res.text(), t: 'js' };
   else if (wasmContentType.test(contentType)) {
     const module = await (sourceCache[r] || (sourceCache[r] = WebAssembly.compileStreaming(res)));
     sourceCache[r] = module;
@@ -481,11 +481,14 @@ async function fetchModule (url, fetchOpts, parent) {
     return { r, s, t: 'wasm' };
   }
   else if (jsonContentType.test(contentType))
-    return { r, s: `export default ${await res.text()}`, sp: null, t: 'json' };
+    return { r, s: `export default ${await res.text()}`, t: 'json' };
   else if (cssContentType.test(contentType)) {
     return { r, s: `var s=new CSSStyleSheet();s.replaceSync(${
         JSON.stringify((await res.text()).replace(cssUrlRegEx, (_match, quotes = '', relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`))
-      });export default s;`, ss: null, t: 'css' };
+      });export default s;`, t: 'css' };
+  }
+  else if (self.TRANSFORM_HOOK) {
+    return { r, s: await res.text(), t: 'unknown' };
   }
   else
     throw Error(`Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`);
@@ -530,6 +533,11 @@ function getOrCreateLoad (url, fetchOpts, parent, source) {
       // preload fetch options override fetch options (race)
       let t;
       ({ r: load.r, s: load.S, t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
+      const T = self.TRANSFORM_HOOK ? self.TRANSFORM_HOOK(load.r, load.S, t) : undefined;
+      if (T !== undefined) {
+        load.S = T;
+        load.n = true;
+      }
       if (t && !shimMode) {
         if (t === 'css' && !cssModulesEnabled || t === 'json' && !jsonModulesEnabled || t === 'wasm' && !wasmModulesEnabled)
           throw featErr(`${t}-modules`);
