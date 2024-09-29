@@ -13,7 +13,7 @@
 <script type="module" noshim>
   import { runMochaTests } from "./runMochaTests.js";
   // if Wasm compile on 4KB limit is enforced, skip this test
-  if (typeof importShim === 'undefined' || true) {
+  if (typeof importShim === 'undefined') {
     console.log('SKIPPING TESTS DUE TO 4KB WASM LIMIT FAILURE');
     fetch('/done', { method: 'POST' });
   } else {
