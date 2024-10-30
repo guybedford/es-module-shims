@@ -377,8 +377,12 @@ function resolveDeps (load, seen) {
     const urlStart = commentStart + commentPrefix.length;
     const commentEnd = source.indexOf('\n', urlStart);
     const urlEnd = commentEnd !== -1 ? commentEnd : source.length;
+    let sourceUrl = source.slice(urlStart, urlEnd);
+    try {
+      sourceUrl = new URL(sourceUrl, load.r).href;
+    } catch {}
     pushStringTo(urlStart);
-    resolvedSource += new URL(source.slice(urlStart, urlEnd), load.r).href;
+    resolvedSource += sourceUrl;
     lastIndex = urlEnd;
   }
 
