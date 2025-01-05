@@ -7,6 +7,18 @@ on:
     branches: main
 
 jobs:
+  test-formatting:
+    name: 'Check Formatting'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Chomp
+        uses: guybedford/chomp-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check Formatting
+        run: chomp format-check
+
   test-firefox:
     runs-on: windows-latest
     strategy:

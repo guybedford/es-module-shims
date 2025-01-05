@@ -15,6 +15,16 @@ name = 'bench:clear'
 run = 'rm -rf bench/results'
 
 [[task]]
+name = 'format-check'
+deps = ['npm:install']
+run = 'prettier -c src/*.js'
+
+[[task]]
+name = 'format'
+deps = ['npm:install']
+run = 'prettier -w src/*.js'
+
+[[task]]
 name = 'build'
 targets = ['dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'dist/es-module-shims.debug.js']
 deps = ['src/*.js', 'npm:install', 'README.md']
