@@ -8,7 +8,13 @@ const optionsScript = hasDocument ? document.querySelector('script[type=esms-opt
 export const esmsInitOptions = optionsScript ? JSON.parse(optionsScript.innerHTML) : {};
 Object.assign(esmsInitOptions, self.esmsInitOptions || {});
 
-export let shimMode = hasDocument ? !!esmsInitOptions.shimMode : true;
+// shim mode is determined on initialization, no late shim mode
+export const shimMode =
+  hasDocument ?
+    esmsInitOptions.shimMode ||
+    document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]')
+      .length > 0
+  : true;
 
 export const importHook = globalHook(shimMode && esmsInitOptions.onimport);
 export const resolveHook = globalHook(shimMode && esmsInitOptions.resolve);
@@ -75,30 +81,4 @@ export const throwError = err => {
 
 export function fromParent(parent) {
   return parent ? ` imported from ${parent}` : '';
-}
-
-export let importMapSrcOrLazy = false;
-
-export function setImportMapSrcOrLazy() {
-  importMapSrcOrLazy = true;
-}
-
-// shim mode is determined on initialization, no late shim mode
-if (!shimMode) {
-  if (
-    document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]')
-      .length
-  ) {
-    shimMode = true;
-  } else {
-    let seenScript = false;
-    for (const script of document.querySelectorAll('script[type=module],script[type=importmap]')) {
-      if (!seenScript) {
-        if (script.type === 'module' && !script.ep) seenScript = true;
-      } else if (script.type === 'importmap' && seenScript) {
-        importMapSrcOrLazy = true;
-        break;
-      }
-    }
-  }
 }

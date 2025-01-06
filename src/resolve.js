@@ -163,9 +163,10 @@ function resolveAndComposePackages(packages, outPackages, baseUrl, parentMap) {
       outPackages[resolvedLhs] &&
       outPackages[resolvedLhs] !== packages[resolvedLhs]
     ) {
-      throw Error(
-        `Rejected map override "${resolvedLhs}" from ${outPackages[resolvedLhs]} to ${packages[resolvedLhs]}.`
+      console.warn(
+        `es-module-shims: Rejected map override "${resolvedLhs}" from ${outPackages[resolvedLhs]} to ${packages[resolvedLhs]}.`
       );
+      continue;
     }
     let target = packages[p];
     if (typeof target !== 'string') continue;
@@ -174,7 +175,7 @@ function resolveAndComposePackages(packages, outPackages, baseUrl, parentMap) {
       outPackages[resolvedLhs] = mapped;
       continue;
     }
-    console.warn(`Mapping "${p}" -> "${packages[p]}" does not resolve`);
+    console.warn(`es-module-shims: Mapping "${p}" -> "${packages[p]}" does not resolve`);
   }
 }
 
@@ -186,8 +187,8 @@ function resolveAndComposeIntegrity(integrity, outIntegrity, baseUrl) {
       outIntegrity[resolvedLhs] &&
       outIntegrity[resolvedLhs] !== integrity[resolvedLhs]
     ) {
-      throw Error(
-        `Rejected map integrity override "${resolvedLhs}" from ${outIntegrity[resolvedLhs]} to ${integrity[resolvedLhs]}.`
+      console.warn(
+        `es-module-shims: Rejected map integrity override "${resolvedLhs}" from ${outIntegrity[resolvedLhs]} to ${integrity[resolvedLhs]}.`
       );
     }
     outIntegrity[resolvedLhs] = integrity[p];
