@@ -645,7 +645,7 @@ function linkLoad(load, fetchOpts) {
           if (d !== -1 || !n) return;
           const { r, b, m, u } = await resolve(n, load.r || load.u);
           if ((b && !supportsImportMaps) || (m && !supportsMultipleImportMaps)) load.n = true;
-          if (d >= 0 || u && !supportsImportMaps) load.N = true;
+          if (d >= 0 || (u && !supportsImportMaps)) load.N = true;
           if (d !== -1) return;
           if (skip && skip(r) && !sourcePhase) return { l: { b: r }, s: false };
           if (childFetchOpts.integrity) childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
