@@ -11,8 +11,8 @@ import {
 } from './env.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
-export let supportsJsonAssertions = false;
-export let supportsCssAssertions = false;
+export let supportsJsonType = false;
+export let supportsCssType = false;
 
 const supports = hasDocument && HTMLScriptElement.supports;
 
@@ -20,6 +20,7 @@ export let supportsImportMaps = supports && supports.name === 'supports' && supp
 export let supportsImportMeta = supportsDynamicImport;
 export let supportsWasmModules = false;
 export let supportsSourcePhase = false;
+export let supportsMultipleImportMaps = false;
 
 const wasmBytes = [0, 97, 115, 109, 1, 0, 0, 0];
 
@@ -30,12 +31,12 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
       supportsImportMaps || dynamicImport(createBlob('import.meta')).then(() => (supportsImportMeta = true), noop),
       cssModulesEnabled &&
         dynamicImport(createBlob(`import"${createBlob('', 'text/css')}"with{type:"css"}`)).then(
-          () => (supportsCssAssertions = true),
+          () => (supportsCssType = true),
           noop
         ),
       jsonModulesEnabled &&
         dynamicImport(createBlob(`import"${createBlob('{}', 'text/json')}"with{type:"json"}`)).then(
-          () => (supportsJsonAssertions = true),
+          () => (supportsJsonType = true),
           noop
         ),
       wasmModulesEnabled &&
@@ -51,10 +52,6 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
     ]);
 
   return new Promise(resolve => {
-    if (self.ESMS_DEBUG)
-      console.info(
-        `es-module-shims: performing feature detections for ${`${supportsImportMaps ? '' : 'import maps, '}${cssModulesEnabled ? 'css modules, ' : ''}${jsonModulesEnabled ? 'json modules, ' : ''}${wasmModulesEnabled ? 'wasm modules, ' : ''}${wasmModulesEnabled && sourcePhaseEnabled ? 'source phase, ' : ''}`.slice(0, -2)}`
-      );
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     iframe.setAttribute('nonce', nonce);
@@ -65,8 +62,9 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
         ,
         supportsImportMaps,
         supportsImportMeta,
-        supportsCssAssertions,
-        supportsJsonAssertions,
+        supportsMultipleImportMaps,
+        supportsCssType,
+        supportsJsonType,
         supportsWasmModules,
         supportsSourcePhase
       ] = data;
@@ -76,15 +74,15 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
     }
     window.addEventListener('message', cb, false);
 
-    const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText:\`{"imports":{"x":"\${b('')}"}}\`}));Promise.all([${
+    const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));i=innerText=>document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText}));i(\`{"imports":{"x":"\${b('')}"}}\`);i(\`{"imports":{"y":"\${b('')}"}}\`);Promise.all([${
       supportsImportMaps ? 'true,true' : `'x',b('import.meta')`
-    }, ${cssModulesEnabled ? `b(\`import"\${b('','text/css')}"with{type:"css"}\`)` : 'false'}, ${
+    },'y',${cssModulesEnabled ? `b(\`import"\${b('','text/css')}"with{type:"css"}\`)` : 'false'}, ${
       jsonModulesEnabled ? `b(\`import"\${b('{}','text/json')\}"with{type:"json"}\`)` : 'false'
-    }, ${
+    },${
       wasmModulesEnabled ?
         `b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)`
       : 'false'
-    }, ${
+    },${
       wasmModulesEnabled && sourcePhaseEnabled ?
         `b(\`import source x from "\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)`
       : 'false'
@@ -128,6 +126,6 @@ export let featureDetectionPromise = Promise.resolve(dynamicImportCheck).then(()
 if (self.ESMS_DEBUG)
   featureDetectionPromise = featureDetectionPromise.then(() => {
     console.info(
-      `es-module-shims: detected native support - ${supportsDynamicImport ? '' : 'no '}dynamic import, ${supportsImportMeta ? '' : 'no '}import meta, ${supportsImportMaps ? '' : 'no '}import maps`
+      `es-module-shims: detected native support - module types: (${[...(supportsJsonType ? ['json'] : []), ...(supportsCssType ? ['css'] : []), ...(supportsWasmModules ? 'wasm' : '')].join(', ')}), ${supportsMultipleImportMaps ? '' : 'no '}multiple import maps, ${supportsDynamicImport ? '' : 'no '}dynamic import, ${supportsImportMeta ? '' : 'no '}import meta, ${supportsImportMaps ? '' : 'no '}import maps`
     );
   });

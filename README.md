@@ -62,15 +62,18 @@ This error is important - it means that the native browser loader didn't execute
 at link time, and before execution time. And this is what allows the polyfill to be able to reexecute the modules and their dependencies
 without risk of duplicate execution.
 
-The ES Module Shims polyfill will analyze the browser to see if it supports import maps. If it does, it doesn't do anything more,
-otherwise it will analyze all module scripts on the page to see if any of them have bare specifier imports that will fail like this.
-If one is found, it will then be reexecuted through ES Module Shims using its internal shimming of modules features.
+The ES Module Shims polyfill will analyze the browser to check its fine-grained support for various import maps and modules features.
+If it is deeemed to support a baseline set of features, and multiple import maps are not in use, the polyfill will do no further work. Otherwise, it
+will analyze all module scripts on the page to see if any of them have static module syntax that would fail. If found, that graph will then be reexecuted through ES Module Shims using its internal rewriting of import statements to polyfill features.
 
 When the polyfill kicks in another console log message is output(which can be disabled or customized via the [polyfill hook](#polyfill-hook)):
 
 ```
 ^^ Module error above is polyfilled and can be ignored ^^
 ```
+
+The fetch options used by the polyfill are carefully followed per the spec. In older Firefox and Safari this fetch network cache is
+not fully shared with the polyfill so separate entries can be seen in the network tab, network-level cache coalescing is still seen at the very least.
 
 ### Polyfill Edge Case: Dynamic Import
 
@@ -124,45 +127,52 @@ If a static failure is not possible and dynamic import must be used, one alterna
 
 When running in polyfill mode, it can be thought of that are effectively two loaders running on the page - the ES Module Shims polyfill loader, and the native loader.
 
-Note that instances are not shared between these loaders for consistency and performance, since some browsers do not properly share the fetch cache and native loader cache resulting in a double fetch which would be inefficient.
+Whenever possible, the polyfill loader will share native modules that can be correctly executed, with one exception per the previous section - modules which use dynamic import, which are imported as dependencies of modules which require polyfill features.
 
-As a result, if you have two module graphs - one native and one polyfilled, they will not share the same dependency instance, for example:
+For example consider two shimmed modules, both of which use import maps:
 
-```html
-<script type="importmap">
-{
-  "imports": {
-    "dep": "/dep.js"
-  }
-}
-</script>
-<script type="module">
-import '/dep.js';
-</script>
-<script type="module">
-import 'dep';
-</script>
+`shim-a.js`
+```js
+import 'mapped-dep-a';
 ```
 
-```dep
-console.log('DEP');
+`shim-b.js`
+```js
+import 'mapped-dep-b';
 ```
 
-When polyfilling import maps, ES Module Shims will pick up on the second import failure and reexecute `/dep.js` as a new instance, logging `"DEP"` twice.
+where `mapped-dep-a` resolves to `/dep-a.js` and `mapped-dep-b` resolves to `/dep-b.js`, respectively containing:
 
-For this reason it is important to always ensure all modules hit the polyfill path, either by having all graphs use import maps at the top-level, or via `importShim` directly.
+`/dep-a.js`
+```js
+console.log('dep a');
+```
 
-If you really need to support instance sharing with the native loader, a useful workaround is to use the [`skip` option](#skip) to list modules which should always be loaded via the native loader:
+`/dep-b.js`
+```js
+console.log('dep b');
+import(expr);
+```
+
+While the shim modules are always loaded in the shim loader, the `dep-a.js` module is loaded from the native loader since it does not require any polyfilling.
+
+On th other hand, `dep-b.js` is loaded from the shim loader as well _because it was loaded by a polyfilled parent graph and uses dynamic import_. Within the polyfill loader, the `import(expr)` is replaced with `importShim(expr)` to support import maps. This is in contrast to top-level native graphs which do not get shimmed per the previous section.
+
+As a result, `import('/dep-a.js')` in the native loader is the same instance as the `dep-a.js` loaded by `shim-a.js`, but `dep-b` would be executed twice if passed into `import('/dep-b.js')` - the shim loader and native loader instances are separate, and `dep b` would be logged twice.
+
+Note that this is the ONLY scenario in which instance sharing will not otherwise occur in the polyfill loader.
+
+A workaround to this instance sharing case is to use the [`skip` option](#skip) to list modules which should always be loaded via the native loader (which also saves on analysis work time for performance):
 
 ```html
 <script type="esms-options">
 {
-  "skip": ["/dep.js"]
+  "skip": ["/dep-b.js"]
 }
 </script>
 ```
 
-The above would then fully cause dependency module instance to be shared between ES Module Shims and the native loader, with the polyfill then logging `"DEP"` only once.
+The above would then fully cause dependency module instance of dep-b to be shared between ES Module Shims and the native loader, with the polyfill then logging `"dep b"` only once.
 
 #### No Shim Scripts
 
@@ -217,6 +227,7 @@ Browser Compatibility on baseline ES modules support **with** ES Module Shims:
 | [modulepreload](#modulepreload)                 | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Import Maps](#import-maps)                     | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Import Map Integrity](#import-map-integrity)   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Multiple Import Maps](#multiple-import-maps)   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [JSON Modules](#json-modules)                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [CSS Modules](#css-modules)                     | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 | [Wasm Modules](#wasm-modules)                   | 89+                                  | 89+                                  | 15+                                  |
@@ -228,7 +239,8 @@ Browser compatibility **without** ES Module Shims:
 | [modulepreload](#modulepreload)               | 66+                | 115+               | 17.5+              |
 | [import.meta.url](#importmetaurl)             | ~76+               | ~67+               | ~12+               |
 | [Import Maps](#import-maps)                   | 89+                | 108+               | 16.4+              |
-| [Import Map Integrity](#import-map-integrity) | Pending            | :x:                | :x:                |
+| [Import Map Integrity](#import-map-integrity) | 127+               | :x:                | :x:                |
+| [Multiple Import Maps](#multiple-import-maps) | Pending            | :x:                | :x:                |
 | [JSON Modules](#json-modules)                 | 123+               | :x:                | 17.2+              |
 | [CSS Modules](#css-modules)                   | 123+               | :x:                | :x:                |
 | [Wasm Modules](#wasm-modules)                 | :x:                | :x:                | :x:                |
@@ -268,14 +280,6 @@ Using this polyfill we can write:
 
 All modules are still loaded with the native browser module loader, but with their specifiers rewritten then executed as Blob URLs, so there is a relatively minimal overhead to using a polyfill approach like this.
 
-#### Multiple Import Maps
-
-Multiple import maps are not currently supported in any native implementation, Chromium support is currently being tracked in https://bugs.chromium.org/p/chromium/issues/detail?id=927119.
-
-In polyfill mode, multiple import maps are therefore not supported.
-
-In shim mode, support for multiple `importmap-shim` scripts follows the [import map extensions](https://github.com/guybedford/import-maps-extensions) proposal.
-
 #### External Import Maps
 
 External import maps (using a `"src"` attribute) are not currently supported in any native implementation.
@@ -284,9 +288,13 @@ In polyfill mode, external import maps are therefore not supported.
 
 In shim mode, external import maps are fully supported.
 
-#### Dynamic Import Maps
+### Multiple Import Maps
 
-Support for dynamically injecting import maps with JavaScript via eg:
+Multiple import maps have been recently implemented in Chromium in https://bugs.chromium.org/p/chromium/issues/detail?id=927119, including supporting dynamically loading import maps even after modules have been loaded.
+
+In polyfill mode, multiple import maps are supported.
+
+Support for dynamically injecting import maps with JavaScript via e.g.:
 
 ```js
 document.body.appendChild(Object.assign(document.createElement('script'), {
@@ -295,11 +303,62 @@ document.body.appendChild(Object.assign(document.createElement('script'), {
 }));
 ```
 
-is supported in Chromium, provided it is injected before any module loads and there is no other import map yet loaded (multiple import maps are not supported).
+is also provided using mutation observers.
 
-Both modes in ES Module Shims support dynamic injection using DOM Mutation Observers.
+The caveat for multiple import map support polyfill support in browsers that only support a single import map is per the usual "polyfill rule" for es-module-shims - only those top-level graphs with static import feailures can be polyfilled.
 
-While in polyfill mode the same restrictions apply that multiple import maps, import maps with a `src` attribute, and import maps loaded after the first module load are not supported, in shim mode all of these behaviours are fully enabled for `"importmap-shim"`.
+Therefore, imports that would otherwise be supported fine by the first map can't be polyfilled, for example:
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "a": "/a.js"
+  }
+}
+</script>
+<script type="importmap">
+{
+  "scopes": {
+    "/": {
+      "a": "/b.js"
+    }
+  }
+}
+</script>
+<script type="module">
+import 'a';
+</script>
+```
+
+In the above, browsers with single import maps support will resolve `/a.js` and the polyfill will not apply, while browsers without any import maps support will be polyfilled to resolve `/b.js`.
+
+Instead, following the usual advice, make sure to design the app to either have static failures or not on all polyfill environments to get well-defined polyfill behaviour:
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "a": "/a.js"
+  }
+}
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "b": "/b.js"
+  }
+}
+</script>
+<script type="module">
+import 'a';
+</script>
+<script type="module">
+import 'b';
+</script>
+```
+
+The above will then correctly execute both `a` and `b`, with only the `b` importer being polyfilled.
 
 #### Reading current import map state
 

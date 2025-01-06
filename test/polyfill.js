@@ -32,6 +32,10 @@ suite('Polyfill tests', () => {
     throw new Error('Should fail');
   });
 
+  test('should support multiple import maps', async function () {
+    await import('global1');
+  });
+
   test('should support json imports', async function () {
     const { m } = await importShim('./fixtures/json-assertion.js');
     assert.equal(m, 'module');
@@ -39,11 +43,7 @@ suite('Polyfill tests', () => {
 
   test('URL mappings do not cause double execution', async function () {
     await importShim('./fixtures/es-modules/dynamic-parent.js');
-    if (window.dynamic)
-      console.log('POLYFILL');
-    if (window.dynamicUrlMap)
-      console.log('NATIVE');
-    assert.equal(window.dynamic || window.dynamicUrlMap, true);
+    assert.equal(window.dynamicUrlMap, true);
     assert.equal(Boolean(window.dynamic && window.dynamicUrlMap), false);
   });
 

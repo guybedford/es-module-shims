@@ -13,7 +13,7 @@
 <script type="importmap">
 {
   "imports": {
-    "app": "data:text/javascript,if (calledPolyfillHook) fetch('/done')"
+    "app": "data:text/javascript,console.log(typeof calledPolyfillHook === \"undefined\" ? \"NATIVE\" : \"POLYFILL\"); fetch(\"/done\");"
   }
 }
 </script>

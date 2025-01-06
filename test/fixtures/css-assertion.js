@@ -1,4 +1,4 @@
-import css from './sheet.css' assert { type: 'css' };
+import css from './sheet.css' with { type: 'css' };
 
 window.cssAssertion = css.cssRules[0].selectorText === 'body';
 
