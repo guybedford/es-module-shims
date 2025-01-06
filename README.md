@@ -360,6 +360,8 @@ import 'b';
 
 The above will then correctly execute both `a` and `b`, with only the `b` importer being polyfilled.
 
+Note that shimmed graphs will always support correct mappings - the above rules only apply to the initial polyfill engagement.
+
 #### Reading current import map state
 
 To make it easy to keep track of import map state, es-module-shims provides a `importShim.getImportMap` utility function, available only in shim mode.
