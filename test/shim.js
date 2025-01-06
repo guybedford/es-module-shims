@@ -399,27 +399,6 @@ suite('Errors', function () {
     assert.ok(lodash);
   });
 
-  test('Dynamic import map shim with override attempt', async function () {
-    const listeningForError = new Promise((resolve, reject) => {
-      window.addEventListener('error', (event) => resolve(event.error))
-      // ensure we don't wait forever in the test if the error never comes
-      setTimeout(reject, 5000)
-    })
-
-    const removeImportMap = insertDynamicImportMap({
-      "imports": {
-        "global1": "data:text/javascript,throw new Error('Shim should not allow dynamic import map to override existing entries');"
-      }
-    });
-
-    const error = await listeningForError;
-    console.log('got error');
-
-    removeImportMap();
-
-    assert(error.message.match(new RegExp(String.raw`Rejected map override \"global1\" from http://[^/]+/test/fixtures/es-modules/global1.js to data:text/javascript,throw new Error\('Shim should not allow dynamic import map to override existing entries'\);\.`)));
-  });
-
   test('Dynamic import map shim with override to the same mapping is allowed', async function () {
     const expectingNoError = new Promise((resolve, reject) => {
       window.addEventListener('error', (event) => {

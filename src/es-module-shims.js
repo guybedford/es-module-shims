@@ -44,13 +44,17 @@ async function _resolve(id, parentUrl) {
     composedImportMap === firstImportMap ? firstResolved : (
       resolveImportMap(composedImportMap, urlResolved || id, parentUrl)
     );
-  return {
-    r: composedResolved || firstResolved || throwUnresolved(id, parentUrl),
+  const resolved = composedResolved || firstResolved || throwUnresolved(id, parentUrl);
+  const out = {
+    r: resolved,
+    // u = uses URL mapping
+    u: urlResolved !== resolved,
     // b = bare specifier (breaks without import maps = polyfill graph)
     b: !urlResolved,
     // m = composed resolution (breaks without multiple import maps = polyfill graph)
     m: !urlResolved && !firstResolved
   };
+  return out;
 }
 
 const resolve =
@@ -85,6 +89,7 @@ async function importHandler(id, ...args) {
 
 // import()
 async function importShim(...args) {
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: importShim("${args[0]}")`);
   return topLevelLoad(await importHandler(...args), { credentials: 'same-origin' });
 }
 
@@ -254,8 +259,7 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
   if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, '');
   // early analysis opt-out - no need to even fetch if we have feature support
   if (!shimMode && baselinePassthrough) {
-    if (self.ESMS_DEBUG)
-      console.info(`es-module-shims: load skipping polyfill due to baseline passthrough applying: ${url}`);
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: early load exit as we have baseline modules support ${url}`);
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded) return null;
     await lastStaticLoadPromise;
@@ -318,13 +322,15 @@ function resolveDeps(load, seen) {
     if (!sourcePhase) resolveDeps(dep, seen);
   }
 
-  // use native loader whenever possible via executable subgraph passthrough
-  // so long as the module doesn't use dynamic import
-  if (!shimMode && !load.n) {
+  // use native loader whenever possible (n = needs shim) via executable subgraph passthrough
+  // so long as the module doesn't use dynamic import or unsupported URL mappings (N = should shim)
+  if (!shimMode && !load.n && !load.N) {
     load.b = lastLoad = load.u;
     load.S = undefined;
     return;
   }
+
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: polyfilling ${load.u}`);
 
   const [imports, exports] = load.a;
 
@@ -578,6 +584,8 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     s: undefined,
     // needsShim
     n: false,
+    // shouldShim
+    N: false,
     // type
     t: null,
     // meta
@@ -635,8 +643,9 @@ function linkLoad(load, fetchOpts) {
           )
             load.n = true;
           if (d !== -1 || !n) return;
-          const { r, b, m } = await resolve(n, load.r || load.u);
+          const { r, b, m, u } = await resolve(n, load.r || load.u);
           if ((b && !supportsImportMaps) || (m && !supportsMultipleImportMaps)) load.n = true;
+          if (d >= 0 || u && !supportsImportMaps) load.N = true;
           if (d !== -1) return;
           if (skip && skip(r) && !sourcePhase) return { l: { b: r }, s: false };
           if (childFetchOpts.integrity) childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
@@ -733,7 +742,6 @@ function processImportMap(script, ready = readyStateCompleteCnt > 0) {
         script.src || pageBaseUrl,
         composedImportMap
       );
-      if (!firstImportMap && legacyAcceptingImportMaps) firstImportMap = composedImportMap;
     })
     .catch(e => {
       console.log(e);
@@ -741,6 +749,7 @@ function processImportMap(script, ready = readyStateCompleteCnt > 0) {
         e = new Error(`Unable to parse import map ${e.message} in: ${script.src || script.innerHTML}`);
       throwError(e);
     });
+  if (!firstImportMap && legacyAcceptingImportMaps) importMapPromise.then(() => (firstImportMap = composedImportMap));
   if (!legacyAcceptingImportMaps && !multipleImportMaps) {
     multipleImportMaps = true;
     if (baselinePassthrough && !supportsMultipleImportMaps) {
@@ -762,7 +771,7 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
   if (isLoadScript) loadCnt++;
   if (isBlockingReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
-  if (self.ESMS_DEBUG) console.info(`es-module-shims: processing ${script.src || '<inline>'}`);
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: loading ${script.src || '<inline>'}`);
   const loadPromise = topLevelLoad(
     script.src || pageBaseUrl,
     getFetchOpts(script),

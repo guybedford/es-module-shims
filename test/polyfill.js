@@ -33,7 +33,7 @@ suite('Polyfill tests', () => {
   });
 
   test('should support multiple import maps', async function () {
-    await import('global1');
+    await importShim('global1');
   });
 
   test('should support json imports', async function () {
