@@ -12,7 +12,6 @@ import {
   skip,
   revokeBlobURLs,
   noLoadEventRetriggers,
-  globalLoadEventRetrigger,
   cssModulesEnabled,
   jsonModulesEnabled,
   wasmModulesEnabled,
@@ -45,25 +44,28 @@ async function _resolve(id, parentUrl) {
       resolveImportMap(composedImportMap, urlResolved || id, parentUrl)
     );
   const resolved = composedResolved || firstResolved || throwUnresolved(id, parentUrl);
-  const out = {
-    r: resolved,
-    // u = uses URL mapping
-    u: urlResolved !== resolved,
-    // b = bare specifier (breaks without import maps = polyfill graph)
-    b: !urlResolved,
-    // m = composed resolution (breaks without multiple import maps = polyfill graph)
-    m: !urlResolved && !firstResolved
-  };
-  return out;
+  // needsShim, shouldShim per load record to set on parent
+  let n = false,
+    N = false;
+  if (!supportsImportMaps) {
+    // bare specifier -> needs shim
+    if (!urlResolved) n = true;
+    // url mapping -> should shim
+    else if (urlResolved !== resolved) N = true;
+  } else if (!supportsMultipleImportMaps) {
+    // bare specifier and not resolved by first import map -> needs shim
+    if (!urlResolved && !firstResolved) n = true;
+    // resolution doesn't match first import map -> should shim
+    if (firstResolved && resolved !== firstResolved) N = true;
+  }
+  return { r: resolved, n, N };
 }
 
 const resolve =
   resolveHook ?
-    async (id, parentUrl) => {
-      let result = resolveHook(id, parentUrl, defaultResolve);
-      // will be deprecated in next major
-      if (result && result.then) result = await result;
-      return result ? { r: result, b: !resolveIfNotPlainOrUrl(id, parentUrl) && !asURL(id) } : _resolve(id, parentUrl);
+    (id, parentUrl) => {
+      const result = resolveHook(id, parentUrl, defaultResolve);
+      return result ? { r: result, n: true, N: true } : _resolve(id, parentUrl);
     }
   : _resolve;
 
@@ -643,13 +645,13 @@ function linkLoad(load, fetchOpts) {
           )
             load.n = true;
           if (d !== -1 || !n) return;
-          const { r, b, m, u } = await resolve(n, load.r || load.u);
-          if ((b && !supportsImportMaps) || (m && !supportsMultipleImportMaps)) load.n = true;
-          if (d >= 0 || (u && !supportsImportMaps)) load.N = true;
+          const resolved = await resolve(n, load.r || load.u);
+          if (resolved.n) load.n = true;
+          if (d >= 0 || resolved.N) load.N = true;
           if (d !== -1) return;
-          if (skip && skip(r) && !sourcePhase) return { l: { b: r }, s: false };
+          if (skip && skip(resolved.r) && !sourcePhase) return { l: { b: resolved.r }, s: false };
           if (childFetchOpts.integrity) childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
-          const child = { l: getOrCreateLoad(r, childFetchOpts, load.r, null), s: sourcePhase };
+          const child = { l: getOrCreateLoad(resolved.r, childFetchOpts, load.r, null), s: sourcePhase };
           if (!child.s) linkLoad(child.l, fetchOpts);
           // load, sourcePhase
           return child;
@@ -696,7 +698,7 @@ function domContentLoadedCheck() {
 }
 let loadCnt = 1;
 function loadCheck() {
-  if (--loadCnt === 0 && globalLoadEventRetrigger && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
+  if (--loadCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: load refire`);
     window.dispatchEvent(new Event('load'));
   }
