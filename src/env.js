@@ -31,7 +31,7 @@ if (!nonce && hasDocument) {
 
 export const onerror = globalHook(esmsInitOptions.onerror || noop);
 
-export const { revokeBlobURLs, noLoadEventRetriggers, globalLoadEventRetrigger, enforceIntegrity } = esmsInitOptions;
+export const { revokeBlobURLs, noLoadEventRetriggers, enforceIntegrity } = esmsInitOptions;
 
 function globalHook(name) {
   return typeof name === 'string' ? self[name] : name;

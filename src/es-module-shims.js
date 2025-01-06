@@ -12,7 +12,6 @@ import {
   skip,
   revokeBlobURLs,
   noLoadEventRetriggers,
-  globalLoadEventRetrigger,
   cssModulesEnabled,
   jsonModulesEnabled,
   wasmModulesEnabled,
@@ -696,7 +695,7 @@ function domContentLoadedCheck() {
 }
 let loadCnt = 1;
 function loadCheck() {
-  if (--loadCnt === 0 && globalLoadEventRetrigger && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
+  if (--loadCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: load refire`);
     window.dispatchEvent(new Event('load'));
   }

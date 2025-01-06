@@ -588,10 +588,8 @@ window.esmsInitOptions = {
   polyfillEnable: ['css-modules', 'json-modules'], // default empty
   // Custom CSP nonce
   nonce: 'n0nce', // default is automatic detection
-  // Don't retrigger load events on module scripts (DOMContentLoaded, domready)
+  // Don't retrigger load events on module scripts (DOMContentLoaded, domready, window 'onload')
   noLoadEventRetriggers: true, // default false
-  // Retrigger window 'load' event (will be combined into load event above on next major)
-  globalLoadEventRetrigger: true, // default false
   // Skip source analysis of certain URLs for full native passthrough
   skip: /^https:\/\/cdn\.com/, // defaults to null
   // Clean up blob URLs after execution
@@ -718,7 +716,7 @@ Alternatively, add a `blob:` URL policy with the CSP build to get CSP compatibil
 
 ### No Load Event Retriggers
 
-Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded` or `readystatechange` events they expect, which can cause missed attachment.
+Because of the extra processing done by ES Module Shims it is possible for static module scripts to execute after the `DOMContentLoaded`, `readystatechange` or window `load` events they expect, which can cause missed attachment.
 
 In addition, script elements will also have their load events refired when polyfilled.
 
@@ -729,19 +727,12 @@ In such a case, this double event firing can be disabled with the `noLoadEventRe
 ```js
 <script type="esms-options">
 {
-  // do not re-trigger DOM events (onreadystatechange, DOMContentLoaded)
+  // do not re-trigger DOM events (onreadystatechange, DOMContentLoaded, window 'onload')
   "noLoadEventRetriggers": true
 }
 </script>
 <script async src="es-module-shims.js"></script>
 ```
-
-### Global Load Event Retrigger
-
-In ES Module Shims 1.x, load event retriggers only apply to `DOMContentLoaded` and `readystatechange` and not to the window `load` event.
-To enable the window / worker `'load'` event, set `globalLoadEventRetrigger: true`.
-
-In the next major version, this will be the default for load events, at which point only `noLoadEventRetriggers` will remain.
 
 ### Skip
 
@@ -898,10 +889,6 @@ If the resolve hook should apply for all modules in the entire module graph, mak
   }
 </script>
 ```
-
-Support for an asynchronous resolve hook has been deprecated as of 1.5.0 and will be removed in the next major.
-
-Instead async work should be done with the import hook.
 
 #### Meta Hook
 
