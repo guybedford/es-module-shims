@@ -563,7 +563,7 @@ async function fetchModule(url, fetchOpts, parent) {
     const source = await res.text();
     // if we don't have a ts transform hook, try to load it
     if (!esmsTsTransform) {
-      ({ transform: esmsTsTransform } = await importShim(tsTransform));
+      ({ transform: esmsTsTransform } = await import(tsTransform));
     }
     const transformed = esmsTsTransform(source, url);
     return { r, s: transformed || source, t: transformed ? 'ts' : 'js' };
