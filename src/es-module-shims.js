@@ -152,7 +152,6 @@ async function loadAll(load, seen) {
       return loadAll(dep, seen);
     })
   );
-  if (!load.n) load.n = load.d.some(dep => dep.l.n);
 }
 
 let importMapSrc = false;
@@ -323,6 +322,9 @@ function resolveDeps(load, seen) {
   for (const { l: dep, s: sourcePhase } of load.d) {
     if (!sourcePhase) resolveDeps(dep, seen);
   }
+
+  if (!load.n) load.n = load.d.some(dep => dep.l.n);
+  if (!load.N) load.N = load.d.some(dep => dep.l.N);
 
   // use native loader whenever possible (n = needs shim) via executable subgraph passthrough
   // so long as the module doesn't use dynamic import or unsupported URL mappings (N = should shim)
@@ -557,6 +559,20 @@ async function fetchModule(url, fetchOpts, parent) {
     );
 }
 
+function isUnsupportedType(type) {
+  if (
+    (type === 'css' && !cssModulesEnabled) ||
+    (type === 'json' && !jsonModulesEnabled) ||
+    (type === 'wasm' && !wasmModulesEnabled)
+  )
+    throw featErr(`${t}-modules`);
+  return (
+    (type === 'css' && !supportsCssType) ||
+    (type === 'json' && !supportsJsonType) ||
+    (type === 'wasm' && !supportsWasmModules)
+  );
+}
+
 function getOrCreateLoad(url, fetchOpts, parent, source) {
   if (source && registry[url]) {
     let i = 0;
@@ -596,21 +612,9 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
   load.f = (async () => {
     if (!load.S) {
       // preload fetch options override fetch options (race)
-      let t;
-      ({ r: load.r, s: load.S, t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
-      if (t && !shimMode) {
-        if (
-          (t === 'css' && !cssModulesEnabled) ||
-          (t === 'json' && !jsonModulesEnabled) ||
-          (t === 'wasm' && !wasmModulesEnabled)
-        )
-          throw featErr(`${t}-modules`);
-        if (
-          (t === 'css' && !supportsCssType) ||
-          (t === 'json' && !supportsJsonType) ||
-          (t === 'wasm' && !supportsWasmModules)
-        )
-          load.n = true;
+      ({ r: load.r, s: load.S, t: load.t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
+      if (load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
+        load.n = true;
       }
     }
     try {
