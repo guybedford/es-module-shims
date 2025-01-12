@@ -223,8 +223,8 @@ const initPromise = featureDetectionPromise.then(() => {
         document.addEventListener('readystatechange', readyListener);
       }
     }
+    processScriptsAndPreloads();
   }
-  processScriptsAndPreloads();
   return lexer.init;
 });
 
