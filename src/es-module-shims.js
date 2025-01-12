@@ -479,10 +479,10 @@ const sourceURLCommentPrefix = '\n//# sourceURL=';
 const sourceMapURLCommentPrefix = '\n//# sourceMappingURL=';
 
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
-const wasmContentType = /^(application)\/wasm(;|$)/;
+const wasmContentType = /^application\/wasm(;|$)/;
 const jsonContentType = /^(text|application)\/json(;|$)/;
 const cssContentType = /^(text|application)\/css(;|$)/;
-const tsContentType = /^video\/mp2t(;|$)/;
+const tsContentType = /^(application\/typescript|video\/mp2t)(;|$)|/;
 
 const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\])+))\s*\)/g;
 
