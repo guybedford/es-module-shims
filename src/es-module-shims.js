@@ -9,6 +9,7 @@ import {
   fetchHook,
   importHook,
   metaHook,
+  tsTransform,
   skip,
   revokeBlobURLs,
   noLoadEventRetriggers,
@@ -20,7 +21,8 @@ import {
   enforceIntegrity,
   fromParent,
   esmsInitOptions,
-  hasDocument
+  hasDocument,
+  typescriptEnabled
 } from './env.js';
 import { dynamicImport, supportsDynamicImport } from './dynamic-import.js';
 import {
@@ -173,7 +175,7 @@ const initPromise = featureDetectionPromise.then(() => {
     (!sourcePhaseEnabled || supportsSourcePhase) &&
     (!multipleImportMaps || supportsMultipleImportMaps) &&
     !importMapSrc &&
-    !self.TRANSFORM_HOOK;
+    !typescriptEnabled;
   if (sourcePhaseEnabled && typeof WebAssembly !== 'undefined' && !Object.getPrototypeOf(WebAssembly.Module).name) {
     const s = Symbol();
     const brand = m =>
@@ -474,6 +476,7 @@ const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
 const wasmContentType = /^(application)\/wasm(;|$)/;
 const jsonContentType = /^(text|application)\/json(;|$)/;
 const cssContentType = /^(text|application)\/css(;|$)/;
+const tsContentType = /^video\/mp2t(;|$)/;
 
 const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\])+))\s*\)/g;
 
@@ -508,6 +511,8 @@ async function doFetch(url, fetchOpts, parent) {
   }
   return res;
 }
+
+let esmsTsTransform;
 
 async function fetchModule(url, fetchOpts, parent) {
   const mapIntegrity = composedImportMap.integrity[url];
@@ -550,8 +555,14 @@ async function fetchModule(url, fetchOpts, parent) {
       ss: null,
       t: 'css'
     };
-  } else if (self.TRANSFORM_HOOK) {
-    return { r, s: await res.text(), t: 'unknown' };
+  } else if (typescriptEnabled && tsContentType.test(contentType)) {
+    const source = await res.text();
+    // if we don't have a ts transform hook, try to load it
+    if (!esmsTsTransform) {
+      ({ transform: esmsTsTransform } = await importShim(tsTransform));
+    }
+    const transformed = esmsTsTransform(source, url);
+    return { r, s: transformed || source, t: transformed ? 'ts' : 'js' };
   } else
     throw Error(
       `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
@@ -562,13 +573,15 @@ function isUnsupportedType(type) {
   if (
     (type === 'css' && !cssModulesEnabled) ||
     (type === 'json' && !jsonModulesEnabled) ||
-    (type === 'wasm' && !wasmModulesEnabled)
+    (type === 'wasm' && !wasmModulesEnabled) ||
+    (type === 'ts' && !typescriptEnabled)
   )
     throw featErr(`${t}-modules`);
   return (
     (type === 'css' && !supportsCssType) ||
     (type === 'json' && !supportsJsonType) ||
-    (type === 'wasm' && !supportsWasmModules)
+    (type === 'wasm' && !supportsWasmModules) ||
+    type === 'ts'
   );
 }
 
@@ -612,11 +625,6 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     if (!load.S) {
       // preload fetch options override fetch options (race)
       ({ r: load.r, s: load.S, t: load.t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
-      const T = self.TRANSFORM_HOOK ? self.TRANSFORM_HOOK(load.r, load.S, load.t) : undefined;
-      if (T !== undefined) {
-        load.S = T;
-        load.n = true;
-      }
       if (!load.n && load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
         load.n = true;
       }

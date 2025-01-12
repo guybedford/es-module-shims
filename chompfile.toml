@@ -25,39 +25,36 @@ deps = ['npm:install']
 run = 'prettier -w src/*.js'
 
 [[task]]
-deps = ['dist/es-module-shims.wasm.dev.js', 'node_modules/amaro/dist/index.js']
-target = 'dist/es-module-shims.dev.js'
+deps = ['node_modules/amaro/dist/index.js']
+target = 'dist/es-module-shims-typescript.js'
 engine = 'node'
 run = '''
   import { readFileSync, writeFileSync } from 'fs';
-  const source = readFileSync('dist/es-module-shims.wasm.dev.js', 'utf8');
   const amaroSource = readFileSync('node_modules/amaro/dist/index.js', 'utf8');
 
-  writeFileSync('dist/es-module-shims.dev.js', `${source.replace(/self\.TRANSFORM_HOOK/g, 'amaroTransform')}
-    function amaroTransform (name, source, type) {
-      if (name.endsWith('.ts') || name.endsWith('.mts')) {
-        return amaroTransformSync(source).code;
-      }
-    }
-    let amaroTransformSync;
-    {
-      const module = {};
-      function require(mod) {
-        switch (mod) {
-          case 'util': return { TextEncoder, TextDecoder };
-          case 'node:buffer': return { Buffer: { from: function (a) { return Uint8Array.from(atob(a), (x) => x.charCodeAt(0)); } } };
-          default: throw new Error('No impl for ' + mod);
-        }
-      }
-      ${amaroSource}
-      amaroTransformSync = module.exports.transformSync;
-    }
-  `);
+  writeFileSync('dist/es-module-shims-typescript.js', `const module = {};
+function require(mod) {
+  switch (mod) {
+    case 'util': return { TextEncoder, TextDecoder };
+    case 'node:buffer': return { Buffer: { from: function (a) { return Uint8Array.from(atob(a), (x) => x.charCodeAt(0)); } } };
+    default: throw new Error('No impl for ' + mod);
+  }
+}
+${amaroSource}
+const amaroTransformSync = module.exports.transformSync;
+export function transform(source, url) {
+  return amaroTransformSync(source).code;
+}
+`);
 '''
 
 [[task]]
 name = 'build'
-targets = ['dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'dist/es-module-shims.debug.js', 'dist/es-module-shims.wasm.dev.js']
+deps = ['rollup', 'dist/es-module-shims-typescript.js']
+
+[[task]]
+name = 'rollup'
+targets = ['dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'dist/es-module-shims.debug.js']
 deps = ['src/*.js', 'npm:install', 'README.md']
 run = 'rollup -c'
 
