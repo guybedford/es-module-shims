@@ -4998,7 +4998,7 @@ window.addEventListener = function (evt, callback) {
 
 (async () => {
 try {
-    await import('./fixtures/tla.js');
+    await eval("import('./fixtures/tla.js');");
 } catch (e) {
     // Does not support TLA -> skip test
     await fetch('/TLA UNSUPPORTED');
