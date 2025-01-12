@@ -190,7 +190,7 @@ If using more modern features like CSS Modules or JSON Modules, these need to be
 
 ```html
 <script>
-window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules', 'wasm-modules'] }
+window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules', 'wasm-modules', 'typescript'] }
 </script>
 ```
 
