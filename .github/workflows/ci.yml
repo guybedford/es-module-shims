@@ -22,9 +22,9 @@ jobs:
   test-firefox:
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         firefox: [
-          '65.0', # (60 = modules support, but not working)
           '67.0', # import(), import.meta
           '89.0',  # top-level await
           '108.0',
@@ -55,12 +55,14 @@ jobs:
   test-chrome:
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         chrome: [
           '695071', # ~September 2019
           '859178', # Mar 2021, Import Maps
           '913920', # August 2021, JSON modules + CSS modules
           '1306171', # May 2024, just before integrity
+          '1346953', #Jan 2025, multiple import maps
         ]
     name: Chrome Browser Tests
     steps:
