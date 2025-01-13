@@ -3,6 +3,8 @@ export const hasDocument = typeof document !== 'undefined';
 
 export const noop = () => {};
 
+export const dynamicImport = (u, errUrl) => import(u);
+
 const optionsScript = hasDocument ? document.querySelector('script[type=esms-options]') : undefined;
 
 export const esmsInitOptions = optionsScript ? JSON.parse(optionsScript.innerHTML) : {};
@@ -49,8 +51,6 @@ export const onpolyfill =
   : () => {
       console.log(`%c^^ Module error above is polyfilled and can be ignored ^^`, 'font-weight:900;color:#391');
     };
-
-export const edge = !navigator.userAgentData && !!navigator.userAgent.match(/Edge\/\d+\.\d+/);
 
 export const baseUrl =
   hasDocument ?
