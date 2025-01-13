@@ -25,7 +25,35 @@ deps = ['npm:install']
 run = 'prettier -w src/*.js'
 
 [[task]]
+deps = ['node_modules/amaro/dist/index.js']
+target = 'dist/es-module-shims-typescript.js'
+engine = 'node'
+run = '''
+  import { readFileSync, writeFileSync } from 'fs';
+  const amaroSource = readFileSync('node_modules/amaro/dist/index.js', 'utf8');
+
+  writeFileSync('dist/es-module-shims-typescript.js', `const module = {};
+function require(mod) {
+  switch (mod) {
+    case 'util': return { TextEncoder, TextDecoder };
+    case 'node:buffer': return { Buffer: { from: function (a) { return Uint8Array.from(atob(a), (x) => x.charCodeAt(0)); } } };
+    default: throw new Error('No impl for ' + mod);
+  }
+}
+${amaroSource}
+const amaroTransformSync = module.exports.transformSync;
+export function transform(source, url) {
+  return amaroTransformSync(source).code;
+}
+`);
+'''
+
+[[task]]
 name = 'build'
+deps = ['rollup', 'dist/es-module-shims-typescript.js']
+
+[[task]]
+name = 'rollup'
 targets = ['dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'dist/es-module-shims.debug.js']
 deps = ['src/*.js', 'npm:install', 'README.md']
 run = 'rollup -c'
@@ -65,12 +93,12 @@ dep = 'test:'
 [[task]]
 name = 'test:#'
 serial = true
-deps = ['npm:install', 'dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'test/test-#.html']
+deps = ['npm:install', 'dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'dist/es-module-shims-typescript.js', 'test/test-#.html']
 run = 'node test/server.mjs test-${{ MATCH }}'
 
 [[task]]
 name = 'test:firefox'
 env = { CI_BROWSER = 'C:\Program Files\Mozilla Firefox\firefox.exe', CI_BROWSER_FLAGS = '-headless', CI_BROWSER_FLUSH = 'taskkill /IM firefox.exe /F' }
 serial = true
-deps = ['npm:install', 'dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'test/test-#.html']
+deps = ['npm:install', 'dist/es-module-shims.js', 'dist/es-module-shims.wasm.js', 'dist/es-module-shims-typescript.js', 'test/test-#.html']
 run = 'node test/server.mjs test-${{ MATCH }}'
