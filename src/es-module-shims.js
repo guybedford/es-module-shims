@@ -84,25 +84,10 @@ async function importHandler(id, opts, parentUrl = pageBaseUrl, sourcePhase) {
   return resolve(id, parentUrl).r;
 }
 
-// supports:
-// import('mod');
-// import('mod', { opts });
-// import('mod', { opts }, parentUrl);
-// import('mod', parentUrl);
-async function importShim(specifier, opts, parentUrl) {
-  if (typeof opts === 'string') {
-    parentUrl = opts;
-    opts = undefined;
-  }
-  const url = await importHandler(specifier, opts, parentUrl);
-  // if we dynamically import CSS or JSON, and these are supported, use a wrapper module to
-  // support getting those imports from the native loader, because `import(specifier, options)`
-  // is not supported in older browsers to use syntactically.
-  const type = typeof opts === 'object' && typeof opts.with === 'object' && opts.with.type;
-  if ((supportsCssType && type === 'css') || (supportsJsonType && type === 'json')) {
-    return dynamicImport(createBlob(`export{default}from"${url}"with{type:"${type}"`), url);
-  }
-  return topLevelLoad(url, { credentials: 'same-origin' });
+// import()
+async function importShim(...args) {
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: importShim("${args[0]}")`);
+  return topLevelLoad(await importHandler(...args), args[1], { credentials: 'same-origin' });
 }
 
 // import.source()
@@ -258,7 +243,7 @@ let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let legacyAcceptingImportMaps = true;
 
-async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
+async function topLevelLoad(url, importOpts, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
   legacyAcceptingImportMaps = false;
   await initPromise;
   await importMapPromise;
@@ -364,7 +349,8 @@ function resolveDeps(load, seen) {
     lastIndex = originalIndex;
   }
 
-  for (const { s: start, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t } of imports) {
+  for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a } of imports) {
+    const maybeAssertion = a > 0 && source.slice(a, statementEnd);
     // source phase
     if (t === 4) {
       let { l: depLoad } = load.d[depIndex++];
@@ -372,8 +358,8 @@ function resolveDeps(load, seen) {
       resolvedSource += 'import ';
       lastIndex = statementStart + 14;
       pushStringTo(start - 1);
-      resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
-      lastIndex = statementEnd;
+      resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
+      lastIndex = end + 1;
     }
     // dependency source replacements
     else if (dynamicImportIndex === -1) {
@@ -399,14 +385,14 @@ function resolveDeps(load, seen) {
       }
 
       pushStringTo(start - 1);
-      resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/'${blobUrl}'`;
+      resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${blobUrl}'`;
 
       // circular shell execution
       if (!cycleShell && depLoad.s) {
         resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
         depLoad.s = undefined;
       }
-      lastIndex = statementEnd;
+      lastIndex = end + 1;
     }
     // import.meta
     else if (dynamicImportIndex === -2) {
@@ -471,6 +457,7 @@ function resolveDeps(load, seen) {
 
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
 
+  console.log(resolvedSource);
   load.b = createBlob(resolvedSource);
   load.S = undefined;
 }
@@ -580,7 +567,7 @@ function isUnsupportedType(type) {
     (type === 'wasm' && !wasmModulesEnabled) ||
     (type === 'ts' && !typescriptEnabled)
   )
-    throw featErr(`${t}-modules`);
+    throw featErr(`${type}-modules`);
   return (
     (type === 'css' && !supportsCssType) ||
     (type === 'json' && !supportsJsonType) ||
@@ -790,6 +777,7 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   const loadPromise = topLevelLoad(
     script.src || pageBaseUrl,
+    null,
     getFetchOpts(script),
     !script.src && script.innerHTML,
     !shimMode,

@@ -38,7 +38,15 @@ suite('Polyfill tests', () => {
 
   test('should support json imports', async function () {
     const { m } = await importShim('./fixtures/json-assertion.js');
-    assert.equal(m, 'module');
+    assert.equal(m.json, 'module');
+    let maybeNative;
+    try {
+      maybeNative = await eval("import('./fixtures/json.json', { with: { type: 'json' } })");
+    } catch {}
+    if (maybeNative) {
+      maybeNative.default.json = 'mutated';
+      assert.equal(m.json, 'mutated');
+    }
   });
 
   test('URL mappings do not cause double execution', async function () {
