@@ -62,6 +62,7 @@ jobs:
           '859178', # Mar 2021, Import Maps
           '913920', # August 2021, JSON modules + CSS modules
           '1306171', # May 2024, just before integrity
+          '1346953', #Jan 2025, multiple import maps
         ]
     name: Chrome Browser Tests
     steps:
