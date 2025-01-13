@@ -1,8 +1,8 @@
 import { resolveAndComposeImportMap, resolveUrl, resolveImportMap, resolveIfNotPlainOrUrl, asURL } from './resolve.js';
 import {
   baseUrl as pageBaseUrl,
+  dynamicImport,
   createBlob,
-  edge,
   throwError,
   shimMode,
   resolveHook,
@@ -22,9 +22,7 @@ import {
   esmsInitOptions,
   hasDocument
 } from './env.js';
-import { dynamicImport, supportsDynamicImport } from './dynamic-import.js';
 import {
-  supportsImportMeta,
   supportsImportMaps,
   supportsCssType,
   supportsJsonType,
@@ -35,7 +33,7 @@ import {
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 
-async function _resolve(id, parentUrl) {
+function _resolve(id, parentUrl = pageBaseUrl) {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
   let composedFallback = false;
   const firstResolved = firstImportMap && resolveImportMap(firstImportMap, urlResolved || id, parentUrl);
@@ -63,44 +61,58 @@ async function _resolve(id, parentUrl) {
 
 const resolve =
   resolveHook ?
-    (id, parentUrl) => {
+    (id, parentUrl = pageBaseUrl) => {
       const result = resolveHook(id, parentUrl, defaultResolve);
       return result ? { r: result, n: true, N: true } : _resolve(id, parentUrl);
     }
   : _resolve;
+
+async function importHandler(id, opts, parentUrl = pageBaseUrl, sourcePhase) {
+  await initPromise; // needed for shim check
+  if (self.ESMS_DEBUG)
+    console.info(
+      `es-module-shims: importShim${sourcePhase ? '.source' : ''}("${id}"${opts ? ', ' + JSON.stringify(opts) : ''})`
+    );
+  if (importHook) await importHook(id, opts, parentUrl);
+  if (shimMode || !baselinePassthrough) {
+    if (hasDocument) processScriptsAndPreloads();
+    legacyAcceptingImportMaps = false;
+  }
+  await importMapPromise;
+  return resolve(id, parentUrl).r;
+}
 
 // supports:
 // import('mod');
 // import('mod', { opts });
 // import('mod', { opts }, parentUrl);
 // import('mod', parentUrl);
-async function importHandler(id, ...args) {
-  // parentUrl if present will be the last argument
-  let parentUrl = args[args.length - 1];
-  if (typeof parentUrl !== 'string') parentUrl = pageBaseUrl;
-  // needed for shim check
-  await initPromise;
-  if (importHook) await importHook(id, typeof args[1] !== 'string' ? args[1] : {}, parentUrl);
-  if (shimMode || !baselinePassthrough) {
-    if (hasDocument) processScriptsAndPreloads();
-    legacyAcceptingImportMaps = false;
+async function importShim(specifier, opts, parentUrl) {
+  if (typeof opts === 'string') {
+    parentUrl = opts;
+    opts = undefined;
   }
-  await importMapPromise;
-  return (await resolve(id, parentUrl)).r;
-}
-
-// import()
-async function importShim(...args) {
-  if (self.ESMS_DEBUG) console.info(`es-module-shims: importShim("${args[0]}")`);
-  return topLevelLoad(await importHandler(...args), { credentials: 'same-origin' });
+  const url = await importHandler(specifier, opts, parentUrl);
+  // if we dynamically import CSS or JSON, and these are supported, use a wrapper module to
+  // support getting those imports from the native loader, because `import(specifier, options)`
+  // is not supported in older browsers to use syntactically.
+  const type = typeof opts === 'object' && typeof opts.with === 'object' && opts.with.type;
+  if ((supportsCssType && type === 'css') || (supportsJsonType && type === 'json')) {
+    return dynamicImport(createBlob(`export{default}from"${url}"with{type:"${type}"`), url);
+  }
+  return topLevelLoad(url, { credentials: 'same-origin' });
 }
 
 // import.source()
+// (opts not currently supported as no use cases yet)
 if (sourcePhaseEnabled)
-  importShim.source = async function importShimSource(...args) {
-    const url = await importHandler(...args);
+  importShim.source = async function importShimSource(specifier, opts, parentUrl) {
+    if (typeof opts === 'string') {
+      parentUrl = opts;
+      opts = undefined;
+    }
+    const url = await importHandler(specifier, opts, parentUrl, true);
     const load = getOrCreateLoad(url, { credentials: 'same-origin' }, null, null);
-    lastLoad = undefined;
     if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
       onpolyfill();
       firstPolyfillLoad = false;
@@ -122,17 +134,11 @@ function throwUnresolved(id, parentUrl) {
   throw Error(`Unable to resolve specifier '${id}'${fromParent(parentUrl)}`);
 }
 
-const resolveSync = (id, parentUrl = pageBaseUrl) => {
-  parentUrl = `${parentUrl}`;
-  const result = resolveHook && resolveHook(id, parentUrl, defaultResolve);
-  return result && !result.then ? result : defaultResolve(id, parentUrl);
-};
-
 function metaResolve(id, parentUrl = this.url) {
-  return resolveSync(id, parentUrl);
+  return resolve(id, `${parentUrl}`).r;
 }
 
-importShim.resolve = resolveSync;
+importShim.resolve = (id, parentUrl) => resolve(id, parentUrl).r;
 importShim.getImportMap = () => JSON.parse(JSON.stringify(composedImportMap));
 importShim.addImportMap = importMapIn => {
   if (!shimMode) throw new Error('Unsupported in polyfill mode.');
@@ -164,8 +170,6 @@ let baselinePassthrough;
 const initPromise = featureDetectionPromise.then(() => {
   baselinePassthrough =
     esmsInitOptions.polyfillEnable !== true &&
-    supportsDynamicImport &&
-    supportsImportMeta &&
     supportsImportMaps &&
     (!jsonModulesEnabled || supportsJsonType) &&
     (!cssModulesEnabled || supportsCssType) &&
@@ -229,7 +233,7 @@ const initPromise = featureDetectionPromise.then(() => {
 });
 
 function attachMutationObserver() {
-  new MutationObserver(mutations => {
+  const observer = new MutationObserver(mutations => {
     for (const mutation of mutations) {
       if (mutation.type !== 'childList') continue;
       for (const node of mutation.addedNodes) {
@@ -245,7 +249,9 @@ function attachMutationObserver() {
         }
       }
     }
-  }).observe(document, { childList: true, subtree: true });
+  });
+  observer.observe(document.head, { childList: true });
+  observer.observe(document.body, { childList: true });
   processScriptsAndPreloads();
 }
 
@@ -260,33 +266,35 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
   if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, '');
   // early analysis opt-out - no need to even fetch if we have feature support
   if (!shimMode && baselinePassthrough) {
-    if (self.ESMS_DEBUG) console.info(`es-module-shims: early load exit as we have baseline modules support ${url}`);
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: early exit for ${url} due to baseline modules support`);
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded) return null;
     await lastStaticLoadPromise;
-    return dynamicImport(source ? createBlob(source) : url, {
-      errUrl: url || source
-    });
+    return dynamicImport(source ? createBlob(source) : url, url || source);
   }
   const load = getOrCreateLoad(url, fetchOpts, null, source);
   linkLoad(load, fetchOpts);
   const seen = {};
   await loadAll(load, seen);
-  lastLoad = undefined;
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
+  if (!shimMode && !load.n && nativelyLoaded) {
+    if (self.ESMS_DEBUG)
+      console.info(
+        `es-module-shims: early exit after graph analysis of ${url} - graph ran natively without needing polyfill`
+      );
+    return;
+  }
   if (source && !shimMode && !load.n) {
-    if (nativelyLoaded) return;
-    if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
-    return await dynamicImport(createBlob(source), { errUrl: source });
+    return await dynamicImport(createBlob(source), source);
   }
   if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
     onpolyfill();
     firstPolyfillLoad = false;
   }
-  const module = await dynamicImport(!shimMode && !load.n && nativelyLoaded ? load.u : load.b, { errUrl: load.u });
+  const module = await (!shimMode && !load.n ? import(load.u) : dynamicImport(load.b, load.u));
   // if the top-level load is a shell, run its update function
-  if (load.s) (await dynamicImport(load.s)).u$_(module);
+  if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
   if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
   // when tla is supported, this should return the tla promise as an actual handle
   // so readystate can still correspond to the sync subgraph exec completions
@@ -303,7 +311,7 @@ function revokeObjectURLs(registryKeys) {
     if (batchStartIndex > keysLength) return;
     for (const key of registryKeys.slice(batchStartIndex, batchStartIndex + 100)) {
       const load = registry[key];
-      if (load) URL.revokeObjectURL(load.b);
+      if (load && load.b) URL.revokeObjectURL(load.b);
     }
     batch++;
     schedule(cleanup);
@@ -314,7 +322,6 @@ function urlJsString(url) {
   return `'${url.replace(/'/g, "\\'")}'`;
 }
 
-let lastLoad;
 function resolveDeps(load, seen) {
   if (load.b || !seen[load.u]) return;
   seen[load.u] = 0;
@@ -329,7 +336,7 @@ function resolveDeps(load, seen) {
   // use native loader whenever possible (n = needs shim) via executable subgraph passthrough
   // so long as the module doesn't use dynamic import or unsupported URL mappings (N = should shim)
   if (!shimMode && !load.n && !load.N) {
-    load.b = lastLoad = load.u;
+    load.b = load.u;
     load.S = undefined;
     return;
   }
@@ -341,8 +348,7 @@ function resolveDeps(load, seen) {
   // "execution"
   const source = load.S;
 
-  // edge doesnt execute sibling in order, so we fix this up by ensuring all previous executions are explicit dependencies
-  let resolvedSource = edge && lastLoad ? `import '${lastLoad}';` : '';
+  let resolvedSource = '';
 
   // once all deps have loaded we can inline the dependency resolution blobs
   // and define this blob
@@ -466,7 +472,7 @@ function resolveDeps(load, seen) {
 
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
 
-  load.b = lastLoad = createBlob(resolvedSource);
+  load.b = createBlob(resolvedSource);
   load.S = undefined;
 }
 
@@ -521,7 +527,7 @@ async function fetchModule(url, fetchOpts, parent) {
   );
   const r = res.url;
   const contentType = res.headers.get('content-type');
-  if (jsContentType.test(contentType)) return { r, s: await res.text(), sp: null, t: 'js' };
+  if (jsContentType.test(contentType)) return { r, s: await res.text(), t: 'js' };
   else if (wasmContentType.test(contentType)) {
     const module = await (sourceCache[r] || (sourceCache[r] = WebAssembly.compileStreaming(res)));
     sourceCache[r] = module;
@@ -539,8 +545,7 @@ async function fetchModule(url, fetchOpts, parent) {
       s += `export const ${expt.name} = instance.exports['${expt.name}'];\n`;
     }
     return { r, s, t: 'wasm' };
-  } else if (jsonContentType.test(contentType))
-    return { r, s: `export default ${await res.text()}`, sp: null, t: 'json' };
+  } else if (jsonContentType.test(contentType)) return { r, s: `export default ${await res.text()}`, t: 'json' };
   else if (cssContentType.test(contentType)) {
     return {
       r,
@@ -550,7 +555,6 @@ async function fetchModule(url, fetchOpts, parent) {
           (_match, quotes = '', relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`
         )
       )});export default s;`,
-      ss: null,
       t: 'css'
     };
   } else
@@ -637,36 +641,30 @@ function linkLoad(load, fetchOpts) {
   if (load.L) return;
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
-    load.d = (
-      await Promise.all(
-        load.a[0].map(async ({ n, d, t }) => {
-          const sourcePhase = t >= 4;
-          if (sourcePhase && !sourcePhaseEnabled) throw featErr('source-phase');
-          if (
-            (d >= 0 && !supportsDynamicImport) ||
-            (d === -2 && !supportsImportMeta) ||
-            (sourcePhase && !supportsSourcePhase)
-          )
-            load.n = true;
-          if (d !== -1 || !n) return;
-          const resolved = await resolve(n, load.r || load.u);
-          if (resolved.n) load.n = true;
-          if (d >= 0 || resolved.N) load.N = true;
-          if (d !== -1) return;
-          if (skip && skip(resolved.r) && !sourcePhase) return { l: { b: resolved.r }, s: false };
-          if (childFetchOpts.integrity) childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
-          const child = { l: getOrCreateLoad(resolved.r, childFetchOpts, load.r, null), s: sourcePhase };
-          if (!child.s) linkLoad(child.l, fetchOpts);
-          // load, sourcePhase
-          return child;
-        })
-      )
-    ).filter(l => l);
+    load.d = load.a[0]
+      .map(({ n, d, t }) => {
+        const sourcePhase = t >= 4;
+        if (sourcePhase) {
+          if (!sourcePhaseEnabled) throw featErr('source-phase');
+          if (!supportsSourcePhase) load.n = true;
+        }
+        if (d !== -1 || !n) return;
+        const resolved = resolve(n, load.r || load.u);
+        if (resolved.n) load.n = true;
+        if (d >= 0 || resolved.N) load.N = true;
+        if (d !== -1) return;
+        if (skip && skip(resolved.r) && !sourcePhase) return { l: { b: resolved.r }, s: false };
+        if (childFetchOpts.integrity) childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
+        const child = { l: getOrCreateLoad(resolved.r, childFetchOpts, load.r, null), s: sourcePhase };
+        if (!child.s) linkLoad(child.l, fetchOpts);
+        // load, sourcePhase
+        return child;
+      })
+      .filter(l => l);
   });
 }
 
 function processScriptsAndPreloads() {
-  if (self.ESMS_DEBUG) console.info(`es-module-shims: processing scripts`);
   for (const link of document.querySelectorAll(shimMode ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]')) {
     if (!link.ep) processPreload(link);
   }
@@ -736,6 +734,7 @@ const epCheck = (script, ready) =>
 
 function processImportMap(script, ready = readyStateCompleteCnt > 0) {
   if (epCheck(script, ready)) return;
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: reading import map`);
   // we dont currently support external import maps in polyfill mode to match native
   if (script.src) {
     if (!shimMode) return;
@@ -750,7 +749,6 @@ function processImportMap(script, ready = readyStateCompleteCnt > 0) {
       );
     })
     .catch(e => {
-      console.log(e);
       if (e instanceof SyntaxError)
         e = new Error(`Unable to parse import map ${e.message} in: ${script.src || script.innerHTML}`);
       throwError(e);
@@ -769,6 +767,7 @@ function processImportMap(script, ready = readyStateCompleteCnt > 0) {
 
 function processScript(script, ready = readyStateCompleteCnt > 0) {
   if (epCheck(script, ready)) return;
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: checking script ${script.src || '<inline>'}`);
   // does this load block readystate complete
   const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
   // does this load block DOMContentLoaded
@@ -777,7 +776,6 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
   if (isLoadScript) loadCnt++;
   if (isBlockingReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
-  if (self.ESMS_DEBUG) console.info(`es-module-shims: loading ${script.src || '<inline>'}`);
   const loadPromise = topLevelLoad(
     script.src || pageBaseUrl,
     getFetchOpts(script),
