@@ -44,7 +44,7 @@ suite('Polyfill tests', () => {
   test('URL mappings do not cause double execution', async function () {
     await importShim('./fixtures/es-modules/dynamic-parent.js');
     assert.equal(window.dynamicUrlMap, true);
-    assert.equal(Boolean(window.dynamic && window.dynamicUrlMap), false);
+    assert.equal(window.dynamic, undefined);
   });
 
   test('should support wasm imports', async function () {

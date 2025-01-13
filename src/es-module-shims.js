@@ -292,7 +292,7 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     onpolyfill();
     firstPolyfillLoad = false;
   }
-  const module = await (!shimMode && !load.n ? import(load.u) : dynamicImport(load.b, load.u));
+  const module = await (!shimMode && !load.n && !load.N ? import(load.u) : dynamicImport(load.b, load.u));
   // if the top-level load is a shell, run its update function
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
   if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
