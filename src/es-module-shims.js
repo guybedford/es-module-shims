@@ -9,6 +9,7 @@ import {
   fetchHook,
   importHook,
   metaHook,
+  tsTransform,
   skip,
   revokeBlobURLs,
   noLoadEventRetriggers,
@@ -20,7 +21,8 @@ import {
   enforceIntegrity,
   fromParent,
   esmsInitOptions,
-  hasDocument
+  hasDocument,
+  typescriptEnabled
 } from './env.js';
 import {
   supportsImportMaps,
@@ -82,25 +84,20 @@ async function importHandler(id, opts, parentUrl = pageBaseUrl, sourcePhase) {
   return resolve(id, parentUrl).r;
 }
 
-// supports:
-// import('mod');
-// import('mod', { opts });
-// import('mod', { opts }, parentUrl);
-// import('mod', parentUrl);
-async function importShim(specifier, opts, parentUrl) {
+// import()
+async function importShim(id, opts, parentUrl) {
   if (typeof opts === 'string') {
     parentUrl = opts;
     opts = undefined;
   }
-  const url = await importHandler(specifier, opts, parentUrl);
-  // if we dynamically import CSS or JSON, and these are supported, use a wrapper module to
-  // support getting those imports from the native loader, because `import(specifier, options)`
-  // is not supported in older browsers to use syntactically.
-  const type = typeof opts === 'object' && typeof opts.with === 'object' && opts.with.type;
-  if ((supportsCssType && type === 'css') || (supportsJsonType && type === 'json')) {
-    return dynamicImport(createBlob(`export{default}from"${url}"with{type:"${type}"`), url);
-  }
-  return topLevelLoad(url, { credentials: 'same-origin' });
+  // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
+  // because we can't syntactically pass through to dynamic import with a second argument in this libarary
+  const url = await importHandler(id, opts, parentUrl, false);
+  const source =
+    typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string' ?
+      `export{default}from'${url}'with{type:"${opts.with.type}"}`
+    : null;
+  return topLevelLoad(url, { credentials: 'same-origin' }, source);
 }
 
 // import.source()
@@ -176,11 +173,8 @@ const initPromise = featureDetectionPromise.then(() => {
     (!wasmModulesEnabled || supportsWasmModules) &&
     (!sourcePhaseEnabled || supportsSourcePhase) &&
     (!multipleImportMaps || supportsMultipleImportMaps) &&
-    !importMapSrc;
-  if (self.ESMS_DEBUG)
-    console.info(
-      `es-module-shims: init ${shimMode ? 'shim mode' : 'polyfill mode'}, ${baselinePassthrough ? 'baseline passthrough' : 'polyfill engaged'}`
-    );
+    !importMapSrc &&
+    !typescriptEnabled;
   if (sourcePhaseEnabled && typeof WebAssembly !== 'undefined' && !Object.getPrototypeOf(WebAssembly.Module).name) {
     const s = Symbol();
     const brand = m =>
@@ -278,15 +272,17 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
   await loadAll(load, seen);
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
-  if (!shimMode && !load.n && nativelyLoaded) {
-    if (self.ESMS_DEBUG)
-      console.info(
-        `es-module-shims: early exit after graph analysis of ${url} - graph ran natively without needing polyfill`
-      );
-    return;
-  }
-  if (source && !shimMode && !load.n) {
-    return await dynamicImport(createBlob(source), source);
+  if (!shimMode && !load.n) {
+    if (nativelyLoaded) {
+      if (self.ESMS_DEBUG)
+        console.info(
+          `es-module-shims: early exit after graph analysis of ${url} - graph ran natively without needing polyfill`
+        );
+      return;
+    }
+    if (source) {
+      return await dynamicImport(createBlob(source), source);
+    }
   }
   if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
     onpolyfill();
@@ -365,7 +361,7 @@ function resolveDeps(load, seen) {
     lastIndex = originalIndex;
   }
 
-  for (const { s: start, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t } of imports) {
+  for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a } of imports) {
     // source phase
     if (t === 4) {
       let { l: depLoad } = load.d[depIndex++];
@@ -373,8 +369,8 @@ function resolveDeps(load, seen) {
       resolvedSource += 'import ';
       lastIndex = statementStart + 14;
       pushStringTo(start - 1);
-      resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
-      lastIndex = statementEnd;
+      resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
+      lastIndex = end + 1;
     }
     // dependency source replacements
     else if (dynamicImportIndex === -1) {
@@ -399,15 +395,18 @@ function resolveDeps(load, seen) {
         }
       }
 
+      // strip import assertions unless we support them
+      const stripAssertion = (!supportsCssType && !supportsJsonType) || !(a > 0);
+
       pushStringTo(start - 1);
-      resolvedSource += `/*${source.slice(start - 1, statementEnd)}*/'${blobUrl}'`;
+      resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${blobUrl}'`;
 
       // circular shell execution
       if (!cycleShell && depLoad.s) {
         resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
         depLoad.s = undefined;
       }
-      lastIndex = statementEnd;
+      lastIndex = stripAssertion ? statementEnd : end + 1;
     }
     // import.meta
     else if (dynamicImportIndex === -2) {
@@ -480,9 +479,10 @@ const sourceURLCommentPrefix = '\n//# sourceURL=';
 const sourceMapURLCommentPrefix = '\n//# sourceMappingURL=';
 
 const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
-const wasmContentType = /^(application)\/wasm(;|$)/;
+const wasmContentType = /^application\/wasm(;|$)/;
 const jsonContentType = /^(text|application)\/json(;|$)/;
 const cssContentType = /^(text|application)\/css(;|$)/;
+const tsContentType = /^application\/typescript(;|$)|/;
 
 const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\])+))\s*\)/g;
 
@@ -517,6 +517,8 @@ async function doFetch(url, fetchOpts, parent) {
   }
   return res;
 }
+
+let esmsTsTransform;
 
 async function fetchModule(url, fetchOpts, parent) {
   const mapIntegrity = composedImportMap.integrity[url];
@@ -557,6 +559,14 @@ async function fetchModule(url, fetchOpts, parent) {
       )});export default s;`,
       t: 'css'
     };
+  } else if ((typescriptEnabled && tsContentType.test(contentType)) || url.endsWith('.ts') || url.endsWith('.mts')) {
+    const source = await res.text();
+    // if we don't have a ts transform hook, try to load it
+    if (!esmsTsTransform) {
+      ({ transform: esmsTsTransform } = await import(tsTransform));
+    }
+    const transformed = esmsTsTransform(source, url);
+    return { r, s: transformed || source, t: transformed ? 'ts' : 'js' };
   } else
     throw Error(
       `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
@@ -567,13 +577,15 @@ function isUnsupportedType(type) {
   if (
     (type === 'css' && !cssModulesEnabled) ||
     (type === 'json' && !jsonModulesEnabled) ||
-    (type === 'wasm' && !wasmModulesEnabled)
+    (type === 'wasm' && !wasmModulesEnabled) ||
+    (type === 'ts' && !typescriptEnabled)
   )
-    throw featErr(`${t}-modules`);
+    throw featErr(`${type}-modules`);
   return (
     (type === 'css' && !supportsCssType) ||
     (type === 'json' && !supportsJsonType) ||
-    (type === 'wasm' && !supportsWasmModules)
+    (type === 'wasm' && !supportsWasmModules) ||
+    type === 'ts'
   );
 }
 
@@ -617,7 +629,7 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     if (!load.S) {
       // preload fetch options override fetch options (race)
       ({ r: load.r, s: load.S, t: load.t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
-      if (load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
+      if (!load.n && load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
         load.n = true;
       }
     }

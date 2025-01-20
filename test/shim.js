@@ -1,5 +1,3 @@
-const edge = !!navigator.userAgent.match(/Edge\/\d\d\.\d+$/);
-
 self.baseURL = location.href.substr(0, location.href.lastIndexOf('/') + 1);
 
 suite('Basic loading tests', () => {
@@ -67,15 +65,12 @@ suite('Basic loading tests', () => {
 
   test('should resolve various import syntax', async function () {
     var m = await importShim('./fixtures/es-modules/import.js');
-    if (!edge)
-      assert.equal(typeof m.a, 'function');
+    assert.equal(typeof m.a, 'function');
     assert.equal(m.b, 4);
     assert.equal(m.c, 5);
     assert.equal(m.d, 4);
-    if (!edge) {
-      assert.equal(typeof m.q, 'object');
-      assert.equal(typeof m.q.foo, 'function');
-    }
+    assert.equal(typeof m.q, 'object');
+    assert.equal(typeof m.q.foo, 'function');
   });
 
   test('should support import.meta.url', async function () {
@@ -85,7 +80,7 @@ suite('Basic loading tests', () => {
 
   test('should support import assertions', async function () {
     var m = await importShim('./fixtures/json-assertion.js');
-    assert.equal(m.m, 'module');
+    assert.equal(m.m.json, 'module');
   });
 
   test('should support css imports', async function () {

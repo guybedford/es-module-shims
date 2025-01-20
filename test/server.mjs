@@ -17,7 +17,8 @@ const mimes = {
   '.js': 'application/javascript',
   '.mjs': 'application/javascript',
   '.json': 'application/json',
-  '.wasm': 'application/wasm'
+  '.wasm': 'application/wasm',
+  '.ts': 'application/typescript'
 };
 
 const shouldExit = process.env.WATCH_MODE !== 'true';

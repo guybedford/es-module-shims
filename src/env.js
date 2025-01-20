@@ -22,6 +22,11 @@ export const importHook = globalHook(shimMode && esmsInitOptions.onimport);
 export const resolveHook = globalHook(shimMode && esmsInitOptions.resolve);
 export let fetchHook = esmsInitOptions.fetch ? globalHook(esmsInitOptions.fetch) : fetch;
 export const metaHook = esmsInitOptions.meta ? globalHook(shimMode && esmsInitOptions.meta) : noop;
+export const tsTransform =
+  esmsInitOptions.tsTransform ||
+  (document.currentScript &&
+    document.currentScript.src.replace(self.ESMS_DEBUG ? '.debug.js' : '.js', '-typescript.js')) ||
+  './es-module-shims-typescript.js';
 
 export const mapOverrides = esmsInitOptions.mapOverrides;
 
@@ -40,10 +45,13 @@ function globalHook(name) {
 }
 
 const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
-export const cssModulesEnabled = enable.includes('css-modules');
-export const jsonModulesEnabled = enable.includes('json-modules');
-export const wasmModulesEnabled = enable.includes('wasm-modules');
-export const sourcePhaseEnabled = enable.includes('source-phase');
+const enableAll = esmsInitOptions.polyfillEnable === 'all' || enable.includes('all');
+const enableLatest = esmsInitOptions.polyfillEnable === 'latest' || enable.includes('latest');
+export const cssModulesEnabled = enable.includes('css-modules') || enableAll || enableLatest;
+export const jsonModulesEnabled = enable.includes('json-modules') || enableAll || enableLatest;
+export const wasmModulesEnabled = enable.includes('wasm-modules') || enableAll;
+export const sourcePhaseEnabled = enable.includes('source-phase') || enableAll;
+export const typescriptEnabled = enable.includes('typescript') || enableAll;
 
 export const onpolyfill =
   esmsInitOptions.onpolyfill ?

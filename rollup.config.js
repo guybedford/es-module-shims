@@ -5,13 +5,14 @@ import path from 'path';
 const version = JSON.parse(fs.readFileSync('package.json')).version;
 
 export default [
-  config(true, false),
-  config(false, false),
-  config(false, true),
+  config(true, false, false),
+  config(false, false, false),
+  config(false, true, false),
+  config(true, false, true)
 ];
 
-function config (isWasm, isDebug) {
-  const name = 'es-module-shims'
+function config(isWasm, isDebug) {
+  const name = 'es-module-shims';
 
   return {
     input: `src/${name}.js`,
@@ -20,11 +21,11 @@ function config (isWasm, isDebug) {
       format: 'iife',
       strict: false,
       sourcemap: false,
-      banner: `/* ES Module Shims ${isWasm ? 'Wasm ' : ''}${isDebug ? 'DEBUG BUILD ' : ''}${version} */`
+      banner: `/* ES Module Shims ${isWasm ? 'Wasm ' : ''}${version} */`
     },
     plugins: [
       {
-        resolveId (id) {
+        resolveId(id) {
           if (isWasm && id === '../node_modules/es-module-lexer/dist/lexer.asm.js')
             return path.resolve('node_modules/es-module-lexer/dist/lexer.js');
         }
@@ -32,7 +33,7 @@ function config (isWasm, isDebug) {
       replace({
         'self.ESMS_DEBUG': isDebug.toString(),
         preventAssignment: true
-      }),
+      })
     ]
   };
 }

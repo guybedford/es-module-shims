@@ -9,8 +9,9 @@ For the remaining ~4% of users, the highly performant (see [benchmarks](#benchma
 The following modules features are polyfilled:
 
 * [Import Maps](#import-maps) polyfill.
-* [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions (when enabled).
-* [Wasm modules](#wasm-modules) with support for Source Phase Imports (when enabled).
+* [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions when enabled.
+* [Wasm modules](#wasm-modules) with support for Source Phase Imports when enabled.
+* [TypeScript](#typescript) type stripping when enabled.
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
 
@@ -190,7 +191,19 @@ If using more modern features like CSS Modules or JSON Modules, these need to be
 
 ```html
 <script>
-window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules', 'wasm-modules'] }
+window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules', 'wasm-modules', 'typescript'] }
+</script>
+```
+
+The above polyfill options correspond to `polyfillEnable: 'all'`.
+
+Alternatively options can be set via the `esms-options` script type:
+
+```html
+<script type="esms-options">
+{
+  "polyfillEnable": "all"
+}
 </script>
 ```
 
@@ -531,6 +544,26 @@ const instance = await WebAssembly.instantiate(mod, { /* ...imports */ });
 
 If using CSP, make sure to add `'unsafe-wasm-eval'` to `script-src` which is needed when the shim or polyfill engages, note this policy is much much safer than eval due to the Wasm secure sandbox. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#unsafe_webassembly_execution.
 
+### TypeScript Type Stripping
+
+Node.js recently [added support for automatically executing TypeScript with type stripping](https://nodejs.org/api/typescript.html). We support the exact same approach in ES Module Shims.
+
+Once enabled, the separate `es-module-shims-typescript.js` extension must be available as a sibling asset to `es-module-shims.js` and will then be loaded on demand when a `.ts`, `.mts` file is loaded or when a file is served with the `application/typescript` MIME type.
+
+Example:
+
+```html
+<script async src="https://ga.jspm.io/npm:es-module-shims@2.0.3/dist/es-module-shims.js"></script>
+<script type="esms-options">
+{
+  "polyfillEnable": "all"
+}
+</script>
+<script type="module" src="test.ts"></script>
+```
+
+Note that runtime TypeScript features such as enums are not supported, and type only imports should be used where possible, per the Node.js guidance for TypeScript.
+
 ### Module Workers
 
 ES Module Shims can be used in module workers in browsers that provide dynamic import in worker environments, which at the moment are Chrome(80+), Edge(80+), Firefox(~113+) and Safari(15+).
@@ -575,7 +608,6 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [nonce](#nonce)
 * [onerror](#error-hook)
 * [onpolyfill](#polyfill-hook)
-* [polyfillEnable](#polyfill-enable-option)
 * [resolve](#resolve-hook)
 * [revokeBlobURLs](#revoke-blob-urls)
 * [shimMode](#shim-mode-option)
