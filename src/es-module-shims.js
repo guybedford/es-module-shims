@@ -559,7 +559,7 @@ async function fetchModule(url, fetchOpts, parent) {
       )});export default s;`,
       t: 'css'
     };
-  } else if (typescriptEnabled && tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts')) {
+  } else if ((typescriptEnabled && tsContentType.test(contentType)) || url.endsWith('.ts') || url.endsWith('.mts')) {
     const source = await res.text();
     // if we don't have a ts transform hook, try to load it
     if (!esmsTsTransform) {
