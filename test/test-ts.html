@@ -13,7 +13,7 @@
   "polyfillEnable": ["typescript", "css-modules"]
 }
 </script>
-<script type="module" src="../dist/es-module-shims.js"></script>
+<script type="module" src="../dist/es-module-shims.debug.js"></script>
 <script type="module" src="/test/fixtures/test.ts"></script>
 <script type="module" noshim>
   import { runMochaTests } from "./runMochaTests.js";
@@ -26,7 +26,9 @@
   }
 </script>
 
-<script type="text/typescript">
+<script type="application/typescript">
+  type test = 'hi' | boolean;
+  window.inlineTypescript as test = true;
 </script>
 
 <div id="mocha"></div>

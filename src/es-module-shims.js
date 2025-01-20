@@ -85,9 +85,19 @@ async function importHandler(id, opts, parentUrl = pageBaseUrl, sourcePhase) {
 }
 
 // import()
-async function importShim(...args) {
-  if (self.ESMS_DEBUG) console.info(`es-module-shims: importShim("${args[0]}")`);
-  return topLevelLoad(await importHandler(...args), args[1], { credentials: 'same-origin' });
+async function importShim(id, opts, parentUrl) {
+  if (typeof opts === 'string') {
+    parentUrl = opts;
+    opts = undefined;
+  }
+  // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
+  // because we can't syntactically pass through to dynamic import with a second argument in this libarary
+  const url = await importHandler(id, opts, parentUrl, false);
+  const source =
+    typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string' ?
+      `export{default}from'${url}'with{type:"${opts.with.type}"}`
+    : null;
+  return topLevelLoad(url, { credentials: 'same-origin' }, source);
 }
 
 // import.source()
@@ -243,7 +253,7 @@ let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let legacyAcceptingImportMaps = true;
 
-async function topLevelLoad(url, importOpts, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
+async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
   legacyAcceptingImportMaps = false;
   await initPromise;
   await importMapPromise;
@@ -262,15 +272,17 @@ async function topLevelLoad(url, importOpts, fetchOpts, source, nativelyLoaded, 
   await loadAll(load, seen);
   resolveDeps(load, seen);
   await lastStaticLoadPromise;
-  if (!shimMode && !load.n && nativelyLoaded) {
-    if (self.ESMS_DEBUG)
-      console.info(
-        `es-module-shims: early exit after graph analysis of ${url} - graph ran natively without needing polyfill`
-      );
-    return;
-  }
-  if (source && !shimMode && !load.n) {
-    return await dynamicImport(createBlob(source), source);
+  if (!shimMode && !load.n) {
+    if (nativelyLoaded) {
+      if (self.ESMS_DEBUG)
+        console.info(
+          `es-module-shims: early exit after graph analysis of ${url} - graph ran natively without needing polyfill`
+        );
+      return;
+    }
+    if (source) {
+      return await dynamicImport(createBlob(source), source);
+    }
   }
   if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
     onpolyfill();
@@ -350,7 +362,6 @@ function resolveDeps(load, seen) {
   }
 
   for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a } of imports) {
-    const maybeAssertion = a > 0 && source.slice(a, statementEnd);
     // source phase
     if (t === 4) {
       let { l: depLoad } = load.d[depIndex++];
@@ -384,6 +395,9 @@ function resolveDeps(load, seen) {
         }
       }
 
+      // strip import assertions unless we support them
+      const stripAssertion = (!supportsCssType && !supportsJsonType) || !(a > 0);
+
       pushStringTo(start - 1);
       resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${blobUrl}'`;
 
@@ -392,7 +406,7 @@ function resolveDeps(load, seen) {
         resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
         depLoad.s = undefined;
       }
-      lastIndex = end + 1;
+      lastIndex = stripAssertion ? statementEnd : end + 1;
     }
     // import.meta
     else if (dynamicImportIndex === -2) {
@@ -457,7 +471,7 @@ function resolveDeps(load, seen) {
 
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
 
-  console.log(resolvedSource);
+  console.log(load.u, resolvedSource);
   load.b = createBlob(resolvedSource);
   load.S = undefined;
 }
@@ -777,7 +791,6 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
   if (isDomContentLoadedScript) domContentLoadedCnt++;
   const loadPromise = topLevelLoad(
     script.src || pageBaseUrl,
-    null,
     getFetchOpts(script),
     !script.src && script.innerHTML,
     !shimMode,

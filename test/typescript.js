@@ -10,6 +10,6 @@ suite('TypeScript loading tests', () => {
   test('TypeScript with CSS dependency', async function () {
     const { style, getStyle, p } = await importShim('/test/fixtures/ts-loading-css.ts');
     assert.ok(p === 50);
-    assert.ok(await getStyle() instanceof CSSStyleSheet);
+    assert.ok((await getStyle()).default instanceof CSSStyleSheet);
   });
 });
