@@ -425,8 +425,8 @@ suite('Errors', function () {
       type: 'importmap-shim',
       innerHTML: JSON.stringify(importMap),
     });
-    document.body.appendChild(script);
-    return () => document.body.removeChild(script);
+    document.head.appendChild(script);
+    return () => document.head.removeChild(script);
   }
 });
 
