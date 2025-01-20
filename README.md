@@ -297,13 +297,13 @@ In polyfill mode, multiple import maps are supported.
 Support for dynamically injecting import maps with JavaScript via e.g.:
 
 ```js
-document.body.appendChild(Object.assign(document.createElement('script'), {
+document.head.appendChild(Object.assign(document.createElement('script'), {
   type: 'importmap',
   innerHTML: JSON.stringify({ imports: { x: './y.js' } }),
 }));
 ```
 
-is also provided using mutation observers.
+is also provided using mutation observers. Note, only `document.head` appending of scripts, importmaps and preloads is supported - we do not observe body mutations to `document.body` for performance reasons.
 
 The caveat for multiple import map support polyfill support in browsers that only support a single import map is per the usual "polyfill rule" for es-module-shims - only those top-level graphs with static import feailures can be polyfilled.
 

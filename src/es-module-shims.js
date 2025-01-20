@@ -250,8 +250,8 @@ function attachMutationObserver() {
       }
     }
   });
+  observer.observe(document, { childList: true });
   observer.observe(document.head, { childList: true });
-  observer.observe(document.body, { childList: true });
   processScriptsAndPreloads();
 }
 
