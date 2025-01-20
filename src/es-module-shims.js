@@ -471,7 +471,6 @@ function resolveDeps(load, seen) {
 
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
 
-  console.log(load.u, resolvedSource);
   load.b = createBlob(resolvedSource);
   load.S = undefined;
 }
