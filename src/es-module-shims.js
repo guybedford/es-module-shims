@@ -483,7 +483,7 @@ const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
 const wasmContentType = /^application\/wasm(;|$)/;
 const jsonContentType = /^(text|application)\/json(;|$)/;
 const cssContentType = /^(text|application)\/css(;|$)/;
-const tsContentType = /^(application\/typescript|video\/mp2t)(;|$)|/;
+const tsContentType = /^application\/typescript(;|$)|/;
 
 const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\])+))\s*\)/g;
 
@@ -560,7 +560,7 @@ async function fetchModule(url, fetchOpts, parent) {
       )});export default s;`,
       t: 'css'
     };
-  } else if (typescriptEnabled && tsContentType.test(contentType)) {
+  } else if (typescriptEnabled && tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts')) {
     const source = await res.text();
     // if we don't have a ts transform hook, try to load it
     if (!esmsTsTransform) {
