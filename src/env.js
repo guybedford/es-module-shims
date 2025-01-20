@@ -25,7 +25,7 @@ export const metaHook = esmsInitOptions.meta ? globalHook(shimMode && esmsInitOp
 export const tsTransform =
   esmsInitOptions.tsTransform ||
   (document.currentScript &&
-    document.currentScript.src.replace(self.ESMS_DEBUG ? '.debug.js' : '.js', '-typescript.js')) ||
+    document.currentScript.src.replace(self.ESMS_DEBUG ? /\.debug\.js$/ : /\.js$/, '-typescript.js')) ||
   './es-module-shims-typescript.js';
 
 export const mapOverrides = esmsInitOptions.mapOverrides;
