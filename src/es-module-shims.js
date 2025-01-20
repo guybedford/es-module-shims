@@ -237,6 +237,8 @@ function attachMutationObserver() {
     for (const mutation of mutations) {
       if (mutation.type !== 'childList') continue;
       for (const node of mutation.addedNodes) {
+        if (node.tagName === 'BODY' && node.parentNode === document)
+          observer.observer(node);
         if (node.tagName === 'SCRIPT') {
           if (node.type === (shimMode ? 'module-shim' : 'module') && !node.ep) processScript(node, true);
           if (node.type === (shimMode ? 'importmap-shim' : 'importmap') && !node.ep) processImportMap(node, true);
@@ -250,7 +252,9 @@ function attachMutationObserver() {
       }
     }
   });
+  observer.observe(document, { childList: true });
   observer.observe(document.head, { childList: true });
+  if (document.body) observer.observer(document.body, { childList: true });
   processScriptsAndPreloads();
 }
 
