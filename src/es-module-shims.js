@@ -654,11 +654,15 @@ function linkLoad(load, fetchOpts) {
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
     load.d = load.a[0]
-      .map(({ n, d, t }) => {
+      .map(({ n, d, t, a }) => {
         const sourcePhase = t >= 4;
         if (sourcePhase) {
           if (!sourcePhaseEnabled) throw featErr('source-phase');
           if (!supportsSourcePhase) load.n = true;
+        }
+        if (a > 0) {
+          if (!cssModulesEnabled && !jsonModulesEnabled) throw featErr('css-modules / json-modules');
+          if (!supportsCssType && !supportsJsonType) load.n = true;
         }
         if (d !== -1 || !n) return;
         const resolved = resolve(n, load.r || load.u);
