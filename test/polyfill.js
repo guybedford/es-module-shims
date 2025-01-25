@@ -37,7 +37,7 @@ suite('Polyfill tests', () => {
   });
 
   test('should support css imports', async function () {
-    const { default: style } = await importShim('./fixtures/sheet.css', { with: { type: 'css' } });
+    const { default: style } = await importShim('./fixtures/sheet.css', { 'with': { type: 'css' } });
     assert.ok(style instanceof CSSStyleSheet);
   });
 
