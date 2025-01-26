@@ -103,7 +103,7 @@ async function importShim(id, opts, parentUrl) {
 
 // import.source()
 // (opts not currently supported as no use cases yet)
-if (sourcePhaseEnabled)
+if (shimMode || sourcePhaseEnabled)
   importShim.source = async function importShimSource(specifier, opts, parentUrl) {
     if (typeof opts === 'string') {
       parentUrl = opts;
@@ -176,7 +176,7 @@ const initPromise = featureDetectionPromise.then(() => {
     (!multipleImportMaps || supportsMultipleImportMaps) &&
     !importMapSrc &&
     !typescriptEnabled;
-  if (sourcePhaseEnabled && typeof WebAssembly !== 'undefined' && !Object.getPrototypeOf(WebAssembly.Module).name) {
+  if (!shimMode && sourcePhaseEnabled && typeof WebAssembly !== 'undefined' && !Object.getPrototypeOf(WebAssembly.Module).name) {
     const s = Symbol();
     const brand = m =>
       Object.defineProperty(m, s, { writable: false, configurable: false, value: 'WebAssembly.Module' });
@@ -560,7 +560,7 @@ async function fetchModule(url, fetchOpts, parent) {
       )});export default s;`,
       t: 'css'
     };
-  } else if ((typescriptEnabled && tsContentType.test(contentType)) || url.endsWith('.ts') || url.endsWith('.mts')) {
+  } else if ((shimMode || typescriptEnabled) && (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts'))) {
     const source = await res.text();
     // if we don't have a ts transform hook, try to load it
     if (!esmsTsTransform) {
@@ -658,11 +658,11 @@ function linkLoad(load, fetchOpts) {
       .map(({ n, d, t, a }) => {
         const sourcePhase = t >= 4;
         if (sourcePhase) {
-          if (!sourcePhaseEnabled) throw featErr('source-phase');
+          if (!shimMode && !sourcePhaseEnabled) throw featErr('source-phase');
           if (!supportsSourcePhase) load.n = true;
         }
         if (a > 0) {
-          if (!cssModulesEnabled && !jsonModulesEnabled) throw featErr('css-modules / json-modules');
+          if (!shimMode && !cssModulesEnabled && !jsonModulesEnabled) throw featErr('css-modules / json-modules');
           if (!supportsCssType && !supportsJsonType) load.n = true;
         }
         if (d !== -1 || !n) return;
@@ -773,7 +773,7 @@ function processImportMap(script, ready = readyStateCompleteCnt > 0) {
   if (!firstImportMap && legacyAcceptingImportMaps) importMapPromise.then(() => (firstImportMap = composedImportMap));
   if (!legacyAcceptingImportMaps && !multipleImportMaps) {
     multipleImportMaps = true;
-    if (baselinePassthrough && !supportsMultipleImportMaps) {
+    if (!shimMode && baselinePassthrough && !supportsMultipleImportMaps) {
       if (self.ESMS_DEBUG) console.info(`es-module-shims: disabling baseline passthrough due to multiple import maps`);
       baselinePassthrough = false;
       if (hasDocument) attachMutationObserver();
