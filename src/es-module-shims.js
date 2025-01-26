@@ -92,12 +92,13 @@ async function importShim(id, opts, parentUrl) {
   }
   // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
   // because we can't syntactically pass through to dynamic import with a second argument in this libarary
-  const url = await importHandler(id, opts, parentUrl, false);
-  const source =
-    typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string' ?
-      `export{default}from'${url}'with{type:"${opts.with.type}"}`
-    : null;
-  return topLevelLoad(url + '?entry', { credentials: 'same-origin' }, source);
+  let url = await importHandler(id, opts, parentUrl, false);
+  let source = null;
+  if (typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string') {
+    source = `export{default}from'${url}'with{type:"${opts.with.type}"}`;
+    url += '?entry';
+  }
+  return topLevelLoad(url, { credentials: 'same-origin' }, source);
 }
 
 // import.source()
