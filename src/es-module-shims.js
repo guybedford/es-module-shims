@@ -92,17 +92,18 @@ async function importShim(id, opts, parentUrl) {
   }
   // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
   // because we can't syntactically pass through to dynamic import with a second argument in this libarary
-  const url = await importHandler(id, opts, parentUrl, false);
-  const source =
-    typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string' ?
-      `export{default}from'${url}'with{type:"${opts.with.type}"}`
-    : null;
+  let url = await importHandler(id, opts, parentUrl, false);
+  let source = null;
+  if (typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string') {
+    source = `export{default}from'${url}'with{type:"${opts.with.type}"}`;
+    url += '?entry';
+  }
   return topLevelLoad(url, { credentials: 'same-origin' }, source);
 }
 
 // import.source()
 // (opts not currently supported as no use cases yet)
-if (sourcePhaseEnabled)
+if (shimMode || sourcePhaseEnabled)
   importShim.source = async function importShimSource(specifier, opts, parentUrl) {
     if (typeof opts === 'string') {
       parentUrl = opts;
@@ -175,7 +176,12 @@ const initPromise = featureDetectionPromise.then(() => {
     (!multipleImportMaps || supportsMultipleImportMaps) &&
     !importMapSrc &&
     !typescriptEnabled;
-  if (sourcePhaseEnabled && typeof WebAssembly !== 'undefined' && !Object.getPrototypeOf(WebAssembly.Module).name) {
+  if (
+    !shimMode &&
+    sourcePhaseEnabled &&
+    typeof WebAssembly !== 'undefined' &&
+    !Object.getPrototypeOf(WebAssembly.Module).name
+  ) {
     const s = Symbol();
     const brand = m =>
       Object.defineProperty(m, s, { writable: false, configurable: false, value: 'WebAssembly.Module' });
@@ -559,7 +565,10 @@ async function fetchModule(url, fetchOpts, parent) {
       )});export default s;`,
       t: 'css'
     };
-  } else if ((typescriptEnabled && tsContentType.test(contentType)) || url.endsWith('.ts') || url.endsWith('.mts')) {
+  } else if (
+    (shimMode || typescriptEnabled) &&
+    (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts'))
+  ) {
     const source = await res.text();
     // if we don't have a ts transform hook, try to load it
     if (!esmsTsTransform) {
@@ -654,11 +663,15 @@ function linkLoad(load, fetchOpts) {
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
     load.d = load.a[0]
-      .map(({ n, d, t }) => {
+      .map(({ n, d, t, a }) => {
         const sourcePhase = t >= 4;
         if (sourcePhase) {
-          if (!sourcePhaseEnabled) throw featErr('source-phase');
+          if (!shimMode && !sourcePhaseEnabled) throw featErr('source-phase');
           if (!supportsSourcePhase) load.n = true;
+        }
+        if (a > 0) {
+          if (!shimMode && !cssModulesEnabled && !jsonModulesEnabled) throw featErr('css-modules / json-modules');
+          if (!supportsCssType && !supportsJsonType) load.n = true;
         }
         if (d !== -1 || !n) return;
         const resolved = resolve(n, load.r || load.u);
@@ -768,7 +781,7 @@ function processImportMap(script, ready = readyStateCompleteCnt > 0) {
   if (!firstImportMap && legacyAcceptingImportMaps) importMapPromise.then(() => (firstImportMap = composedImportMap));
   if (!legacyAcceptingImportMaps && !multipleImportMaps) {
     multipleImportMaps = true;
-    if (baselinePassthrough && !supportsMultipleImportMaps) {
+    if (!shimMode && baselinePassthrough && !supportsMultipleImportMaps) {
       if (self.ESMS_DEBUG) console.info(`es-module-shims: disabling baseline passthrough due to multiple import maps`);
       baselinePassthrough = false;
       if (hasDocument) attachMutationObserver();
