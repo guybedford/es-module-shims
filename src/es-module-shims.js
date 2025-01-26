@@ -176,7 +176,12 @@ const initPromise = featureDetectionPromise.then(() => {
     (!multipleImportMaps || supportsMultipleImportMaps) &&
     !importMapSrc &&
     !typescriptEnabled;
-  if (!shimMode && sourcePhaseEnabled && typeof WebAssembly !== 'undefined' && !Object.getPrototypeOf(WebAssembly.Module).name) {
+  if (
+    !shimMode &&
+    sourcePhaseEnabled &&
+    typeof WebAssembly !== 'undefined' &&
+    !Object.getPrototypeOf(WebAssembly.Module).name
+  ) {
     const s = Symbol();
     const brand = m =>
       Object.defineProperty(m, s, { writable: false, configurable: false, value: 'WebAssembly.Module' });
@@ -560,7 +565,10 @@ async function fetchModule(url, fetchOpts, parent) {
       )});export default s;`,
       t: 'css'
     };
-  } else if ((shimMode || typescriptEnabled) && (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts'))) {
+  } else if (
+    (shimMode || typescriptEnabled) &&
+    (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts'))
+  ) {
     const source = await res.text();
     // if we don't have a ts transform hook, try to load it
     if (!esmsTsTransform) {
