@@ -97,7 +97,7 @@ async function importShim(id, opts, parentUrl) {
     typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string' ?
       `export{default}from'${url}'with{type:"${opts.with.type}"}`
     : null;
-  return topLevelLoad(url, { credentials: 'same-origin' }, source);
+  return topLevelLoad(url + '?entry', { credentials: 'same-origin' }, source);
 }
 
 // import.source()
