@@ -44,7 +44,10 @@ ${amaroSource}
 const amaroTransformSync = module.exports.transformSync;
 export function transform(source, url) {
   try {
-    return amaroTransformSync(source, { filename: url, transform: { mode: 'strip-only', noEmptyExport: true } }).code;
+    const transformed = amaroTransformSync(source, { filename: url, transform: { mode: 'strip-only', noEmptyExport: true } }).code;
+    // Importantly, return undefined when there is no work to do
+    if (transformed !== source)
+      return transformed;
   } catch (e) {
     // This is needed pending figuring out why filename option above isn't working
     throw new SyntaxError(e.message.replace(',-', url + ' - '));

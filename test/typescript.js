@@ -1,11 +1,17 @@
 suite('TypeScript loading tests', () => {
+  const timeoutInitPromise = new Promise(resolve => setTimeout(resolve, 1000));
   test('Inline lang=ts support', async function () {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await timeoutInitPromise;
+    assert.ok(globalThis.inlineTypescriptNoWork === 1);
+  });
+
+  test('Inline lang=ts support for no work', async function () {
+    await timeoutInitPromise;
     assert.ok(globalThis.inlineTypescript === true);
   });
 
   test('Static TS script', async function () {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await timeoutInitPromise;
     assert.ok(globalThis.executedTs === true);
   });
 
