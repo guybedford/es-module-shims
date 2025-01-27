@@ -576,7 +576,7 @@ async function fetchModule(url, fetchOpts, parent) {
     const source = await res.text();
     if (!esmsTsTransform) await initTs();
     const transformed = esmsTsTransform(source, url);
-    return { r, s: transformed || source, t: transformed ? 'ts' : 'js' };
+    return { r, s: transformed === undefined ? source : transformed, t: transformed !== undefined ? 'ts' : 'js' };
   } else
     throw Error(
       `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
@@ -796,15 +796,16 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
   if (script.lang === 'ts' && !script.src) {
     const source = script.innerHTML;
     return initTs()
-      .then(() =>
-        topLevelLoad(
+      .then(() => {
+        const transformed = esmsTsTransform(source, pageBaseUrl);
+        return topLevelLoad(
           pageBaseUrl,
           getFetchOpts(script),
-          esmsTsTransform(source, pageBaseUrl) || source,
-          undefined,
+          transformed === undefined ? source : transformed,
+          transformed === undefined,
           undefined
-        )
-      )
+        );
+      })
       .catch(throwError);
   }
   if (self.ESMS_DEBUG) console.info(`es-module-shims: checking script ${script.src || '<inline>'}`);

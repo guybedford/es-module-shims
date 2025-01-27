@@ -32,4 +32,9 @@
   window.inlineTypescript as test = true;
 </script>
 
+<script type="module" lang="ts">
+  window.inlineTypescriptNoWork = window.inlineTypescriptNoWork || 0;
+  window.inlineTypescriptNoWork++;
+</script>
+
 <div id="mocha"></div>
