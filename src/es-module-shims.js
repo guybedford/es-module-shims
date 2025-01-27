@@ -798,6 +798,10 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
     return initTs()
       .then(() => {
         const transformed = esmsTsTransform(source, pageBaseUrl);
+        if (transformed !== undefined) {
+          onpolyfill();
+          firstPolyfillLoad = false;
+        }
         return topLevelLoad(
           pageBaseUrl,
           getFetchOpts(script),
