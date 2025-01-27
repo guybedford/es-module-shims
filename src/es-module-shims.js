@@ -98,7 +98,7 @@ async function importShim(id, opts, parentUrl) {
     source = `export{default}from'${url}'with{type:"${opts.with.type}"}`;
     url += '?entry';
   }
-  return topLevelLoad(url, { credentials: 'same-origin' }, source);
+  return topLevelLoad(url, { credentials: 'same-origin' }, source, undefined, undefined);
 }
 
 // import.source()
@@ -525,6 +525,10 @@ async function doFetch(url, fetchOpts, parent) {
 }
 
 let esmsTsTransform;
+async function initTs() {
+  const m = await import(tsTransform);
+  if (!esmsTsTransform) esmsTsTransform = m.transform;
+}
 
 async function fetchModule(url, fetchOpts, parent) {
   const mapIntegrity = composedImportMap.integrity[url];
@@ -570,10 +574,7 @@ async function fetchModule(url, fetchOpts, parent) {
     (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts'))
   ) {
     const source = await res.text();
-    // if we don't have a ts transform hook, try to load it
-    if (!esmsTsTransform) {
-      ({ transform: esmsTsTransform } = await import(tsTransform));
-    }
+    if (!esmsTsTransform) await initTs();
     const transformed = esmsTsTransform(source, url);
     return { r, s: transformed || source, t: transformed ? 'ts' : 'js' };
   } else
@@ -792,6 +793,20 @@ function processImportMap(script, ready = readyStateCompleteCnt > 0) {
 
 function processScript(script, ready = readyStateCompleteCnt > 0) {
   if (epCheck(script, ready)) return;
+  if (script.lang === 'ts' && !script.src) {
+    const source = script.innerHTML;
+    return initTs()
+      .then(() =>
+        topLevelLoad(
+          pageBaseUrl,
+          getFetchOpts(script),
+          esmsTsTransform(source, pageBaseUrl) || source,
+          undefined,
+          undefined
+        )
+      )
+      .catch(throwError);
+  }
   if (self.ESMS_DEBUG) console.info(`es-module-shims: checking script ${script.src || '<inline>'}`);
   // does this load block readystate complete
   const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;

@@ -43,7 +43,12 @@ function require(mod) {
 ${amaroSource}
 const amaroTransformSync = module.exports.transformSync;
 export function transform(source, url) {
-  return amaroTransformSync(source).code;
+  try {
+    return amaroTransformSync(source, { filename: url, transform: { mode: 'strip-only', noEmptyExport: true } }).code;
+  } catch (e) {
+    // This is needed pending figuring out why filename option above isn't working
+    throw new SyntaxError(e.message.replace(',-', url + ' - '));
+  }
 }
 `);
 '''
