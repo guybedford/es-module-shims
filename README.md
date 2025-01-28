@@ -11,7 +11,7 @@ The following modules features are polyfilled:
 * [Import Maps](#import-maps) polyfill.
 * [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions when enabled.
 * [Wasm modules](#wasm-modules) with support for Source Phase Imports when enabled.
-* [TypeScript](#typescript) type stripping when enabled.
+* [TypeScript](#typescript-type-stripping) type stripping when enabled.
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
 
