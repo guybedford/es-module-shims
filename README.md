@@ -538,7 +538,7 @@ And for the source phase:
 ```html
 <script type="module">
 import source mod from './app.wasm';
-const instance = await WebAssembly.instantiate(mod, { /* ...imports */ });
+const instance = WebAssembly.Instance(mod, { /* ...imports */ });
 </script>
 ```
 
@@ -572,13 +572,13 @@ By default, when there is no DOM present, ES Module Shims will switch into shim 
 
 ```js
 /**
- * 
+ *
  * @param {string} aURL a string representing the URL of the module script the worker will execute.
  * @returns {string} The string representing the URL of the script the worker will execute.
  */
 function getWorkerScriptURL(aURL) {
   // baseURL, esModuleShimsURL are considered to be known in advance
-  // esModuleShimsURL - must point to the non-CSP build of ES Module Shims, 
+  // esModuleShimsURL - must point to the non-CSP build of ES Module Shims,
   // namely the `es-module-shim.wasm.js` output: es-module-shims/dist/es-module-shims.wasm.js
 
   return URL.createObjectURL(new Blob(
