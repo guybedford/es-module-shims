@@ -538,7 +538,7 @@ And for the source phase:
 ```html
 <script type="module">
 import source mod from './app.wasm';
-const instance = WebAssembly.Instance(mod, { /* ...imports */ });
+const instance = new WebAssembly.Instance(mod, { /* ...imports */ });
 </script>
 ```
 
