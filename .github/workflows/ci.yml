@@ -28,6 +28,7 @@ jobs:
           '67.0', # import(), import.meta
           '89.0',  # top-level await
           '108.0',
+          '115.0',
           '126.0', # before integrity
         ]
     name: Firefox Browser Tests
