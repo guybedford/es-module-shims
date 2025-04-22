@@ -67,6 +67,17 @@ suite('Polyfill tests', () => {
     assert.equal(typeof add, 'function');
   });
 
+  test('should support defer phase imports', async function () {
+    const mod = await importShim('./fixtures/test-defer.js');
+    assert.equal(typeof mod.deferMod.default, 'number');
+  });
+
+  test('should support dynamic defer phase imports', async function () {
+    const { test } = await importShim('./fixtures/test-defer-dynamic.js');
+    const deferMod = await test();
+    assert.equal(typeof deferMod.default, 'number');
+  });
+
   test('should support source phase imports', async function () {
     const supportsTla = await supportsTlaPromise;
     if (!supportsTla) return;
@@ -77,7 +88,7 @@ suite('Polyfill tests', () => {
   test('should support dynamic source phase imports', async function () {
     const supportsTla = await supportsTlaPromise;
     if (!supportsTla) return;
-    const { add } = await importShim('./fixtures/source-phase-import.js');
+    const { add } = await importShim('./fixtures/source-phase-dynamic.js');
     assert.equal(typeof add, 'function');
   });
 
