@@ -273,8 +273,7 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     return dynamicImport(source ? createBlob(source) : url, url || source);
   }
   const load = getOrCreateLoad(url, fetchOpts, null, source);
-  if (!nativelyLoaded && source)
-    load.N = true;
+  if (!nativelyLoaded && source) load.N = true;
   linkLoad(load, fetchOpts);
   const seen = {};
   await loadAll(load, seen);
@@ -587,11 +586,12 @@ async function fetchModule(url, fetchOpts, parent) {
 }
 
 function isUnsupportedType(type) {
-  if (!shimMode && (
-    (type === 'css' && !cssModulesEnabled) ||
-    (type === 'json' && !jsonModulesEnabled) ||
-    (type === 'wasm' && !wasmModulesEnabled) ||
-    (type === 'ts' && !typescriptEnabled))
+  if (
+    !shimMode &&
+    ((type === 'css' && !cssModulesEnabled) ||
+      (type === 'json' && !jsonModulesEnabled) ||
+      (type === 'wasm' && !wasmModulesEnabled) ||
+      (type === 'ts' && !typescriptEnabled))
   )
     throw featErr(`${type}-modules`);
   return (
