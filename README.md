@@ -521,9 +521,11 @@ In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules 
 
 WebAssembly module exports are made available as module exports and WebAssembly module imports will be resolved using the browser module loader.
 
-When using the source phase import form, this must be enabled separately via the `polyfillEnable: ['wasm-modules', 'source-phase']` [init option](#polyfill-enable-option) to support source imports to WebAssembly modules.
+By default Wasm support will look for both source phase syntax as well as instance Wasm imports, resulting in full analysis of the module graph when either is unsupported.
 
-When enabling `'source-phase'`, `WebAssembly.Module` is also polyfilled to extend from `AbstractModuleSource` per the source phase proposal.
+If only using Wasm modules in the source phase set `polyfillEnable: ['wasm-module-sources']` [init option](#polyfill-enable-option) to ensure full native passthrough without the extra code analysis when Chrome ships the source phase.
+
+When enabling the source phase feature either way, `WebAssembly.Module` is also polyfilled to extend from `AbstractModuleSource` per the source phase proposal.
 
 WebAssembly modules require native top-level await support to be polyfilled, see the [compatibility table](#browser-support) above.
 
@@ -687,7 +689,7 @@ DOM `load` events are fired for all `"module-shim"` scripts both for success and
 
 The `polyfillEnable` option allows enabling polyfill features which are newer and would otherwise result in unnecessary polyfilling in modern browsers that haven't yet updated.
 
-This options supports `"css-modules"`, `"json-modules"`, `"wasm-modules"`, `"source-phase"`.
+This options supports `"css-modules"`, `"json-modules"`, `"wasm-modules"`, `"wasm-module-sources"` and `"wasm-module-instances"`.
 
 ```html
 <script type="esms-options">

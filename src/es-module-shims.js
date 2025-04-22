@@ -15,8 +15,8 @@ import {
   noLoadEventRetriggers,
   cssModulesEnabled,
   jsonModulesEnabled,
-  wasmModulesEnabled,
-  sourcePhaseEnabled,
+  wasmInstancePhaseEnabled,
+  wasmSourcePhaseEnabled,
   onpolyfill,
   enforceIntegrity,
   fromParent,
@@ -28,8 +28,8 @@ import {
   supportsImportMaps,
   supportsCssType,
   supportsJsonType,
-  supportsWasmModules,
-  supportsSourcePhase,
+  supportsWasmInstancePhase,
+  supportsWasmSourcePhase,
   supportsMultipleImportMaps,
   featureDetectionPromise
 } from './features.js';
@@ -98,12 +98,12 @@ async function importShim(id, opts, parentUrl) {
     source = `export{default}from'${url}'with{type:"${opts.with.type}"}`;
     url += '?entry';
   }
-  return topLevelLoad(url, { credentials: 'same-origin' }, source, false, undefined);
+  return topLevelLoad(url, { credentials: 'same-origin' }, source, undefined, undefined);
 }
 
 // import.source()
 // (opts not currently supported as no use cases yet)
-if (shimMode || sourcePhaseEnabled)
+if (shimMode || wasmSourcePhaseEnabled)
   importShim.source = async function importShimSource(specifier, opts, parentUrl) {
     if (typeof opts === 'string') {
       parentUrl = opts;
@@ -171,14 +171,14 @@ const initPromise = featureDetectionPromise.then(() => {
     supportsImportMaps &&
     (!jsonModulesEnabled || supportsJsonType) &&
     (!cssModulesEnabled || supportsCssType) &&
-    (!wasmModulesEnabled || supportsWasmModules) &&
-    (!sourcePhaseEnabled || supportsSourcePhase) &&
+    (!wasmInstancePhaseEnabled || supportsWasmInstancePhase) &&
+    (!wasmSourcePhaseEnabled || supportsWasmSourcePhase) &&
     (!multipleImportMaps || supportsMultipleImportMaps) &&
     !importMapSrc &&
     !typescriptEnabled;
   if (
     !shimMode &&
-    sourcePhaseEnabled &&
+    wasmSourcePhaseEnabled &&
     typeof WebAssembly !== 'undefined' &&
     !Object.getPrototypeOf(WebAssembly.Module).name
   ) {
@@ -273,7 +273,6 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     return dynamicImport(source ? createBlob(source) : url, url || source);
   }
   const load = getOrCreateLoad(url, fetchOpts, null, source);
-  if (!nativelyLoaded && source) load.N = true;
   linkLoad(load, fetchOpts);
   const seen = {};
   await loadAll(load, seen);
@@ -295,8 +294,7 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     onpolyfill();
     firstPolyfillLoad = false;
   }
-  console.log(load);
-  const module = await (shimMode || load.n || load.N ? dynamicImport(load.b, load.u) : import(load.u));
+  const module = await (!shimMode && !load.n && !load.N ? import(load.u) : dynamicImport(load.b, load.u));
   // if the top-level load is a shell, run its update function
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
   if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
@@ -315,7 +313,7 @@ function revokeObjectURLs(registryKeys) {
     if (batchStartIndex > keysLength) return;
     for (const key of registryKeys.slice(batchStartIndex, batchStartIndex + 100)) {
       const load = registry[key];
-      if (load && load.b && load.b !== load.u) URL.revokeObjectURL(load.b);
+      if (load && load.b) URL.revokeObjectURL(load.b);
     }
     batch++;
     schedule(cleanup);
@@ -339,7 +337,7 @@ function resolveDeps(load, seen) {
 
   // use native loader whenever possible (n = needs shim) via executable subgraph passthrough
   // so long as the module doesn't use dynamic import or unsupported URL mappings (N = should shim)
-  if (!shimMode && !load.N && !load.n) {
+  if (!shimMode && !load.n && !load.N) {
     load.b = load.u;
     load.S = undefined;
     return;
@@ -578,7 +576,7 @@ async function fetchModule(url, fetchOpts, parent) {
     const source = await res.text();
     if (!esmsTsTransform) await initTs();
     const transformed = esmsTsTransform(source, url);
-    return { r, s: transformed === undefined ? source : transformed, t: 'ts' };
+    return { r, s: transformed === undefined ? source : transformed, t: transformed !== undefined ? 'ts' : 'js' };
   } else
     throw Error(
       `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
@@ -587,17 +585,16 @@ async function fetchModule(url, fetchOpts, parent) {
 
 function isUnsupportedType(type) {
   if (
-    !shimMode &&
-    ((type === 'css' && !cssModulesEnabled) ||
-      (type === 'json' && !jsonModulesEnabled) ||
-      (type === 'wasm' && !wasmModulesEnabled) ||
-      (type === 'ts' && !typescriptEnabled))
+    (type === 'css' && !cssModulesEnabled) ||
+    (type === 'json' && !jsonModulesEnabled) ||
+    (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEanbled) ||
+    (type === 'ts' && !typescriptEnabled)
   )
     throw featErr(`${type}-modules`);
   return (
     (type === 'css' && !supportsCssType) ||
     (type === 'json' && !supportsJsonType) ||
-    (type === 'wasm' && !supportsWasmModules) ||
+    (type === 'wasm' && !supportsWasmInstancePhase && !supportsWasmSourcePhase) ||
     type === 'ts'
   );
 }
@@ -629,9 +626,9 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     b: undefined,
     // shellUrl
     s: undefined,
-    // needsShim: does it fail execution in the native loader
+    // needsShim
     n: false,
-    // shouldShim: does it behave differently under new semantics
+    // shouldShim
     N: false,
     // type
     t: null,
@@ -642,7 +639,7 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     if (!load.S) {
       // preload fetch options override fetch options (race)
       ({ r: load.r, s: load.S, t: load.t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
-      if (!load.n && load.t !== 'js' && isUnsupportedType(load.t)) {
+      if (!load.n && load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
         load.n = true;
       }
     }
@@ -670,8 +667,8 @@ function linkLoad(load, fetchOpts) {
       .map(({ n, d, t, a }) => {
         const sourcePhase = t >= 4;
         if (sourcePhase) {
-          if (!shimMode && !sourcePhaseEnabled) throw featErr('source-phase');
-          if (!supportsSourcePhase) load.n = true;
+          if (!shimMode && !wasmSourcePhaseEnabled) throw featErr('source-phase');
+          if (!supportsWasmSourcePhase) load.n = true;
         }
         if (a > 0) {
           if (!shimMode && !cssModulesEnabled && !jsonModulesEnabled) throw featErr('css-modules / json-modules');
