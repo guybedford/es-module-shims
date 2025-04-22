@@ -60,8 +60,8 @@ export let featureDetectionPromise = (async function () {
         supportsMultipleImportMaps,
         supportsCssType,
         supportsJsonType,
-        supportsWasmInstancePhase,
-        supportsWasmSourcePhase
+        supportsWasmSourcePhase,
+        supportsWasmInstancePhase
       ] = data;
       resolve();
       document.head.removeChild(iframe);
@@ -69,19 +69,20 @@ export let featureDetectionPromise = (async function () {
     }
     window.addEventListener('message', cb, false);
 
-    const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));c=u=>import(b(u)).then(()=>true,()=>false);i=innerText=>document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText}));i(\`{"imports":{"x":"\${b('')}"}}\`);i(\`{"imports":{"y":"\${b('')}"}}\`);${
-      ``
-    };Promise.all([${
-      supportsImportMaps ? 'true' : "import('x')"
-    },${supportsImportMaps ? "'y'" : false},${supportsImportMaps && cssModulesEnabled ? `c(\`import"\${b('','text/css')}"with{type:"css"}\`)` : 'false'}, ${
-      supportsImportMaps && jsonModulesEnabled ? `c(\`import"\${b('{}','text/json')\}"with{type:"json"}\`)` : 'false'
-    },${
-      supportsImportMaps && wasmInstancePhaseEnabled ?
-        `c(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)`
-      : 'false'
-    },${
+    // Feature checking with careful avoidance of unnecessary work - all gated on initial import map supports check. JSON gates on CSS feature check, Wasm instance phase gates on wasm source phase check.
+    const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));c=u=>import(b(u)).then(()=>true,()=>false);i=innerText=>document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText}));i(\`{"imports":{"x":"\${b('')}"}}\`);i(\`{"imports":{"y":"\${b('')}"}}\`);cm=${
+      supportsImportMaps && cssModulesEnabled ? `c(\`import"\${b('','text/css')}"with{type:"css"}\`)` : 'false'
+    };sp=${
       supportsImportMaps && wasmSourcePhaseEnabled ?
         `c(\`import source x from "\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)`
+      : 'false'
+    };Promise.all([${supportsImportMaps ? 'true' : "import('x')"},${supportsImportMaps ? "'y'" : false},cm,${
+      supportsImportMaps && jsonModulesEnabled ?
+        `${cssModulesEnabled ? 'cm.then(s=>s?' : ''}c(\`import"\${b('{}','text/json')\}"with{type:"json"}\`)${cssModulesEnabled ? ':false)' : ''}`
+      : 'false'
+    },sp,${
+      supportsImportMaps && wasmInstancePhaseEnabled ?
+        `${wasmSourcePhaseEnabled ? 'sp.then(s=>s?' : ''}c(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)${wasmSourcePhaseEnabled ? ':false)' : ''}`
       : 'false'
     }]).then(a=>parent.postMessage(['esms'].concat(a),'*'))<${''}/script>`;
 
