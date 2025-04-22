@@ -377,10 +377,7 @@ function resolveDeps(load, seen) {
     if (t === 4) {
       let { l: depLoad } = load.d[depIndex++];
       pushStringTo(statementStart);
-      resolvedSource += 'import ';
-      lastIndex = statementStart + 14;
-      pushStringTo(start - 1);
-      resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
+      resolvedSource += `${source.slice(statementStart, start - 1).replace('source', '')}/*${source.slice(start - 1, end + 1)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
       lastIndex = end + 1;
     }
     // dependency source replacements
