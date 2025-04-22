@@ -50,8 +50,10 @@ const enableAll = esmsInitOptions.polyfillEnable === 'all' || enable.includes('a
 const enableLatest = esmsInitOptions.polyfillEnable === 'latest' || enable.includes('latest');
 export const cssModulesEnabled = enable.includes('css-modules') || enableAll || enableLatest;
 export const jsonModulesEnabled = enable.includes('json-modules') || enableAll || enableLatest;
-export const wasmModulesEnabled = enable.includes('wasm-modules') || enableAll;
-export const sourcePhaseEnabled = enable.includes('source-phase') || enableAll;
+export const wasmInstancePhaseEnabled =
+  enable.includes('wasm-modules') || enable.includes('wasm-module-instances') || enableAll;
+export const wasmSourcePhaseEnabled =
+  enable.includes('wasm-modules') || enable.includes('wasm-module-sources') || enableAll;
 export const typescriptEnabled = enable.includes('typescript') || enableAll;
 
 export const onpolyfill =

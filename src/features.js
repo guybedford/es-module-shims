@@ -4,8 +4,8 @@ import {
   nonce,
   cssModulesEnabled,
   jsonModulesEnabled,
-  wasmModulesEnabled,
-  sourcePhaseEnabled,
+  wasmInstancePhaseEnabled,
+  wasmSourcePhaseEnabled,
   hasDocument
 } from './env.js';
 
@@ -16,8 +16,8 @@ export let supportsCssType = false;
 const supports = hasDocument && HTMLScriptElement.supports;
 
 export let supportsImportMaps = supports && supports.name === 'supports' && supports('importmap');
-export let supportsWasmModules = false;
-export let supportsSourcePhase = false;
+export let supportsWasmInstancePhase = false;
+export let supportsWasmSourcePhase = false;
 export let supportsMultipleImportMaps = false;
 
 const wasmBytes = [0, 97, 115, 109, 1, 0, 0, 0];
@@ -35,15 +35,14 @@ export let featureDetectionPromise = (async function () {
           () => (supportsJsonType = true),
           noop
         ),
-      wasmModulesEnabled &&
+      wasmInstancePhaseEnabled &&
         import(createBlob(`import"${createBlob(new Uint8Array(wasmBytes), 'application/wasm')}"`)).then(
-          () => (supportsWasmModules = true),
+          () => (supportsWasmInstancePhase = true),
           noop
         ),
-      wasmModulesEnabled &&
-        sourcePhaseEnabled &&
+      wasmSourcePhaseEnabled &&
         import(createBlob(`import source x from"${createBlob(new Uint8Array(wasmBytes), 'application/wasm')}"`)).then(
-          () => (supportsSourcePhase = true),
+          () => (supportsWasmSourcePhase = true),
           noop
         )
     ]);
@@ -61,8 +60,8 @@ export let featureDetectionPromise = (async function () {
         supportsMultipleImportMaps,
         supportsCssType,
         supportsJsonType,
-        supportsWasmModules,
-        supportsSourcePhase
+        supportsWasmSourcePhase,
+        supportsWasmInstancePhase
       ] = data;
       resolve();
       document.head.removeChild(iframe);
@@ -70,19 +69,22 @@ export let featureDetectionPromise = (async function () {
     }
     window.addEventListener('message', cb, false);
 
-    const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));i=innerText=>document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText}));i(\`{"imports":{"x":"\${b('')}"}}\`);i(\`{"imports":{"y":"\${b('')}"}}\`);Promise.all([${
-      supportsImportMaps ? 'true' : "'x'"
-    },${supportsImportMaps ? "'y'" : false},${supportsImportMaps && cssModulesEnabled ? `b(\`import"\${b('','text/css')}"with{type:"css"}\`)` : 'false'}, ${
-      supportsImportMaps && jsonModulesEnabled ? `b(\`import"\${b('{}','text/json')\}"with{type:"json"}\`)` : 'false'
-    },${
-      supportsImportMaps && wasmModulesEnabled ?
-        `b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)`
+    // Feature checking with careful avoidance of unnecessary work - all gated on initial import map supports check. JSON gates on CSS feature check, Wasm instance phase gates on wasm source phase check.
+    const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));c=u=>import(u).then(()=>true,()=>false);i=innerText=>document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText}));i(\`{"imports":{"x":"\${b('')}"}}\`);i(\`{"imports":{"y":"\${b('')}"}}\`);cm=${
+      supportsImportMaps && cssModulesEnabled ? `c(b(\`import"\${b('','text/css')}"with{type:"css"}\`))` : 'false'
+    };sp=${
+      supportsImportMaps && wasmSourcePhaseEnabled ?
+        `c(b(\`import source x from "\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`))`
       : 'false'
-    },${
-      supportsImportMaps && wasmModulesEnabled && sourcePhaseEnabled ?
-        `b(\`import source x from "\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`)`
+    };Promise.all([${supportsImportMaps ? 'true' : "c('x')"},${supportsImportMaps ? "c('y')" : false},cm,${
+      supportsImportMaps && jsonModulesEnabled ?
+        `${cssModulesEnabled ? 'cm.then(s=>s?' : ''}c(b(\`import"\${b('{}','text/json')\}"with{type:"json"}\`))${cssModulesEnabled ? ':false)' : ''}`
       : 'false'
-    }].map(x =>typeof x==='string'?import(x).then(()=>true,()=>false):x)).then(a=>parent.postMessage(['esms'].concat(a),'*'))<${''}/script>`;
+    },sp,${
+      supportsImportMaps && wasmInstancePhaseEnabled ?
+        `${wasmSourcePhaseEnabled ? 'sp.then(s=>s?' : ''}c(b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`))${wasmSourcePhaseEnabled ? ':false)' : ''}`
+      : 'false'
+    }]).then(a=>parent.postMessage(['esms'].concat(a),'*'))<${''}/script>`;
 
     // Safari will call onload eagerly on head injection, but we don't want the Wechat
     // path to trigger before setting srcdoc, therefore we track the timing
@@ -122,6 +124,6 @@ export let featureDetectionPromise = (async function () {
 if (self.ESMS_DEBUG)
   featureDetectionPromise = featureDetectionPromise.then(() => {
     console.info(
-      `es-module-shims: detected native support - module types: (${[...(supportsJsonType ? ['json'] : []), ...(supportsCssType ? ['css'] : []), ...(supportsWasmModules ? ['wasm'] : [])].join(', ')}), ${supportsSourcePhase ? 'source phase' : 'no source phase'}, ${supportsMultipleImportMaps ? '' : 'no '}multiple import maps, ${supportsImportMaps ? '' : 'no '}import maps`
+      `es-module-shims: detected native support - module types: (${[...(supportsJsonType ? ['json'] : []), ...(supportsCssType ? ['css'] : []), ...(supportsWasmInstancePhase ? ['wasm'] : [])].join(', ')}), ${supportsWasmSourcePhase ? 'source phase' : 'no source phase'}, ${supportsMultipleImportMaps ? '' : 'no '}multiple import maps, ${supportsImportMaps ? '' : 'no '}import maps`
     );
   });
