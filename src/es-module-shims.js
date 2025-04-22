@@ -17,6 +17,7 @@ import {
   jsonModulesEnabled,
   wasmInstancePhaseEnabled,
   wasmSourcePhaseEnabled,
+  deferPhaseEnabled,
   onpolyfill,
   enforceIntegrity,
   fromParent,
@@ -91,7 +92,7 @@ async function importShim(id, opts, parentUrl) {
     opts = undefined;
   }
   // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
-  // because we can't syntactically pass through to dynamic import with a second argument in this libarary
+  // because we can't syntactically pass through to dynamic import with a second argument
   let url = await importHandler(id, opts, parentUrl, false);
   let source = null;
   if (typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string') {
@@ -104,7 +105,7 @@ async function importShim(id, opts, parentUrl) {
 // import.source()
 // (opts not currently supported as no use cases yet)
 if (shimMode || wasmSourcePhaseEnabled)
-  importShim.source = async function importShimSource(specifier, opts, parentUrl) {
+  importShim.source = async function (specifier, opts, parentUrl) {
     if (typeof opts === 'string') {
       parentUrl = opts;
       opts = undefined;
@@ -118,6 +119,10 @@ if (shimMode || wasmSourcePhaseEnabled)
     await load.f;
     return importShim._s[load.r];
   };
+
+// import.defer() is just a proxy for import(), since we can't actually defer
+if (shimMode || deferPhaseEnabled)
+  importShim.defer = importShim;
 
 self.importShim = importShim;
 
@@ -173,6 +178,7 @@ const initPromise = featureDetectionPromise.then(() => {
     (!cssModulesEnabled || supportsCssType) &&
     (!wasmInstancePhaseEnabled || supportsWasmInstancePhase) &&
     (!wasmSourcePhaseEnabled || supportsWasmSourcePhase) &&
+    !deferPhaseEnabled &&
     (!multipleImportMaps || supportsMultipleImportMaps) &&
     !importMapSrc &&
     !typescriptEnabled;
@@ -377,6 +383,12 @@ function resolveDeps(load, seen) {
       pushStringTo(start - 1);
       resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
       lastIndex = end + 1;
+    }
+    // defer phase stripping
+    else if (t === 6) {
+      pushStringTo(statementStart);
+      resolvedSource += source.slice(statementStart, statementEnd).replace('defer', '    ');
+      lastIndex = statementEnd;
     }
     // dependency source replacements
     else if (dynamicImportIndex === -1) {
@@ -665,10 +677,11 @@ function linkLoad(load, fetchOpts) {
     let childFetchOpts = fetchOpts;
     load.d = load.a[0]
       .map(({ n, d, t, a }) => {
-        const sourcePhase = t >= 4;
-        if (sourcePhase) {
-          if (!shimMode && !wasmSourcePhaseEnabled) throw featErr('source-phase');
-          if (!supportsWasmSourcePhase) load.n = true;
+        const phaseImport = t >= 4;
+        const sourcePhase = phaseImport && t < 6;
+        if (phaseImport) {
+          if (!shimMode && (sourcePhase ? !wasmSourcePhaseEnabled : !deferPhaseEnabled)) throw featErr(sourcePhase ? 'source-phase' : 'defer-phase');
+          if (!sourcePhase || !supportsWasmSourcePhase) load.n = true;
         }
         if (a > 0) {
           if (!shimMode && !cssModulesEnabled && !jsonModulesEnabled) throw featErr('css-modules / json-modules');

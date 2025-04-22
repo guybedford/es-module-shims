@@ -11,6 +11,7 @@ The following modules features are polyfilled:
 * [Import Maps](#import-maps) polyfill.
 * [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions when enabled.
 * [Wasm modules](#wasm-modules) with support for Source Phase Imports when enabled.
+* [Import defer](#import-defer) via syntax stripping to allow usage in modern browsers with a polyfill fallback when enabled.
 * [TypeScript](#typescript-type-stripping) type stripping when enabled.
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
@@ -235,28 +236,29 @@ Works in all browsers with [baseline ES module support](https://caniuse.com/#fea
 
 Browser Compatibility on baseline ES modules support **with** ES Module Shims:
 
-| ES Modules Features                             | Chrome (63+)                         | Firefox (67+)                        | Safari (11.1+)                       |
-| ----------------------------------------------- | ------------------------------------ | ------------------------------------ | ------------------------------------ |
-| [modulepreload](#modulepreload)                 | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Import Maps](#import-maps)                     | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Import Map Integrity](#import-map-integrity)   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Multiple Import Maps](#multiple-import-maps)   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [JSON Modules](#json-modules)                   | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [CSS Modules](#css-modules)                     | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
-| [Wasm Modules](#wasm-modules)                   | 89+                                  | 89+                                  | 15+                                  |
+| ES Modules Features                              | Chrome (63+)                         | Firefox (67+)                        | Safari (11.1+)                       |
+| ------------------------------------------------ | ------------------------------------ | ------------------------------------ | ------------------------------------ |
+| [modulepreload](#modulepreload)                  | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Import Maps](#import-maps)                      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Import Map Integrity](#import-map-integrity)    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Multiple Import Maps](#multiple-import-maps)    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [JSON Modules](#json-modules)                    | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [CSS Modules](#css-modules)                      | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
+| [Wasm Modules](#wasm-modules)                    | 89+                                  | 89+                                  | 15+                                  |
+| [Import Defer](#import-defer) (syntax-stripping) | :heavy_check_mark:                   | :heavy_check_mark:                   | :heavy_check_mark:                   |
 
 Browser compatibility **without** ES Module Shims:
 
 | ES Modules Features                           | Chrome             | Firefox            | Safari             |
 | --------------------------------------------- | ------------------ | ------------------ | ------------------ |
 | [modulepreload](#modulepreload)               | 66+                | 115+               | 17.5+              |
-| [import.meta.url](#importmetaurl)             | ~76+               | ~67+               | ~12+               |
 | [Import Maps](#import-maps)                   | 89+                | 108+               | 16.4+              |
 | [Import Map Integrity](#import-map-integrity) | 127+               | :x:                | :x:                |
 | [Multiple Import Maps](#multiple-import-maps) | Pending            | :x:                | :x:                |
 | [JSON Modules](#json-modules)                 | 123+               | :x:                | 17.2+              |
 | [CSS Modules](#css-modules)                   | 123+               | :x:                | :x:                |
-| [Wasm Modules](#wasm-modules)                 | :x:                | :x:                | :x:                |
+| [Wasm Modules](#wasm-modules)                 | Pending            | :x:                | :x:                |
+| [Import Defer](#import-defer)                 | Pending            | :x:                | :x:                |
 | import.meta.resolve                           | 105+               | 106+               | 16.4+              |
 | [Module Workers](#module-workers)             | ~68+               | ~113+              | 15+                |
 | Top-Level Await                               | 89+                | 89+                | 15+                |
@@ -545,6 +547,14 @@ const instance = await WebAssembly.instantiate(mod, { /* ...imports */ });
 ```
 
 If using CSP, make sure to add `'unsafe-wasm-eval'` to `script-src` which is needed when the shim or polyfill engages, note this policy is much much safer than eval due to the Wasm secure sandbox. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#unsafe_webassembly_execution.
+
+### Import Defer
+
+> Stability: Stage 3 Standard, Pending Shipping
+
+Implements the [Import Defer TC39 Proposal](https://github.com/tc39/proposal-defer-import-eval), including support for `import defer * as mod from './mod.js'`.
+
+The polyfill is simply just a defer syntax stripping, allowing environments that do support import defer to benefit from the performance benefits, while still supporting the syntax in older browsers.
 
 ### TypeScript Type Stripping
 
