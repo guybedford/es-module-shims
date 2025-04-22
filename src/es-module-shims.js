@@ -121,8 +121,7 @@ if (shimMode || wasmSourcePhaseEnabled)
   };
 
 // import.defer() is just a proxy for import(), since we can't actually defer
-if (shimMode || deferPhaseEnabled)
-  importShim.defer = importShim;
+if (shimMode || deferPhaseEnabled) importShim.defer = importShim;
 
 self.importShim = importShim;
 
@@ -387,7 +386,7 @@ function resolveDeps(load, seen) {
     // defer phase stripping
     else if (t === 6) {
       pushStringTo(statementStart);
-      resolvedSource += source.slice(statementStart, statementEnd).replace('defer', '    ');
+      resolvedSource += source.slice(statementStart, statementEnd).replace('defer', '');
       lastIndex = statementEnd;
     }
     // dependency source replacements
@@ -680,7 +679,8 @@ function linkLoad(load, fetchOpts) {
         const phaseImport = t >= 4;
         const sourcePhase = phaseImport && t < 6;
         if (phaseImport) {
-          if (!shimMode && (sourcePhase ? !wasmSourcePhaseEnabled : !deferPhaseEnabled)) throw featErr(sourcePhase ? 'source-phase' : 'defer-phase');
+          if (!shimMode && (sourcePhase ? !wasmSourcePhaseEnabled : !deferPhaseEnabled))
+            throw featErr(sourcePhase ? 'source-phase' : 'defer-phase');
           if (!sourcePhase || !supportsWasmSourcePhase) load.n = true;
         }
         if (a > 0) {
