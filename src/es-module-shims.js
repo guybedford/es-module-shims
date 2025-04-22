@@ -383,14 +383,14 @@ function resolveDeps(load, seen) {
       resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
       lastIndex = end + 1;
     }
-    // defer phase stripping
-    else if (t === 6) {
-      pushStringTo(statementStart);
-      resolvedSource += source.slice(statementStart, statementEnd).replace('defer', '');
-      lastIndex = statementEnd;
-    }
     // dependency source replacements
     else if (dynamicImportIndex === -1) {
+      // defer phase stripping
+      if (t === 6) {
+        pushStringTo(statementStart);
+        resolvedSource += source.slice(statementStart, start - 1).replace('defer', '');
+        lastIndex = start;
+      }
       let { l: depLoad } = load.d[depIndex++],
         blobUrl = depLoad.b,
         cycleShell = !blobUrl;
@@ -485,6 +485,7 @@ function resolveDeps(load, seen) {
   }
 
   pushStringTo(source.length);
+  console.log(resolvedSource);
 
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
 
