@@ -29,7 +29,7 @@ Because we are still using the native module loader the edge cases work out comp
 Include ES Module Shims with a `async` attribute on the script, then include an import map and module scripts normally:
 
 ```html
-<script async src="https://ga.jspm.io/npm:es-module-shims@2.1.0/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@2.1.1/dist/es-module-shims.js"></script>
 
 <!-- https://generator.jspm.io/#U2NhYGBkDM0rySzJSU1hKEpNTC5xMLTQM9Az0C1K1jMAAKFS5w0gAA -->
 <script type="importmap">
@@ -565,7 +565,7 @@ Once enabled, the separate `es-module-shims-typescript.js` extension must be ava
 Example:
 
 ```html
-<script async src="https://ga.jspm.io/npm:es-module-shims@2.1.0/dist/es-module-shims.js"></script>
+<script async src="https://ga.jspm.io/npm:es-module-shims@2.1.1/dist/es-module-shims.js"></script>
 <script type="esms-options">
 {
   "polyfillEnable": "all"
