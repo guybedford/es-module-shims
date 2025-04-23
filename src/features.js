@@ -3,7 +3,6 @@ import {
   noop,
   nonce,
   cssModulesEnabled,
-  jsonModulesEnabled,
   wasmInstancePhaseEnabled,
   wasmSourcePhaseEnabled,
   hasDocument
@@ -58,8 +57,8 @@ export let featureDetectionPromise = (async function () {
         ,
         supportsImportMaps,
         supportsMultipleImportMaps,
-        supportsCssType,
         supportsJsonType,
+        supportsCssType,
         supportsWasmSourcePhase,
         supportsWasmInstancePhase
       ] = data;
@@ -69,16 +68,16 @@ export let featureDetectionPromise = (async function () {
     }
     window.addEventListener('message', cb, false);
 
-    // Feature checking with careful avoidance of unnecessary work - all gated on initial import map supports check. JSON gates on CSS feature check, Wasm instance phase gates on wasm source phase check.
+    // Feature checking with careful avoidance of unnecessary work - all gated on initial import map supports check. CSS gates on JSON feature check, Wasm instance phase gates on wasm source phase check.
     const importMapTest = `<script nonce=${nonce || ''}>b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));c=u=>import(u).then(()=>true,()=>false);i=innerText=>document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText}));i(\`{"imports":{"x":"\${b('')}"}}\`);i(\`{"imports":{"y":"\${b('')}"}}\`);cm=${
-      supportsImportMaps && cssModulesEnabled ? `c(b(\`import"\${b('','text/css')}"with{type:"css"}\`))` : 'false'
+      supportsImportMaps ? `c(b(\`import"\${b('{}','text/json')}"with{type:"json"}\`))` : 'false'
     };sp=${
       supportsImportMaps && wasmSourcePhaseEnabled ?
         `c(b(\`import source x from "\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`))`
       : 'false'
     };Promise.all([${supportsImportMaps ? 'true' : "c('x')"},${supportsImportMaps ? "c('y')" : false},cm,${
-      supportsImportMaps && jsonModulesEnabled ?
-        `${cssModulesEnabled ? 'cm.then(s=>s?' : ''}c(b(\`import"\${b('{}','text/json')\}"with{type:"json"}\`))${cssModulesEnabled ? ':false)' : ''}`
+      supportsImportMaps && cssModulesEnabled ?
+        `cm.then(s=>s?c(b(\`import"\${b('','text/css')\}"with{type:"css"}\`)):false)`
       : 'false'
     },sp,${
       supportsImportMaps && wasmInstancePhaseEnabled ?

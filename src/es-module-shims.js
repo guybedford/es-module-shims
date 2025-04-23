@@ -14,7 +14,6 @@ import {
   revokeBlobURLs,
   noLoadEventRetriggers,
   cssModulesEnabled,
-  jsonModulesEnabled,
   wasmInstancePhaseEnabled,
   wasmSourcePhaseEnabled,
   deferPhaseEnabled,
@@ -173,7 +172,7 @@ const initPromise = featureDetectionPromise.then(() => {
   baselinePassthrough =
     esmsInitOptions.polyfillEnable !== true &&
     supportsImportMaps &&
-    (!jsonModulesEnabled || supportsJsonType) &&
+    supportsJsonType &&
     (!cssModulesEnabled || supportsCssType) &&
     (!wasmInstancePhaseEnabled || supportsWasmInstancePhase) &&
     (!wasmSourcePhaseEnabled || supportsWasmSourcePhase) &&
@@ -594,7 +593,6 @@ async function fetchModule(url, fetchOpts, parent) {
 function isUnsupportedType(type) {
   if (
     (type === 'css' && !cssModulesEnabled) ||
-    (type === 'json' && !jsonModulesEnabled) ||
     (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEnabled) ||
     (type === 'ts' && !typescriptEnabled)
   )
@@ -681,7 +679,7 @@ function linkLoad(load, fetchOpts) {
           if (!sourcePhase || !supportsWasmSourcePhase) load.n = true;
         }
         if (a > 0) {
-          if (!shimMode && !cssModulesEnabled && !jsonModulesEnabled) throw featErr('css-modules / json-modules');
+          if (!shimMode && !cssModulesEnabled) throw featErr('css-modules');
           if (!supportsCssType && !supportsJsonType) load.n = true;
         }
         if (d !== -1 || !n) return;

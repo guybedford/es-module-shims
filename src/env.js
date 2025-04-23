@@ -49,7 +49,6 @@ const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.p
 const enableAll = esmsInitOptions.polyfillEnable === 'all' || enable.includes('all');
 const enableLatest = esmsInitOptions.polyfillEnable === 'latest' || enable.includes('latest');
 export const cssModulesEnabled = enable.includes('css-modules') || enableAll || enableLatest;
-export const jsonModulesEnabled = enable.includes('json-modules') || enableAll || enableLatest;
 export const wasmInstancePhaseEnabled =
   enable.includes('wasm-modules') || enable.includes('wasm-module-instances') || enableAll;
 export const wasmSourcePhaseEnabled =
