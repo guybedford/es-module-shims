@@ -482,7 +482,6 @@ function resolveDeps(load, seen) {
   }
 
   pushStringTo(source.length);
-  console.log(resolvedSource);
 
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
 
