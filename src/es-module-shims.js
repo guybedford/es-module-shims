@@ -596,7 +596,7 @@ function isUnsupportedType(type) {
   if (
     (type === 'css' && !cssModulesEnabled) ||
     (type === 'json' && !jsonModulesEnabled) ||
-    (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEanbled) ||
+    (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEnabled) ||
     (type === 'ts' && !typescriptEnabled)
   )
     throw featErr(`${type}-modules`);
