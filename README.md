@@ -611,6 +611,7 @@ const worker = new Worker(getWorkerScriptURL('myEsModule.js'));
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
 
+* [polyfillEnable](#polyfill-enable)
 * [enforceIntegrity](#enforce-integrity)
 * [fetch](#fetch-hook)
 * [mapOverrides](#overriding-import-map-entries)
@@ -699,17 +700,19 @@ DOM `load` events are fired for all `"module-shim"` scripts both for success and
 
 The `polyfillEnable` option allows enabling polyfill features which are newer and would otherwise result in unnecessary polyfilling in modern browsers that haven't yet updated.
 
-This options supports `"css-modules"`, `"json-modules"`, `"wasm-modules"`, `"wasm-module-sources"` and `"wasm-module-instances"`.
+This options supports `"css-modules"`, `"json-modules"`, `"wasm-modules"`, `"wasm-module-sources"`, `"wasm-module-instances"` and `"import-defer"`.
+
+In adddition, the `"all"` option will enable all features and the `"latest"` option will implement the latest supported browser features (currently `"css-modules"` and `"json-modules"`).
 
 ```html
 <script type="esms-options">
 {
-  "polyfillEnable": ["css-modules", "json-modules"]
+  "polyfillEnable": ["latest", "typescript"]
 }
 </script>
 ```
 
-The above is necessary to enable CSS modules and JSON modules.
+The above is necessary to enable CSS modules and JSON modules alongside TypeScript type stripping support.
 
 #### Baseline Support Analysis Opt-Out
 
