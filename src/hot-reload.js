@@ -1,23 +1,27 @@
-import { hotReload, hotReloadInterval } from './env.js';
+import { hotReloadInterval, importHook, resolveHook, metaHook, baseUrl } from './env.js';
 
-let defaultResolve, getHotData, stripVersion, toVersioned, Hot;
-export const hotResolveHook = (id, parent, _defaultResolve) => {
-  if (!defaultResolve) defaultResolve = _defaultResolve;
-  const originalParent = stripVersion(parent);
-  const url = stripVersion(defaultResolve(id, originalParent));
-  const parents = getHotData(url).p;
-  if (!parents.includes(originalParent)) parents.push(originalParent);
-  return toVersioned(url);
-};
-export const hotImportHook = url => {
-  getHotData(url).e = true;
-};
-export const hotMetaHook = (metaObj, url) => {
-  metaObj.hot = new Hot(url);
-};
+export const initHotReload = () => {
+  let _importHook = importHook,
+    _resolveHook = resolveHook,
+    _metaHook = metaHook;
 
-if (false) {
-  Hot = class Hot {
+  let defaultResolve;
+  let hotResolveHook = (id, parent, _defaultResolve) => {
+    if (!defaultResolve) defaultResolve = _defaultResolve;
+    const originalParent = stripVersion(parent);
+    const url = stripVersion(defaultResolve(id, originalParent));
+    const parents = getHotData(url).p;
+    if (!parents.includes(originalParent)) parents.push(originalParent);
+    return toVersioned(url);
+  };
+  const hotImportHook = url => {
+    getHotData(url).e = true;
+  };
+  const hotMetaHook = (metaObj, url) => {
+    metaObj.hot = new Hot(url);
+  };
+
+  const Hot = class Hot {
     constructor(url) {
       this.data = getHotData((this.url = stripVersion(url))).d;
     }
@@ -53,14 +57,7 @@ if (false) {
     return url.slice(0, -versionMatch[0].length);
   };
 
-  const versionedRegEx = /\?v=\d+$/;
-  stripVersion = url => {
-    const versionMatch = url.match(versionedRegEx);
-    if (!versionMatch) return url;
-    return url.slice(0, -versionMatch[0].length);
-  };
-
-  toVersioned = url => {
+  const toVersioned = url => {
     const { v } = getHotData(url);
     return url + (v ? '?v=' + v : '');
   };
@@ -69,7 +66,7 @@ if (false) {
   let curInvalidationRoots = new Set();
   let curInvalidationInterval;
 
-  getHotData = url =>
+  const getHotData = url =>
     hotRegistry[url] ||
     (hotRegistry[url] = {
       // version
@@ -140,15 +137,27 @@ if (false) {
     }, hotReloadInterval);
   };
 
-  const baseURI = document.baseURI;
-  const websocket = new WebSocket(`ws://${esmsInitOptions.hotHost || new URL(baseURI).host}/watch`);
-  websocket.onmessage = evt => {
-    const { data } = evt;
-    if (data === 'Connected') {
-      console.info('Hot Reload ' + data);
-    } else {
-      invalidate(new URL(data, baseURI).href);
-      queueInvalidationInterval();
-    }
+  importShim.hotReload = (url) => {
+    invalidate(new URL(url, baseUrl).href);
+    queueInvalidationInterval();
   };
-}
+
+  return [
+    _importHook ?
+      (url, opts, parentUrl) => {
+        _importHook(url, opts, parentUrl);
+        hotImportHook(url);
+      }
+    : hotImportHook,
+    _resolveHook ?
+      (id, parent, defaultResolve) =>
+        hotResolveHook(id, parent, (id, parent) => _resolveHook(id, parent, defaultResolve))
+    : hotResolveHook,
+    _metaHook ?
+      (metaObj, url) => {
+        _metaHook(metaObj, url);
+        hotMetaHook(metaObj, url);
+      }
+    : hotMetaHook
+  ];
+};

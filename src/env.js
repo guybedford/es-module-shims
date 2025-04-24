@@ -1,4 +1,4 @@
-import { hotImportHook, hotResolveHook, hotMetaHook } from './hot-reload.js';
+import { initHotReload } from './hot-reload.js';
 
 if (self.importShim) {
   if (self.ESMS_DEBUG)
@@ -50,6 +50,9 @@ if (esmsInitOptions.resolve) resolveHook = globalHook(esmsInitOptions.resolve);
 if (esmsInitOptions.fetch) fetchHook = globalHook(esmsInitOptions.fetch);
 if (esmsInitOptions.meta) metaHook = globalHook(esmsInitOptions.meta);
 if (esmsInitOptions.tsTransform) tsTransform = globalHook(esmsInitOptions.tsTransform);
+
+if (hotReload)
+  [importHook, resolveHook, metaHook] = initHotReload();
 
 export const mapOverrides = esmsInitOptions.mapOverrides;
 
