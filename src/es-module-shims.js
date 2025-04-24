@@ -749,11 +749,11 @@ if (hasDocument) {
   window.addEventListener('load', loadEvent);
 }
 
-async function domContentLoadedEvent () {
+async function domContentLoadedEvent() {
   await initPromise;
   domContentLoadedCheck();
 }
-async function loadEvent () {
+async function loadEvent() {
   await initPromise;
   loadCheck();
 }
