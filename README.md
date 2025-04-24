@@ -192,7 +192,7 @@ If using more modern features like CSS Modules or JSON Modules, these need to be
 
 ```html
 <script>
-window.esmsInitOptions = { polyfillEnable: ['css-modules', 'json-modules', 'wasm-modules', 'typescript'] }
+window.esmsInitOptions = { polyfillEnable: ['css-modules', 'wasm-modules', 'typescript'] }
 </script>
 ```
 
@@ -254,7 +254,7 @@ Browser compatibility **without** ES Module Shims:
 | [modulepreload](#modulepreload)               | 66+                | 115+               | 17.5+              |
 | [Import Maps](#import-maps)                   | 89+                | 108+               | 16.4+              |
 | [Import Map Integrity](#import-map-integrity) | 127+               | :x:                | :x:                |
-| [Multiple Import Maps](#multiple-import-maps) | Pending            | :x:                | :x:                |
+| [Multiple Import Maps](#multiple-import-maps) | 135+               | :x:                | :x:                |
 | [JSON Modules](#json-modules)                 | 123+               | :x:                | 17.2+              |
 | [CSS Modules](#css-modules)                   | 123+               | :x:                | :x:                |
 | [Wasm Modules](#wasm-modules)                 | Pending            | :x:                | :x:                |
@@ -483,11 +483,13 @@ Note integrity can only be validated when in shim mode or when the polyfill is d
 
 ### JSON Modules
 
-> Stability: WhatWG Standard, Single Browser Implementer
+> Stability: WhatWG Standard, Stable, Multiple Browser Implementers
 
-In shim mode, JSON modules are always supported. In polyfill mode, JSON modules require the `polyfillEnable: ['json-modules']` [init option](#polyfill-enable-option).
+JSON modules are now enabled by default in ES Module Shims with 85% browser support for native where the polyfill won't engage at all.
 
-JSON Modules are currently supported in Chrome when using them via an import assertion:
+In shim mode, JSON modules are always supported.
+
+JSON Modules are supported in Chrome and Safari when using them via an import assertion:
 
 ```html
 <script type="module">
@@ -632,7 +634,7 @@ window.esmsInitOptions = {
   // Enable Shim Mode
   shimMode: true, // default false
   // Enable newer modules features
-  polyfillEnable: ['css-modules', 'json-modules'], // default empty
+  polyfillEnable: ['css-modules'], // default empty
   // Custom CSP nonce
   nonce: 'n0nce', // default is automatic detection
   // Don't retrigger load events on module scripts (DOMContentLoaded, domready, window 'onload')
@@ -671,7 +673,7 @@ window.esmsInitOptions = {
 <script type="esms-options">
 {
   "shimMode": true,
-  "polyfillEnable": ["css-modules", "json-modules"],
+  "polyfillEnable": ["css-modules"],
   "nonce": "n0nce",
   "onpolyfill": "polyfill"
 }
@@ -700,9 +702,9 @@ DOM `load` events are fired for all `"module-shim"` scripts both for success and
 
 The `polyfillEnable` option allows enabling polyfill features which are newer and would otherwise result in unnecessary polyfilling in modern browsers that haven't yet updated.
 
-This options supports `"css-modules"`, `"json-modules"`, `"wasm-modules"`, `"wasm-module-sources"`, `"wasm-module-instances"` and `"import-defer"`.
+This options supports `"css-modules"`, `"wasm-modules"`, `"wasm-module-sources"`, `"wasm-module-instances"` and `"import-defer"`.
 
-In adddition, the `"all"` option will enable all features and the `"latest"` option will implement the latest supported browser features (currently `"css-modules"` and `"json-modules"`).
+In adddition, the `"all"` option will enable all features and the `"latest"` option will implement the latest edge of browser features (currently only `"css-modules"`).
 
 ```html
 <script type="esms-options">
