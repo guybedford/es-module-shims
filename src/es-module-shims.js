@@ -299,7 +299,9 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     onpolyfill();
     firstPolyfillLoad = false;
   }
-  const module = await (shimMode || load.n || load.N || !nativelyLoaded && source ? dynamicImport(load.b, load.u) : import(load.u));
+  const module = await (shimMode || load.n || load.N || (!nativelyLoaded && source) ?
+    dynamicImport(load.b, load.u)
+  : import(load.u));
   // if the top-level load is a shell, run its update function
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
   if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
@@ -826,21 +828,23 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
   let loadPromise;
   const ts = script.lang === 'ts';
   if (ts && !script.src) {
-    loadPromise = Promise.resolve(esmsTsTransform || initTs()).then(() => {
-      const transformed = esmsTsTransform(script.innerHTML, pageBaseUrl);
-      if (transformed !== undefined) {
-        onpolyfill();
-        firstPolyfillLoad = false;
-      }
-      return topLevelLoad(
-        script.src || pageBaseUrl,
-        getFetchOpts(script),
-        transformed === undefined ? script.innerHTML : transformed,
-        !shimMode && transformed === undefined,
-        isBlockingReadyScript && lastStaticLoadPromise,
-        true
-      );
-    }).catch(throwError);
+    loadPromise = Promise.resolve(esmsTsTransform || initTs())
+      .then(() => {
+        const transformed = esmsTsTransform(script.innerHTML, pageBaseUrl);
+        if (transformed !== undefined) {
+          onpolyfill();
+          firstPolyfillLoad = false;
+        }
+        return topLevelLoad(
+          script.src || pageBaseUrl,
+          getFetchOpts(script),
+          transformed === undefined ? script.innerHTML : transformed,
+          !shimMode && transformed === undefined,
+          isBlockingReadyScript && lastStaticLoadPromise,
+          true
+        );
+      })
+      .catch(throwError);
   } else {
     loadPromise = topLevelLoad(
       script.src || pageBaseUrl,
@@ -848,7 +852,7 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
       !script.src ? script.innerHTML : undefined,
       !shimMode,
       isBlockingReadyScript && lastStaticLoadPromise,
-      ts,
+      ts
     ).catch(throwError);
   }
   if (!noLoadEventRetriggers) loadPromise.then(() => script.dispatchEvent(new Event('load')));
