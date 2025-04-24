@@ -33,9 +33,8 @@ import {
   featureDetectionPromise
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
-import './hot-reload.js';
 
-function _resolve(id, parentUrl = pageBaseUrl) {
+const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
   let composedFallback = false;
   const firstResolved = firstImportMap && resolveImportMap(firstImportMap, urlResolved || id, parentUrl);
@@ -59,14 +58,14 @@ function _resolve(id, parentUrl = pageBaseUrl) {
     if (firstResolved && resolved !== firstResolved) N = true;
   }
   return { r: resolved, n, N };
-}
+};
 
-function resolve(id, parentUrl) {
+const resolve = (id, parentUrl) => {
   if (!resolveHook) return _resolve(id, parentUrl);
   const result = resolveHook(id, parentUrl, defaultResolve);
 
   return result ? { r: result, n: true, N: true } : _resolve(id, parentUrl);
-}
+};
 
 // import()
 async function importShim(id, opts, parentUrl) {
@@ -101,7 +100,7 @@ async function importShim(id, opts, parentUrl) {
 // import.source()
 // (opts not currently supported as no use cases yet)
 if (shimMode || wasmSourcePhaseEnabled)
-  importShim.source = async function (id, opts, parentUrl) {
+  importShim.source = async (id, opts, parentUrl) => {
     if (typeof opts === 'string') {
       parentUrl = opts;
       opts = undefined;
@@ -129,20 +128,20 @@ if (shimMode || deferPhaseEnabled) importShim.defer = importShim;
 
 self.importShim = importShim;
 
-function defaultResolve(id, parentUrl) {
+const defaultResolve = (id, parentUrl) => {
   return (
     resolveImportMap(composedImportMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl) ||
     throwUnresolved(id, parentUrl)
   );
-}
+};
 
-function throwUnresolved(id, parentUrl) {
+const throwUnresolved = (id, parentUrl) => {
   throw Error(`Unable to resolve specifier '${id}'${fromParent(parentUrl)}`);
-}
+};
 
-function metaResolve(id, parentUrl = this.url) {
+const metaResolve = function (id, parentUrl = this.url) {
   return resolve(id, `${parentUrl}`).r;
-}
+};
 
 importShim.resolve = (id, parentUrl) => resolve(id, parentUrl).r;
 importShim.getImportMap = () => JSON.parse(JSON.stringify(composedImportMap));
@@ -154,7 +153,7 @@ importShim.addImportMap = importMapIn => {
 const registry = (importShim._r = {});
 const sourceCache = (importShim._s = {});
 
-async function loadAll(load, seen) {
+const loadAll = async (load, seen) => {
   seen[load.u] = 1;
   await load.L;
   await Promise.all(
@@ -164,7 +163,7 @@ async function loadAll(load, seen) {
       return loadAll(dep, seen);
     })
   );
-}
+};
 
 let importMapSrc = false;
 let multipleImportMaps = false;
@@ -232,7 +231,7 @@ const initPromise = featureDetectionPromise.then(() => {
   return lexer.init;
 });
 
-function attachMutationObserver() {
+const attachMutationObserver = () => {
   const observer = new MutationObserver(mutations => {
     for (const mutation of mutations) {
       if (mutation.type !== 'childList') continue;
@@ -253,13 +252,13 @@ function attachMutationObserver() {
   observer.observe(document, { childList: true });
   observer.observe(document.head, { childList: true });
   processScriptsAndPreloads();
-}
+};
 
 let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let legacyAcceptingImportMaps = true;
 
-async function topLevelLoad(url, parentUrl, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise, sourceType) {
+const topLevelLoad = async (url, parentUrl, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise, sourceType) => {
   await initPromise;
   await importMapPromise;
   url = (await resolve(url, parentUrl)).r;
@@ -309,9 +308,9 @@ async function topLevelLoad(url, parentUrl, fetchOpts, source, nativelyLoaded, l
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
   if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
   return module;
-}
+};
 
-function revokeObjectURLs(registryKeys) {
+const revokeObjectURLs = registryKeys => {
   let curIdx = 0;
   const handler = self.requestIdleCallback || self.requestAnimationFrame;
   handler(cleanup);
@@ -322,11 +321,35 @@ function revokeObjectURLs(registryKeys) {
     }
     if (curIdx < registryKeys.length) handler(cleanup);
   }
-}
+};
 
 const urlJsString = url => `'${url.replace(/'/g, "\\'")}'`;
 
-function resolveDeps(load, seen) {
+let resolvedSource, lastIndex;
+const pushStringTo = (load, originalIndex, dynamicImportEndStack) => {
+  while (dynamicImportEndStack[dynamicImportEndStack.length - 1] < originalIndex) {
+    const dynamicImportEnd = dynamicImportEndStack.pop();
+    resolvedSource += `${load.S.slice(lastIndex, dynamicImportEnd)}, ${urlJsString(load.r)}`;
+    lastIndex = dynamicImportEnd;
+  }
+  resolvedSource += load.S.slice(lastIndex, originalIndex);
+  lastIndex = originalIndex;
+};
+
+const pushSourceURL = (load, commentPrefix, commentStart, dynamicImportEndStack) => {
+  const urlStart = commentStart + commentPrefix.length;
+  const commentEnd = load.S.indexOf('\n', urlStart);
+  const urlEnd = commentEnd !== -1 ? commentEnd : load.S.length;
+  let sourceUrl = load.S.slice(urlStart, urlEnd);
+  try {
+    sourceUrl = new URL(sourceUrl, load.r).href;
+  } catch {}
+  pushStringTo(load, urlStart, dynamicImportEndStack);
+  resolvedSource += sourceUrl;
+  lastIndex = urlEnd;
+};
+
+const resolveDeps = (load, seen) => {
   if (load.b || !seen[load.u]) return;
   seen[load.u] = 0;
 
@@ -350,30 +373,19 @@ function resolveDeps(load, seen) {
   const [imports, exports] = load.a;
 
   // "execution"
-  const source = load.S;
-
-  let resolvedSource = '';
+  let source = load.S,
+    depIndex = 0,
+    dynamicImportEndStack = [];
 
   // once all deps have loaded we can inline the dependency resolution blobs
   // and define this blob
-  let lastIndex = 0,
-    depIndex = 0,
-    dynamicImportEndStack = [];
-  function pushStringTo(originalIndex) {
-    while (dynamicImportEndStack[dynamicImportEndStack.length - 1] < originalIndex) {
-      const dynamicImportEnd = dynamicImportEndStack.pop();
-      resolvedSource += `${source.slice(lastIndex, dynamicImportEnd)}, ${urlJsString(load.r)}`;
-      lastIndex = dynamicImportEnd;
-    }
-    resolvedSource += source.slice(lastIndex, originalIndex);
-    lastIndex = originalIndex;
-  }
+  (resolvedSource = ''), (lastIndex = 0);
 
   for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a } of imports) {
     // source phase
     if (t === 4) {
       let { l: depLoad } = load.d[depIndex++];
-      pushStringTo(statementStart);
+      pushStringTo(load, statementStart, dynamicImportEndStack);
       resolvedSource += `${source.slice(statementStart, start - 1).replace('source', '')}/*${source.slice(start - 1, end + 1)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
       lastIndex = end + 1;
     }
@@ -389,7 +401,7 @@ function resolveDeps(load, seen) {
 
       // defer phase stripping
       if (t === 6) {
-        pushStringTo(statementStart);
+        pushStringTo(load, statementStart, dynamicImportEndStack);
         resolvedSource += source.slice(statementStart, start - 1).replace('defer', '');
         lastIndex = start;
       }
@@ -414,7 +426,7 @@ function resolveDeps(load, seen) {
         }
       }
 
-      pushStringTo(start - 1);
+      pushStringTo(load, start - 1, dynamicImportEndStack);
       resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${blobUrl}'`;
 
       // circular shell execution
@@ -428,13 +440,13 @@ function resolveDeps(load, seen) {
     else if (dynamicImportIndex === -2) {
       load.m = { url: load.r, resolve: metaResolve };
       if (metaHook) metaHook(load.m, load.u);
-      pushStringTo(start);
+      pushStringTo(load, start, dynamicImportEndStack);
       resolvedSource += `importShim._r[${urlJsString(load.u)}].m`;
       lastIndex = statementEnd;
     }
     // dynamic import
     else {
-      pushStringTo(statementStart + 6);
+      pushStringTo(load, statementStart + 6, dynamicImportEndStack);
       resolvedSource += `Shim${t === 5 ? '.source' : ''}(`;
       dynamicImportEndStack.push(statementEnd - 1);
       lastIndex = start;
@@ -448,19 +460,6 @@ function resolveDeps(load, seen) {
       .map(({ s, e, ln }) => `${source.slice(s, e)}:${ln}`)
       .join(',')}})}catch(_){};\n`;
 
-  function pushSourceURL(commentPrefix, commentStart) {
-    const urlStart = commentStart + commentPrefix.length;
-    const commentEnd = source.indexOf('\n', urlStart);
-    const urlEnd = commentEnd !== -1 ? commentEnd : source.length;
-    let sourceUrl = source.slice(urlStart, urlEnd);
-    try {
-      sourceUrl = new URL(sourceUrl, load.r).href;
-    } catch {}
-    pushStringTo(urlStart);
-    resolvedSource += sourceUrl;
-    lastIndex = urlEnd;
-  }
-
   let sourceURLCommentStart = source.lastIndexOf(sourceURLCommentPrefix);
   let sourceMapURLCommentStart = source.lastIndexOf(sourceMapURLCommentPrefix);
 
@@ -473,23 +472,23 @@ function resolveDeps(load, seen) {
     sourceURLCommentStart !== -1 &&
     (sourceMapURLCommentStart === -1 || sourceMapURLCommentStart > sourceURLCommentStart)
   ) {
-    pushSourceURL(sourceURLCommentPrefix, sourceURLCommentStart);
+    pushSourceURL(load, sourceURLCommentPrefix, sourceURLCommentStart, dynamicImportEndStack);
   }
   // sourceMappingURL
   if (sourceMapURLCommentStart !== -1) {
-    pushSourceURL(sourceMapURLCommentPrefix, sourceMapURLCommentStart);
+    pushSourceURL(load, sourceMapURLCommentPrefix, sourceMapURLCommentStart, dynamicImportEndStack);
     // sourceURL last
     if (sourceURLCommentStart !== -1 && sourceURLCommentStart > sourceMapURLCommentStart)
-      pushSourceURL(sourceURLCommentPrefix, sourceURLCommentStart);
+      pushSourceURL(load, sourceURLCommentPrefix, sourceURLCommentStart, dynamicImportEndStack);
   }
 
-  pushStringTo(source.length);
+  pushStringTo(load, source.length, dynamicImportEndStack);
 
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
 
   load.b = createBlob(resolvedSource);
-  load.S = undefined;
-}
+  load.S = resolvedSource = undefined;
+};
 
 const sourceURLCommentPrefix = '\n//# sourceURL=';
 const sourceMapURLCommentPrefix = '\n//# sourceMappingURL=';
@@ -505,15 +504,15 @@ const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\
 // restrict in-flight fetches to a pool of 100
 let p = [];
 let c = 0;
-function pushFetchPool() {
+const pushFetchPool = () => {
   if (++c > 100) return new Promise(r => p.push(r));
-}
-function popFetchPool() {
+};
+const popFetchPool = () => {
   c--;
   if (p.length) p.shift()();
-}
+};
 
-async function doFetch(url, fetchOpts, parent) {
+const doFetch = async (url, fetchOpts, parent) => {
   if (enforceIntegrity && !fetchOpts.integrity) throw Error(`No integrity for ${url}${fromParent(parent)}.`);
   const poolQueue = pushFetchPool();
   if (poolQueue) await poolQueue;
@@ -532,15 +531,15 @@ async function doFetch(url, fetchOpts, parent) {
     throw error;
   }
   return res;
-}
+};
 
 let esmsTsTransform;
-async function initTs() {
+const initTs = async () => {
   const m = await import(tsTransform);
   if (!esmsTsTransform) esmsTsTransform = m.transform;
-}
+};
 
-async function fetchModule(url, fetchOpts, parent) {
+const fetchModule = async (url, fetchOpts, parent) => {
   const mapIntegrity = composedImportMap.integrity[url];
   const res = await doFetch(
     url,
@@ -590,9 +589,9 @@ async function fetchModule(url, fetchOpts, parent) {
     throw Error(
       `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
     );
-}
+};
 
-function isUnsupportedType(type) {
+const isUnsupportedType = type => {
   if (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEnabled) throw featErr(`wasm-modules`);
   return (
     (type === 'css' && !supportsCssType) ||
@@ -600,9 +599,9 @@ function isUnsupportedType(type) {
     (type === 'wasm' && !supportsWasmInstancePhase && !supportsWasmSourcePhase) ||
     type === 'ts'
   );
-}
+};
 
-function getOrCreateLoad(url, fetchOpts, parent, source) {
+const getOrCreateLoad = (url, fetchOpts, parent, source) => {
   if (source && registry[url]) {
     let i = 0;
     while (registry[url + '?' + ++i]);
@@ -655,14 +654,14 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     return load;
   })();
   return load;
-}
+};
 
 const featErr = feat =>
   Error(
     `${feat} feature must be enabled via <script type="esms-options">{ "polyfillEnable": ["${feat}"] }<${''}/script>`
   );
 
-function linkLoad(load, fetchOpts) {
+const linkLoad = (load, fetchOpts) => {
   if (load.L) return;
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
@@ -703,9 +702,9 @@ function linkLoad(load, fetchOpts) {
       })
       .filter(l => l);
   });
-}
+};
 
-function processScriptsAndPreloads() {
+const processScriptsAndPreloads = () => {
   for (const link of document.querySelectorAll(shimMode ? 'link[rel=modulepreload-shim]' : 'link[rel=modulepreload]')) {
     if (!link.ep) processPreload(link);
   }
@@ -717,9 +716,9 @@ function processScriptsAndPreloads() {
       if (!script.ep) processScript(script);
     }
   }
-}
+};
 
-function getFetchOpts(script) {
+const getFetchOpts = script => {
   const fetchOpts = {};
   if (script.integrity) fetchOpts.integrity = script.integrity;
   if (script.referrerPolicy) fetchOpts.referrerPolicy = script.referrerPolicy;
@@ -728,52 +727,53 @@ function getFetchOpts(script) {
   else if (script.crossOrigin === 'anonymous') fetchOpts.credentials = 'omit';
   else fetchOpts.credentials = 'same-origin';
   return fetchOpts;
-}
+};
 
 let lastStaticLoadPromise = Promise.resolve();
 
 let domContentLoaded = false;
 let domContentLoadedCnt = 1;
-function domContentLoadedCheck() {
+const domContentLoadedCheck = () => {
   if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: DOMContentLoaded refire`);
     document.removeEventListener('DOMContentLoaded', domContentLoadedEvent);
     document.dispatchEvent(new Event('DOMContentLoaded'));
   }
-}
+};
 let loadCnt = 1;
-function loadCheck() {
+const loadCheck = () => {
   if (--loadCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: load refire`);
     window.removeEventListener('DOMContentLoaded', loadEvent);
     window.dispatchEvent(new Event('load'));
   }
-}
+};
+
+const domContentLoadedEvent = async () => {
+  await initPromise;
+  domContentLoadedCheck();
+};
+const loadEvent = async () => {
+  await initPromise;
+  loadCheck();
+};
+
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
 if (hasDocument) {
   document.addEventListener('DOMContentLoaded', domContentLoadedEvent);
   window.addEventListener('load', loadEvent);
 }
 
-async function domContentLoadedEvent() {
-  await initPromise;
-  domContentLoadedCheck();
-}
-async function loadEvent() {
-  await initPromise;
-  loadCheck();
-}
-
-async function readyListener() {
+const readyListener = async () => {
   await initPromise;
   processScriptsAndPreloads();
   if (document.readyState === 'complete') {
     readyStateCompleteCheck();
   }
-}
+};
 
 let readyStateCompleteCnt = 1;
-function readyStateCompleteCheck() {
+const readyStateCompleteCheck = () => {
   if (--readyStateCompleteCnt === 0) {
     if (!domContentLoaded) {
       domContentLoaded = true;
@@ -785,7 +785,7 @@ function readyStateCompleteCheck() {
       document.dispatchEvent(new Event('readystatechange'));
     }
   }
-}
+};
 
 const hasNext = script => script.nextSibling || (script.parentNode && hasNext(script.parentNode));
 const epCheck = (script, ready) =>
@@ -794,7 +794,7 @@ const epCheck = (script, ready) =>
   script.getAttribute('noshim') !== null ||
   !(script.ep = true);
 
-function processImportMap(script, ready = readyStateCompleteCnt > 0) {
+const processImportMap = (script, ready = readyStateCompleteCnt > 0) => {
   if (epCheck(script, ready)) return;
   if (self.ESMS_DEBUG) console.info(`es-module-shims: reading import map`);
   // we dont currently support external import maps in polyfill mode to match native
@@ -825,9 +825,9 @@ function processImportMap(script, ready = readyStateCompleteCnt > 0) {
     }
   }
   legacyAcceptingImportMaps = false;
-}
+};
 
-function processScript(script, ready = readyStateCompleteCnt > 0) {
+const processScript = (script, ready = readyStateCompleteCnt > 0) => {
   if (epCheck(script, ready)) return;
   if (self.ESMS_DEBUG) console.info(`es-module-shims: checking script ${script.src || '<inline>'}`);
   // does this load block readystate complete
@@ -876,11 +876,11 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
   }
   if (isDomContentLoadedScript) loadPromise.then(domContentLoadedCheck);
   if (isLoadScript) loadPromise.then(loadCheck);
-}
+};
 
 const fetchCache = {};
-function processPreload(link) {
+const processPreload = link => {
   link.ep = true;
   if (fetchCache[link.href]) return;
   fetchCache[link.href] = fetchModule(link.href, getFetchOpts(link));
-}
+};

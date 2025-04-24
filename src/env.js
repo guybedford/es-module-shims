@@ -1,3 +1,5 @@
+import { hotImportHook, hotResolveHook, hotMetaHook } from './hot-reload.js';
+
 if (self.importShim) {
   if (self.ESMS_DEBUG)
     console.info(
@@ -32,6 +34,17 @@ export let importHook,
     (hasDocument && document.currentScript && document.currentScript.src.replace(/(\.\w+)?\.js$/, '-typescript.js')) ||
     './es-module-shims-typescript.js';
 
+export const {
+  revokeBlobURLs,
+  noLoadEventRetriggers,
+  enforceIntegrity,
+  nativePassthrough,
+  hotReload,
+  hotReloadInterval = 100
+} = esmsInitOptions;
+
+const globalHook = name => (typeof name === 'string' ? self[name] : name);
+
 if (esmsInitOptions.onimport) importHook = globalHook(esmsInitOptions.onimport);
 if (esmsInitOptions.resolve) resolveHook = globalHook(esmsInitOptions.resolve);
 if (esmsInitOptions.fetch) fetchHook = globalHook(esmsInitOptions.fetch);
@@ -47,19 +60,6 @@ if (!nonce && hasDocument) {
 }
 
 export const onerror = globalHook(esmsInitOptions.onerror || noop);
-
-export const {
-  revokeBlobURLs,
-  noLoadEventRetriggers,
-  enforceIntegrity,
-  nativePassthrough,
-  hotReload,
-  hotReloadInterval
-} = esmsInitOptions;
-
-function globalHook(name) {
-  return typeof name === 'string' ? self[name] : name;
-}
 
 const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
 const enableAll = esmsInitOptions.polyfillEnable === 'all' || enable.includes('all');
@@ -103,6 +103,4 @@ export const throwError = err => {
   (self.reportError || dispatchError)(err), void onerror(err);
 };
 
-export function fromParent(parent) {
-  return parent ? ` imported from ${parent}` : '';
-}
+export const fromParent = parent => (parent ? ` imported from ${parent}` : '');
