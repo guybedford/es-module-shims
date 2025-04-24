@@ -188,22 +188,20 @@ If the polyfill is analyzing or applying to a module script that doesn't need to
 
 ### Polyfill Features
 
-If using more modern features like CSS Modules or JSON Modules, these need to be manually enabled via the [`polyfillEnable` init option](#polyfill-enable-option) to raise the native baseline from just checking import maps to also checking that browsers support these features:
+If using more modern features like [Import Defer](#import-defer) or [Wasm Modules](#wasm-modules), these need to be manually enabled via the [`polyfillEnable` init option](#polyfill-enable-option) to raise the native baseline from just checking import maps to also checking that browsers support these features:
 
 ```html
 <script>
-window.esmsInitOptions = { polyfillEnable: ['css-modules', 'wasm-modules'] }
+window.esmsInitOptions = { polyfillEnable: ['wasm-module-sources', 'import-defer'] }
 </script>
 ```
 
-The above polyfill options correspond to `polyfillEnable: 'all'`.
-
-Alternatively options can be set via the `esms-options` script type:
+Alternatively options can be set via the `esms-options` script type JSON:
 
 ```html
 <script type="esms-options">
 {
-  "polyfillEnable": "all"
+  "polyfillEnable": ["wasm-module-sources", "import-defer"]
 }
 </script>
 ```
@@ -503,9 +501,9 @@ In addition JSON modules need to be served with a valid JSON content type.
 
 > Stability: WhatWG Standard, Single Browser Implementer
 
-In shim mode, CSS modules are always supported. In polyfill mode, CSS modules require the `polyfillEnable: ['css-modules']` [init option](#polyfill-enable-option).
+CSS imports are fully supported in both polyfill and shim mode with native passthrough applying in Chrome.
 
-CSS Modules are currently supported in Chrome when using them via an import assertion:
+Use them by adding the `type: 'css'` import assertion when importing a CSS file:
 
 ```html
 <script type="module">
@@ -513,7 +511,7 @@ import sheet from 'https://site.com/sheet.css' with { type: 'css' };
 </script>
 ```
 
-In addition CSS modules need to be served with a valid CSS content type.
+In addition CSS files need to be served with a valid CSS content type.
 
 ### Wasm Modules
 
@@ -521,13 +519,11 @@ In addition CSS modules need to be served with a valid CSS content type.
 
 Implements the [WebAssembly ESM Integration](https://github.com/WebAssembly/esm-integration) spec, including support for source phase imports.
 
-In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules require the `polyfillEnable: ['wasm-modules']` [init option](#polyfill-enable-option).
+In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules require the `polyfillEnable: ['wasm-module-sources']` (or `'wasm-modules-instances'` for instance imports) [init option](#polyfill-enable-option).
 
 WebAssembly module exports are made available as module exports and WebAssembly module imports will be resolved using the browser module loader.
 
-By default Wasm support will look for both source phase syntax as well as instance Wasm imports, resulting in full analysis of the module graph when either is unsupported.
-
-If only using Wasm modules in the source phase set `polyfillEnable: ['wasm-module-sources']` [init option](#polyfill-enable-option) to ensure full native passthrough without the extra code analysis when Chrome ships the source phase.
+If only using Wasm modules in both the instance and source phase set `polyfillEnable: ['wasm-modules']` [init option](#polyfill-enable-option) to enable both modes.
 
 When enabling the source phase feature either way, `WebAssembly.Module` is also polyfilled to extend from `AbstractModuleSource` per the source phase proposal.
 
@@ -548,7 +544,7 @@ const instance = await WebAssembly.instantiate(mod, { /* ...imports */ });
 </script>
 ```
 
-If using CSP, make sure to add `'unsafe-wasm-eval'` to `script-src` which is needed when the shim or polyfill engages, note this policy is much much safer than eval due to the Wasm secure sandbox. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#unsafe_webassembly_execution.
+If using CSP, make sure to add `'unsafe-wasm-eval'` to `script-src` which is needed when the shim or polyfill engages, note this policy is safer than normal eval due to the Wasm secure sandbox. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#unsafe_webassembly_execution.
 
 ### Import Defer
 
@@ -677,7 +673,7 @@ window.esmsInitOptions = {
   // Enable Shim Mode
   shimMode: true, // default false
   // Enable newer modules features
-  polyfillEnable: ['css-modules'], // default empty
+  polyfillEnable: ['wasm-module-sources'], // default empty
   // Custom CSP nonce
   nonce: 'n0nce', // default is automatic detection
   // Don't retrigger load events on module scripts (DOMContentLoaded, domready, window 'onload')
@@ -716,7 +712,7 @@ window.esmsInitOptions = {
 <script type="esms-options">
 {
   "shimMode": true,
-  "polyfillEnable": ["css-modules"],
+  "polyfillEnable": ["wasm-module-sources"],
   "nonce": "n0nce",
   "onpolyfill": "polyfill"
 }
@@ -745,14 +741,14 @@ DOM `load` events are fired for all `"module-shim"` scripts both for success and
 
 The `polyfillEnable` option allows enabling polyfill features which are newer and would otherwise result in unnecessary polyfilling in modern browsers that haven't yet updated.
 
-This options supports `"css-modules"`, `"wasm-modules"`, `"wasm-module-sources"`, `"wasm-module-instances"` and `"import-defer"`.
+This options supports `"wasm-modules"`, `"wasm-module-sources"`, `"wasm-module-instances"` and `"import-defer"`.
 
-In adddition, the `"all"` option will enable all features and the `"latest"` option will implement the latest edge of browser features (currently only `"css-modules"`).
+In adddition, the `"all"` option will enable all features.
 
 ```html
 <script type="esms-options">
 {
-  "polyfillEnable": ["latest"]
+  "polyfillEnable": ["all"]
 }
 </script>
 ```

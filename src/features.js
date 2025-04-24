@@ -1,12 +1,4 @@
-import {
-  createBlob,
-  noop,
-  nonce,
-  cssModulesEnabled,
-  wasmInstancePhaseEnabled,
-  wasmSourcePhaseEnabled,
-  hasDocument
-} from './env.js';
+import { createBlob, noop, nonce, wasmInstancePhaseEnabled, wasmSourcePhaseEnabled, hasDocument } from './env.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsJsonType = false;
@@ -24,16 +16,16 @@ const wasmBytes = [0, 97, 115, 109, 1, 0, 0, 0];
 export let featureDetectionPromise = (async function () {
   if (!hasDocument)
     return Promise.all([
-      cssModulesEnabled &&
-        import(createBlob(`import"${createBlob('', 'text/css')}"with{type:"css"}`)).then(
-          () => (supportsCssType = true),
-          noop
+      import(createBlob(`import"${createBlob('{}', 'text/json')}"with{type:"json"}`)).then(
+        () => (
+          (supportsJsonType = true),
+          import(createBlob(`import"${createBlob('', 'text/css')}"with{type:"css"}`)).then(
+            () => (supportsCssType = true),
+            noop
+          )
         ),
-      jsonModulesEnabled &&
-        import(createBlob(`import"${createBlob('{}', 'text/json')}"with{type:"json"}`)).then(
-          () => (supportsJsonType = true),
-          noop
-        ),
+        noop
+      ),
       wasmInstancePhaseEnabled &&
         import(createBlob(`import"${createBlob(new Uint8Array(wasmBytes), 'application/wasm')}"`)).then(
           () => (supportsWasmInstancePhase = true),
@@ -76,9 +68,7 @@ export let featureDetectionPromise = (async function () {
         `c(b(\`import source x from "\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`))`
       : 'false'
     };Promise.all([${supportsImportMaps ? 'true' : "c('x')"},${supportsImportMaps ? "c('y')" : false},cm,${
-      supportsImportMaps && cssModulesEnabled ?
-        `cm.then(s=>s?c(b(\`import"\${b('','text/css')\}"with{type:"css"}\`)):false)`
-      : 'false'
+      supportsImportMaps ? `cm.then(s=>s?c(b(\`import"\${b('','text/css')\}"with{type:"css"}\`)):false)` : 'false'
     },sp,${
       supportsImportMaps && wasmInstancePhaseEnabled ?
         `${wasmSourcePhaseEnabled ? 'sp.then(s=>s?' : ''}c(b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`))${wasmSourcePhaseEnabled ? ':false)' : ''}`
