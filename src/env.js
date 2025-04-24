@@ -1,4 +1,11 @@
-export const hasWindow = typeof window !== 'undefined';
+if (self.importShim) {
+  if (self.ESMS_DEBUG)
+    console.info(
+      `es-module-shims: skipping initialization as importShim was already registered by another polyfill instance`
+    );
+  $ret();
+}
+
 export const hasDocument = typeof document !== 'undefined';
 
 export const noop = () => {};

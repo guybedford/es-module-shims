@@ -21,13 +21,16 @@ function config(isWasm, isDebug) {
       format: 'iife',
       strict: false,
       sourcemap: false,
-      banner: `/* ES Module Shims ${isWasm ? 'Wasm ' : ''}${version} */`
+      banner: `/** ES Module Shims ${isWasm ? 'Wasm ' : ''}${version} */`
     },
     plugins: [
       {
         resolveId(id) {
           if (isWasm && id === '../node_modules/es-module-lexer/dist/lexer.asm.js')
             return path.resolve('node_modules/es-module-lexer/dist/lexer.js');
+        },
+        renderChunk(code) {
+          return { code: code.replace('$ret()', 'return') };
         }
       },
       replace({

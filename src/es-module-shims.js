@@ -221,14 +221,6 @@ const initPromise = featureDetectionPromise.then(() => {
       if (document.readyState === 'complete') {
         readyStateCompleteCheck();
       } else {
-        async function readyListener() {
-          await initPromise;
-          processScriptsAndPreloads();
-          if (document.readyState === 'complete') {
-            readyStateCompleteCheck();
-            document.removeEventListener('readystatechange', readyListener);
-          }
-        }
         document.addEventListener('readystatechange', readyListener);
       }
     }
@@ -607,8 +599,8 @@ function isUnsupportedType(type) {
 function getOrCreateLoad(url, fetchOpts, parent, source) {
   if (source && registry[url]) {
     let i = 0;
-    while (registry[url + ++i]);
-    url += i;
+    while (registry[url + '?' + ++i]);
+    url += '?' + i;
   }
   let load = registry[url];
   if (load) return load;
@@ -734,10 +726,12 @@ function getFetchOpts(script) {
 
 let lastStaticLoadPromise = Promise.resolve();
 
+let domContentLoaded = false;
 let domContentLoadedCnt = 1;
 function domContentLoadedCheck() {
   if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: DOMContentLoaded refire`);
+    document.removeEventListener('DOMContentLoaded', domContentLoadedEvent);
     document.dispatchEvent(new Event('DOMContentLoaded'));
   }
 }
@@ -745,26 +739,45 @@ let loadCnt = 1;
 function loadCheck() {
   if (--loadCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: load refire`);
+    window.removeEventListener('DOMContentLoaded', loadEvent);
     window.dispatchEvent(new Event('load'));
   }
 }
 // this should always trigger because we assume es-module-shims is itself a domcontentloaded requirement
 if (hasDocument) {
-  document.addEventListener('DOMContentLoaded', async () => {
-    await initPromise;
-    domContentLoadedCheck();
-  });
-  window.addEventListener('load', async () => {
-    await initPromise;
-    loadCheck();
-  });
+  document.addEventListener('DOMContentLoaded', domContentLoadedEvent);
+  window.addEventListener('load', loadEvent);
+}
+
+async function domContentLoadedEvent () {
+  await initPromise;
+  domContentLoadedCheck();
+}
+async function loadEvent () {
+  await initPromise;
+  loadCheck();
+}
+
+async function readyListener() {
+  await initPromise;
+  processScriptsAndPreloads();
+  if (document.readyState === 'complete') {
+    readyStateCompleteCheck();
+  }
 }
 
 let readyStateCompleteCnt = 1;
 function readyStateCompleteCheck() {
-  if (--readyStateCompleteCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
-    if (self.ESMS_DEBUG) console.info(`es-module-shims: readystatechange complete refire`);
-    document.dispatchEvent(new Event('readystatechange'));
+  if (--readyStateCompleteCnt === 0) {
+    if (!domContentLoaded) {
+      domContentLoaded = true;
+      domContentLoadedCheck();
+    }
+    if (!noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
+      if (self.ESMS_DEBUG) console.info(`es-module-shims: readystatechange complete refire`);
+      document.removeEventListener('readystatechange', readyListener);
+      document.dispatchEvent(new Event('readystatechange'));
+    }
   }
 }
 
