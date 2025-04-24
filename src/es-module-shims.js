@@ -681,7 +681,7 @@ function linkLoad(load, fetchOpts) {
         const sourcePhase = phaseImport && t < 6;
         if (phaseImport) {
           if (!shimMode && (sourcePhase ? !wasmSourcePhaseEnabled : !deferPhaseEnabled))
-            throw featErr(sourcePhase ? 'source-phase' : 'defer-phase');
+            throw featErr(sourcePhase ? 'wasm-module-sources' : 'import-defer');
           if (!sourcePhase || !supportsWasmSourcePhase) load.n = true;
         }
         let source = undefined;
