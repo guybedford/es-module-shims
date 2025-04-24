@@ -9,10 +9,11 @@ For the remaining ~4% of users, the highly performant (see [benchmarks](#benchma
 The following modules features are polyfilled:
 
 * [Import Maps](#import-maps) polyfill.
-* [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions when enabled.
-* [Wasm modules](#wasm-modules) with support for Source Phase Imports when enabled.
-* [Import defer](#import-defer) via syntax stripping to allow usage in modern browsers with a polyfill fallback when enabled.
+* [JSON](#json-modules) and [CSS modules](#css-modules) polyfill with import assertions.
+* [Wasm modules](#wasm-modules) with support for Source Phase Imports, when enabled.
+* [Import defer](#import-defer) via syntax stripping to allow usage in modern browsers with a polyfill fallback, when enabled.
 * [TypeScript](#typescript-type-stripping) type stripping.
+* [Hot Reloading](#hot-reloading) with a Vite-style `import.meta.host` API.
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
 
@@ -617,6 +618,30 @@ When processing a TypeScript module, the `es-module-shims-typescript.js` extensi
 
 Note that runtime TypeScript features such as enums are not supported, and type only imports should be used where possible, per the Node.js guidance for TypeScript.
 
+### Hot Reloading
+
+Hot reloading is supported in both shim and polyfill modes, when explicitly enabled. To enable hot-reloading, enable the `hotReload` init option:
+
+test.html
+```html
+<script type="esms-options">
+{
+  "hotReload": true,
+  "hotReloadInterval": 100
+}
+</script>
+<script src="https://ga.jspm.io/npm:es-module-shims@1.5.4/dist/es-module-shims.js"></script>
+<script type="module" src="/app.js"></script>
+```
+
+The `hotReloadInterval` option can also be configured which is the interval at which hot reload events are batched together as a single reload operation, with the default of `100`.
+
+When enabled, [native passthrough](#native-passthrough) will be automatically disabled, and all modules will be provided with the `import.meta.hot` API.
+
+To trigger a hot reload, call the `importShim.hotReload(url)` API with the URL of the module that has changed. All of CSS, JSON, Wasm and TypeScript imports loaded through the module system are supported in this API.
+
+This hot reload API can then be attached to a Web Socket, Server Side Events emitter or any other event source to provide a native hot reloading development environment.
+
 ### Module Workers
 
 ES Module Shims can be used in module workers in browsers that provide dynamic import in worker environments, which at the moment are Chrome(80+), Edge(80+), Firefox(~113+) and Safari(15+).
@@ -656,6 +681,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [enforceIntegrity](#enforce-integrity)
 * [fetch](#fetch-hook)
 * [mapOverrides](#overriding-import-map-entries)
+* [nativePassthrough](#native-passthrough)
 * [modulepreload](#modulepreload)
 * [noLoadEventRetriggers](#no-load-event-retriggers)
 * [globalLoadEventRetrigger](#global-load-event-retrigger)
@@ -687,6 +713,9 @@ window.esmsInitOptions = {
   enforceIntegrity: true, // default false
   // Permit overrides to import maps
   mapOverrides: true, // default false
+  // Whether es-module-shims will defer to the native module loader whenever it can
+  // Automatically disabled in hot reloading workflows
+  nativePassthrough: false, // default true
 
   // -- Hooks --
   // Module load error
@@ -903,6 +932,17 @@ document.body.appendChild(Object.assign(document.createElement('script'), {
 ```
 
 This can be useful for HMR workflows.
+
+### Native Passthrough
+
+By default, ES Module Shims will always use the native passthrough of calling the native `import()` mechanism to load module graphs, when it has analyzed that that module graph is fully supported in the current environment. This way, the native module registry is fully shared between polyfilled and non-polyfilled graphs,
+and we lean into the native support as much as popssible.
+
+In Shim mode, ES Module Shims never uses native pass through regardless of this option - it only applies to polyfill mode.
+
+This option is enabled by default, so by turning it off it is possible to ensure that ES Module Shims is rewriting and processing all sources itself.
+
+Native passthrough is automatically disabled when using [hot reloading](#hot-reloading).
 
 ### Hooks
 

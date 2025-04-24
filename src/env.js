@@ -19,22 +19,24 @@ Object.assign(esmsInitOptions, self.esmsInitOptions || {});
 
 // shim mode is determined on initialization, no late shim mode
 export const shimMode =
-  hasDocument ?
-    esmsInitOptions.shimMode ||
-    document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]')
-      .length > 0
-  : true;
-
-export const importHook = globalHook(shimMode && esmsInitOptions.onimport);
-export const resolveHook = globalHook(shimMode && esmsInitOptions.resolve);
-export let fetchHook = esmsInitOptions.fetch ? globalHook(esmsInitOptions.fetch) : fetch;
-export const metaHook = esmsInitOptions.meta ? globalHook(shimMode && esmsInitOptions.meta) : noop;
-export const tsTransform =
-  esmsInitOptions.tsTransform ||
+  esmsInitOptions.shimMode ||
   (hasDocument &&
-    document.currentScript &&
-    document.currentScript.src.replace(self.ESMS_DEBUG ? /\.debug\.js$/ : /\.js$/, '-typescript.js')) ||
-  './es-module-shims-typescript.js';
+    document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]')
+      .length > 0);
+
+export let importHook,
+  resolveHook,
+  fetchHook = fetch,
+  metaHook = noop,
+  tsTransform =
+    (hasDocument && document.currentScript && document.currentScript.src.replace(/(\.\w+)?\.js$/, '-typescript.js')) ||
+    './es-module-shims-typescript.js';
+
+if (esmsInitOptions.onimport) importHook = globalHook(esmsInitOptions.onimport);
+if (esmsInitOptions.resolve) resolveHook = globalHook(esmsInitOptions.resolve);
+if (esmsInitOptions.fetch) fetchHook = globalHook(esmsInitOptions.fetch);
+if (esmsInitOptions.meta) metaHook = globalHook(esmsInitOptions.meta);
+if (esmsInitOptions.tsTransform) tsTransform = globalHook(esmsInitOptions.tsTransform);
 
 export const mapOverrides = esmsInitOptions.mapOverrides;
 
@@ -46,7 +48,14 @@ if (!nonce && hasDocument) {
 
 export const onerror = globalHook(esmsInitOptions.onerror || noop);
 
-export const { revokeBlobURLs, noLoadEventRetriggers, enforceIntegrity } = esmsInitOptions;
+export const {
+  revokeBlobURLs,
+  noLoadEventRetriggers,
+  enforceIntegrity,
+  nativePassthrough,
+  hotReload,
+  hotReloadInterval
+} = esmsInitOptions;
 
 function globalHook(name) {
   return typeof name === 'string' ? self[name] : name;

@@ -512,7 +512,7 @@ suite('Fetch hook', () => {
 suite('Resolve hook', () => {
   test('Should hook resolve', async function () {
     const resolveHook = window.resolveHook;
-    window.resolveHook = async (id, parentUrl, defaultResolve) => {
+    window.resolveHook = (id, parentUrl, defaultResolve) => {
       if (id === 'resolveTestModule') {
         return defaultResolve('./fixtures/es-modules/es6.js', parentUrl);
         // OR just resolve by yourself like this:
