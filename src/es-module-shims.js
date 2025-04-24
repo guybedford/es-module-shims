@@ -13,7 +13,6 @@ import {
   skip,
   revokeBlobURLs,
   noLoadEventRetriggers,
-  cssModulesEnabled,
   wasmInstancePhaseEnabled,
   wasmSourcePhaseEnabled,
   deferPhaseEnabled,
@@ -176,7 +175,7 @@ const initPromise = featureDetectionPromise.then(() => {
     esmsInitOptions.polyfillEnable !== true &&
     supportsImportMaps &&
     supportsJsonType &&
-    (!cssModulesEnabled || supportsCssType) &&
+    supportsCssType &&
     (!wasmInstancePhaseEnabled || supportsWasmInstancePhase) &&
     (!wasmSourcePhaseEnabled || supportsWasmSourcePhase) &&
     !deferPhaseEnabled &&
@@ -596,11 +595,7 @@ async function fetchModule(url, fetchOpts, parent) {
 }
 
 function isUnsupportedType(type) {
-  if (
-    (type === 'css' && !cssModulesEnabled) ||
-    (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEnabled)
-  )
-    throw featErr(`${type}-modules`);
+  if (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEnabled) throw featErr(`wasm-modules`);
   return (
     (type === 'css' && !supportsCssType) ||
     (type === 'json' && !supportsJsonType) ||
@@ -690,7 +685,6 @@ function linkLoad(load, fetchOpts) {
             if (supportsJsonType) source = '';
             else load.n = true;
           } else if (assertion.includes('css')) {
-            if (!cssModulesEnabled) throw featErr('css-modules');
             if (supportsCssType) source = '';
             else load.n = true;
           }
