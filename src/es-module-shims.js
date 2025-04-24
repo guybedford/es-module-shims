@@ -93,11 +93,15 @@ async function importShim(id, opts, parentUrl) {
   // because we can't syntactically pass through to dynamic import with a second argument
   let url = await importHandler(id, opts, parentUrl, false);
   let source = undefined;
-  if (typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string') {
-    source = `export{default}from'${url}'with{type:"${opts.with.type}"}`;
-    url += '?entry';
+  let ts = false;
+  if (typeof opts === 'object') {
+    ts = opts.lang === 'ts';
+    if (typeof opts.with === 'object' && typeof opts.with.type === 'string') {
+      source = `export{default}from'${url}'with{type:"${opts.with.type}"}`;
+      url += '?entry';
+    }
   }
-  return topLevelLoad(url, { credentials: 'same-origin' }, source, undefined, undefined);
+  return topLevelLoad(url, { credentials: 'same-origin' }, source, undefined, undefined, ts);
 }
 
 // import.source()
@@ -261,13 +265,12 @@ let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let legacyAcceptingImportMaps = true;
 
-async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise) {
-  legacyAcceptingImportMaps = false;
+async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise, typescript) {
   await initPromise;
   await importMapPromise;
   if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, '');
   // early analysis opt-out - no need to even fetch if we have feature support
-  if (!shimMode && baselinePassthrough) {
+  if (!shimMode && baselinePassthrough && !typescript) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: early exit for ${url} due to baseline modules support`);
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded) return null;
@@ -275,7 +278,6 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     return dynamicImport(source ? createBlob(source) : url, url || source);
   }
   const load = getOrCreateLoad(url, fetchOpts, undefined, source);
-  if (!nativelyLoaded && source) load.N = true;
   linkLoad(load, fetchOpts);
   const seen = {};
   await loadAll(load, seen);
@@ -297,12 +299,10 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     onpolyfill();
     firstPolyfillLoad = false;
   }
-  const module = await (shimMode || load.n || load.N ? dynamicImport(load.b, load.u) : import(load.u));
+  const module = await (shimMode || load.n || load.N || !nativelyLoaded && source ? dynamicImport(load.b, load.u) : import(load.u));
   // if the top-level load is a shell, run its update function
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
   if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
-  // when tla is supported, this should return the tla promise as an actual handle
-  // so readystate can still correspond to the sync subgraph exec completions
   return module;
 }
 
@@ -489,7 +489,6 @@ function resolveDeps(load, seen) {
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
 
   load.b = createBlob(resolvedSource);
-  console.log(load.b, resolvedSource);
   load.S = undefined;
 }
 
@@ -585,6 +584,8 @@ async function fetchModule(url, fetchOpts, parent) {
     const source = await res.text();
     if (!esmsTsTransform) await initTs();
     const transformed = esmsTsTransform(source, url);
+    // even if the TypeScript is valid JavaScript, unless it was a top-level inline source, it wasn't served with
+    // a valid JS MIME here, so we must still polyfill it
     return { r, s: transformed === undefined ? source : transformed, t: 'ts' };
   } else
     throw Error(
@@ -633,9 +634,9 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     b: undefined,
     // shellUrl
     s: undefined,
-    // needsShim: does it fail execution in the native loader?
+    // needsShim: does it fail execution in the current native loader?
     n: false,
-    // shouldShim: does it behave differently under latest semantics?
+    // shouldShim: does it need to be loaded by the polyfill loader?
     N: false,
     // type
     t: null,
@@ -813,25 +814,6 @@ function processImportMap(script, ready = readyStateCompleteCnt > 0) {
 
 function processScript(script, ready = readyStateCompleteCnt > 0) {
   if (epCheck(script, ready)) return;
-  if (script.lang === 'ts' && !script.src) {
-    const source = script.innerHTML;
-    return initTs()
-      .then(() => {
-        const transformed = esmsTsTransform(source, pageBaseUrl);
-        if (transformed !== undefined) {
-          onpolyfill();
-          firstPolyfillLoad = false;
-        }
-        return topLevelLoad(
-          pageBaseUrl,
-          getFetchOpts(script),
-          transformed === undefined ? source : transformed,
-          transformed === undefined,
-          undefined
-        );
-      })
-      .catch(throwError);
-  }
   if (self.ESMS_DEBUG) console.info(`es-module-shims: checking script ${script.src || '<inline>'}`);
   // does this load block readystate complete
   const isBlockingReadyScript = script.getAttribute('async') === null && readyStateCompleteCnt > 0;
@@ -841,15 +823,38 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
   if (isLoadScript) loadCnt++;
   if (isBlockingReadyScript) readyStateCompleteCnt++;
   if (isDomContentLoadedScript) domContentLoadedCnt++;
-  const loadPromise = topLevelLoad(
-    script.src || pageBaseUrl,
-    getFetchOpts(script),
-    !script.src ? script.innerHTML : undefined,
-    !shimMode,
-    isBlockingReadyScript && lastStaticLoadPromise
-  ).catch(throwError);
+  let loadPromise;
+  const ts = script.lang === 'ts';
+  if (ts && !script.src) {
+    loadPromise = Promise.resolve(esmsTsTransform || initTs()).then(() => {
+      const transformed = esmsTsTransform(script.innerHTML, pageBaseUrl);
+      if (transformed !== undefined) {
+        onpolyfill();
+        firstPolyfillLoad = false;
+      }
+      return topLevelLoad(
+        script.src || pageBaseUrl,
+        getFetchOpts(script),
+        transformed === undefined ? script.innerHTML : transformed,
+        !shimMode && transformed === undefined,
+        isBlockingReadyScript && lastStaticLoadPromise,
+        true
+      );
+    }).catch(throwError);
+  } else {
+    loadPromise = topLevelLoad(
+      script.src || pageBaseUrl,
+      getFetchOpts(script),
+      !script.src ? script.innerHTML : undefined,
+      !shimMode,
+      isBlockingReadyScript && lastStaticLoadPromise,
+      ts,
+    ).catch(throwError);
+  }
   if (!noLoadEventRetriggers) loadPromise.then(() => script.dispatchEvent(new Event('load')));
-  if (isBlockingReadyScript) lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
+  if (isBlockingReadyScript && !ts) {
+    lastStaticLoadPromise = loadPromise.then(readyStateCompleteCheck);
+  }
   if (isDomContentLoadedScript) loadPromise.then(domContentLoadedCheck);
   if (isLoadScript) loadPromise.then(loadCheck);
 }

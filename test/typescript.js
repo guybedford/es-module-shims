@@ -16,12 +16,12 @@ suite('TypeScript loading tests', () => {
   });
 
   test('Basic type stripping', async function () {
-    const { fn } = await importShim('/test/fixtures/test-dep.ts');
+    const { fn } = await importShim('/test/fixtures/test-dep.ts', { lang: 'ts' });
     assert.ok(fn() === 5);
   });
 
   test('TypeScript with CSS dependency', async function () {
-    const { style, getStyle, p } = await importShim('/test/fixtures/ts-loading-css.ts');
+    const { style, getStyle, p } = await importShim('/test/fixtures/ts-loading-css.ts', { lang: 'ts' });
     assert.ok(p === 50);
     assert.ok((await getStyle()).default instanceof CSSStyleSheet);
   });

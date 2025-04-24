@@ -560,23 +560,66 @@ The polyfill is simply just a defer syntax stripping, allowing environments that
 
 ### TypeScript Type Stripping
 
-Node.js recently [added support for automatically executing TypeScript with type stripping](https://nodejs.org/api/typescript.html). We support the exact same approach in ES Module Shims.
+TypeScript type stripping is supported like [in Node.js](https://nodejs.org/api/typescript.html).
 
-To trigger TypeScript support, import a top-level `.ts` or `.mts` extension, write an inline `<script lang="ts" type="module">`, or import content served with MIME type `application/typescript`:
+To trigger TypeScript type stripping, make sure to either use shim mode, or to add the non-standard `lang="ts"` option to the top-level evaluator. This ensures that the polyfill processing will engage on this graph, while usually module graphs are not processed at all in browsers with full native support.
+
+Modules will then be interpreted as TypeScript when one of the following applied:
+
+* It is served with the `application/typescript` MIME type.
+* It ends in `.ts` or `.mts` and is not served with a valid module script MIME type.
+* Or, if it is an inline `lang="ts"` module script.
+
+For example the following are all valid TypeScript usage patterns:
+
+Shim mode - no `lang=ts` is necessary:
 
 ```html
-<script type="module" src="app.ts"></script>
+<script type="module-shim" src="app.ts">
+```
+
+Polyfill mode via `lang=ts`:
+
+```html
+<script type="module" lang="ts" src="app.ts"></script>
+```
+
+Inline TypeScript with `lang=ts`:
+
+```html
 <script type="module" lang="ts">
+import './dep.ts';
 const ts: boolean = true;
 console.log('TypeScript!');
 </script>
 ```
 
-When one of these **top-level** TypeScript patterns is found, the separate `es-module-shims-typescript.js` extension must be available as a sibling asset to `es-module-shims.js` and will then be loaded on demand.
+Indirect static import to a TypeScript module via `lang="ts"`:
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "app": "/app.mts"
+  }
+}
+</script>
+<script type="module" lang="ts">
+import 'app';
+</script>
+```
+
+Loading TypeScript dynamically:
+
+```html
+<script type="module" lang="ts">
+importShim('./app.ts', { lang: 'ts' });
+</script>
+```
+
+When processing a TypeScript module, the `es-module-shims-typescript.js` extension must be available as a sibling asset to `es-module-shims.js`. It will then be loaded on-demand to provide the type stripping processing.
 
 Note that runtime TypeScript features such as enums are not supported, and type only imports should be used where possible, per the Node.js guidance for TypeScript.
-
-_TypeScript must be used at the top-level in order to be supported - we do not feature detect it down the module graph like other polyfill features for performance._
 
 ### Module Workers
 
@@ -709,7 +752,7 @@ In adddition, the `"all"` option will enable all features and the `"latest"` opt
 ```html
 <script type="esms-options">
 {
-  "polyfillEnable": ["latest", "typescript"]
+  "polyfillEnable": ["latest"]
 }
 </script>
 ```
