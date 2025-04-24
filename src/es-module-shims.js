@@ -93,7 +93,7 @@ async function importShim(id, opts, parentUrl) {
   // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
   // because we can't syntactically pass through to dynamic import with a second argument
   let url = await importHandler(id, opts, parentUrl, false);
-  let source = null;
+  let source = undefined;
   if (typeof opts === 'object' && typeof opts.with === 'object' && typeof opts.with.type === 'string') {
     source = `export{default}from'${url}'with{type:"${opts.with.type}"}`;
     url += '?entry';
@@ -110,7 +110,7 @@ if (shimMode || wasmSourcePhaseEnabled)
       opts = undefined;
     }
     const url = await importHandler(specifier, opts, parentUrl, true);
-    const load = getOrCreateLoad(url, { credentials: 'same-origin' }, null, null);
+    const load = getOrCreateLoad(url, { credentials: 'same-origin' }, undefined, undefined);
     if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
       onpolyfill();
       firstPolyfillLoad = false;
@@ -276,7 +276,7 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     await lastStaticLoadPromise;
     return dynamicImport(source ? createBlob(source) : url, url || source);
   }
-  const load = getOrCreateLoad(url, fetchOpts, null, source);
+  const load = getOrCreateLoad(url, fetchOpts, undefined, source);
   linkLoad(load, fetchOpts);
   const seen = {};
   await loadAll(load, seen);
@@ -381,6 +381,14 @@ function resolveDeps(load, seen) {
     }
     // dependency source replacements
     else if (dynamicImportIndex === -1) {
+      let keepAssertion = false;
+      if (a > 0) {
+        const assertion = source.slice(a, statementEnd - 1);
+        // strip assertions only when unsupported
+        keepAssertion =
+          (supportsJsonType && assertion.includes('json')) || (supportsCssType && assertion.includes('css'));
+      }
+
       // defer phase stripping
       if (t === 6) {
         pushStringTo(statementStart);
@@ -408,9 +416,6 @@ function resolveDeps(load, seen) {
         }
       }
 
-      // strip import assertions unless we support them
-      const stripAssertion = (!supportsCssType && !supportsJsonType) || !(a > 0);
-
       pushStringTo(start - 1);
       resolvedSource += `/*${source.slice(start - 1, end + 1)}*/'${blobUrl}'`;
 
@@ -419,7 +424,7 @@ function resolveDeps(load, seen) {
         resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
         depLoad.s = undefined;
       }
-      lastIndex = stripAssertion ? statementEnd : end + 1;
+      lastIndex = keepAssertion ? end + 1 : statementEnd;
     }
     // import.meta
     else if (dynamicImportIndex === -2) {
@@ -485,6 +490,7 @@ function resolveDeps(load, seen) {
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
 
   load.b = createBlob(resolvedSource);
+  console.log(load.b, resolvedSource);
   load.S = undefined;
 }
 
@@ -642,7 +648,7 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     m: null
   };
   load.f = (async () => {
-    if (!load.S) {
+    if (load.S === undefined) {
       // preload fetch options override fetch options (race)
       ({ r: load.r, s: load.S, t: load.t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
       if (!load.n && load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
@@ -670,7 +676,7 @@ function linkLoad(load, fetchOpts) {
   load.L = load.f.then(async () => {
     let childFetchOpts = fetchOpts;
     load.d = load.a[0]
-      .map(({ n, d, t, a }) => {
+      .map(({ n, d, t, a, se }) => {
         const phaseImport = t >= 4;
         const sourcePhase = phaseImport && t < 6;
         if (phaseImport) {
@@ -678,9 +684,18 @@ function linkLoad(load, fetchOpts) {
             throw featErr(sourcePhase ? 'source-phase' : 'defer-phase');
           if (!sourcePhase || !supportsWasmSourcePhase) load.n = true;
         }
+        let source = undefined;
         if (a > 0) {
-          if (!shimMode && !cssModulesEnabled) throw featErr('css-modules');
-          if (!supportsCssType && !supportsJsonType) load.n = true;
+          const assertion = load.S.slice(a, se - 1);
+          // no need to fetch JSON/CSS if supported, since it's a leaf node, we'll just strip the assertion syntax
+          if (assertion.includes('json')) {
+            if (supportsJsonType) source = '';
+            else load.n = true;
+          } else if (assertion.includes('css')) {
+            if (!shimMode && !cssModulesEnabled) throw featErr('css-modules');
+            if (supportsCssType) source = '';
+            else load.n = true;
+          }
         }
         if (d !== -1 || !n) return;
         const resolved = resolve(n, load.r || load.u);
@@ -689,7 +704,9 @@ function linkLoad(load, fetchOpts) {
         if (d !== -1) return;
         if (skip && skip(resolved.r) && !sourcePhase) return { l: { b: resolved.r }, s: false };
         if (childFetchOpts.integrity) childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
-        const child = { l: getOrCreateLoad(resolved.r, childFetchOpts, load.r, null), s: sourcePhase };
+        const child = { l: getOrCreateLoad(resolved.r, childFetchOpts, load.r, source), s: sourcePhase };
+        // assertion case -> inline the CSS / JSON URL directly
+        if (source === '') child.l.b = child.l.u;
         if (!child.s) linkLoad(child.l, fetchOpts);
         // load, sourcePhase
         return child;
@@ -832,7 +849,7 @@ function processScript(script, ready = readyStateCompleteCnt > 0) {
   const loadPromise = topLevelLoad(
     script.src || pageBaseUrl,
     getFetchOpts(script),
-    !script.src && script.innerHTML,
+    !script.src ? script.innerHTML : undefined,
     !shimMode,
     isBlockingReadyScript && lastStaticLoadPromise
   ).catch(throwError);
