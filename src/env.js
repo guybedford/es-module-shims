@@ -54,7 +54,6 @@ export const wasmInstancePhaseEnabled =
 export const wasmSourcePhaseEnabled =
   enable.includes('wasm-modules') || enable.includes('wasm-module-sources') || enableAll;
 export const deferPhaseEnabled = enable.includes('import-defer') || enableAll;
-export const typescriptEnabled = enable.includes('typescript') || enableAll;
 
 export const onpolyfill =
   esmsInitOptions.onpolyfill ?

@@ -12,7 +12,7 @@ The following modules features are polyfilled:
 * [JSON](#json-modules) and [CSS modules](#css-modules) with import assertions when enabled.
 * [Wasm modules](#wasm-modules) with support for Source Phase Imports when enabled.
 * [Import defer](#import-defer) via syntax stripping to allow usage in modern browsers with a polyfill fallback when enabled.
-* [TypeScript](#typescript-type-stripping) type stripping when enabled.
+* [TypeScript](#typescript-type-stripping) type stripping.
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
 
@@ -192,7 +192,7 @@ If using more modern features like CSS Modules or JSON Modules, these need to be
 
 ```html
 <script>
-window.esmsInitOptions = { polyfillEnable: ['css-modules', 'wasm-modules', 'typescript'] }
+window.esmsInitOptions = { polyfillEnable: ['css-modules', 'wasm-modules'] }
 </script>
 ```
 
@@ -562,21 +562,21 @@ The polyfill is simply just a defer syntax stripping, allowing environments that
 
 Node.js recently [added support for automatically executing TypeScript with type stripping](https://nodejs.org/api/typescript.html). We support the exact same approach in ES Module Shims.
 
-Once enabled, the separate `es-module-shims-typescript.js` extension must be available as a sibling asset to `es-module-shims.js` and will then be loaded on demand when a `.ts`, `.mts` file is loaded or when a file is served with the `application/typescript` MIME type.
-
-Example:
+To trigger TypeScript support, import a top-level `.ts` or `.mts` extension, write an inline `<script lang="ts" type="module">`, or import content served with MIME type `application/typescript`:
 
 ```html
-<script async src="https://ga.jspm.io/npm:es-module-shims@2.1.2/dist/es-module-shims.js"></script>
-<script type="esms-options">
-{
-  "polyfillEnable": "all"
-}
+<script type="module" src="app.ts"></script>
+<script type="module" lang="ts">
+const ts: boolean = true;
+console.log('TypeScript!');
 </script>
-<script type="module" src="test.ts"></script>
 ```
 
+When one of these **top-level** TypeScript patterns is found, the separate `es-module-shims-typescript.js` extension must be available as a sibling asset to `es-module-shims.js` and will then be loaded on demand.
+
 Note that runtime TypeScript features such as enums are not supported, and type only imports should be used where possible, per the Node.js guidance for TypeScript.
+
+_TypeScript must be used at the top-level in order to be supported - we do not feature detect it down the module graph like other polyfill features for performance._
 
 ### Module Workers
 

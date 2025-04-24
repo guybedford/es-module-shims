@@ -21,8 +21,7 @@ import {
   enforceIntegrity,
   fromParent,
   esmsInitOptions,
-  hasDocument,
-  typescriptEnabled
+  hasDocument
 } from './env.js';
 import {
   supportsImportMaps,
@@ -178,8 +177,7 @@ const initPromise = featureDetectionPromise.then(() => {
     (!wasmSourcePhaseEnabled || supportsWasmSourcePhase) &&
     !deferPhaseEnabled &&
     (!multipleImportMaps || supportsMultipleImportMaps) &&
-    !importMapSrc &&
-    !typescriptEnabled;
+    !importMapSrc;
   if (
     !shimMode &&
     wasmSourcePhaseEnabled &&
@@ -277,6 +275,7 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     return dynamicImport(source ? createBlob(source) : url, url || source);
   }
   const load = getOrCreateLoad(url, fetchOpts, undefined, source);
+  if (!nativelyLoaded && source) load.N = true;
   linkLoad(load, fetchOpts);
   const seen = {};
   await loadAll(load, seen);
@@ -298,7 +297,7 @@ async function topLevelLoad(url, fetchOpts, source, nativelyLoaded, lastStaticLo
     onpolyfill();
     firstPolyfillLoad = false;
   }
-  const module = await (!shimMode && !load.n && !load.N ? import(load.u) : dynamicImport(load.b, load.u));
+  const module = await (shimMode || load.n || load.N ? dynamicImport(load.b, load.u) : import(load.u));
   // if the top-level load is a shell, run its update function
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
   if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
@@ -317,7 +316,7 @@ function revokeObjectURLs(registryKeys) {
     if (batchStartIndex > keysLength) return;
     for (const key of registryKeys.slice(batchStartIndex, batchStartIndex + 100)) {
       const load = registry[key];
-      if (load && load.b) URL.revokeObjectURL(load.b);
+      if (load && load.b && load.b !== load.u) URL.revokeObjectURL(load.b);
     }
     batch++;
     schedule(cleanup);
@@ -382,9 +381,9 @@ function resolveDeps(load, seen) {
     // dependency source replacements
     else if (dynamicImportIndex === -1) {
       let keepAssertion = false;
-      if (a > 0) {
+      if (a > 0 && !shimMode) {
         const assertion = source.slice(a, statementEnd - 1);
-        // strip assertions only when unsupported
+        // strip assertions only when unsupported in polyfill mode
         keepAssertion =
           (supportsJsonType && assertion.includes('json')) || (supportsCssType && assertion.includes('css'));
       }
@@ -582,14 +581,11 @@ async function fetchModule(url, fetchOpts, parent) {
       )});export default s;`,
       t: 'css'
     };
-  } else if (
-    (shimMode || typescriptEnabled) &&
-    (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts'))
-  ) {
+  } else if (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts')) {
     const source = await res.text();
     if (!esmsTsTransform) await initTs();
     const transformed = esmsTsTransform(source, url);
-    return { r, s: transformed === undefined ? source : transformed, t: transformed !== undefined ? 'ts' : 'js' };
+    return { r, s: transformed === undefined ? source : transformed, t: 'ts' };
   } else
     throw Error(
       `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
@@ -599,8 +595,7 @@ async function fetchModule(url, fetchOpts, parent) {
 function isUnsupportedType(type) {
   if (
     (type === 'css' && !cssModulesEnabled) ||
-    (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEnabled) ||
-    (type === 'ts' && !typescriptEnabled)
+    (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEnabled)
   )
     throw featErr(`${type}-modules`);
   return (
@@ -638,9 +633,9 @@ function getOrCreateLoad(url, fetchOpts, parent, source) {
     b: undefined,
     // shellUrl
     s: undefined,
-    // needsShim
+    // needsShim: does it fail execution in the native loader?
     n: false,
-    // shouldShim
+    // shouldShim: does it behave differently under latest semantics?
     N: false,
     // type
     t: null,
@@ -685,14 +680,14 @@ function linkLoad(load, fetchOpts) {
           if (!sourcePhase || !supportsWasmSourcePhase) load.n = true;
         }
         let source = undefined;
-        if (a > 0) {
+        if (a > 0 && !shimMode) {
           const assertion = load.S.slice(a, se - 1);
           // no need to fetch JSON/CSS if supported, since it's a leaf node, we'll just strip the assertion syntax
           if (assertion.includes('json')) {
             if (supportsJsonType) source = '';
             else load.n = true;
           } else if (assertion.includes('css')) {
-            if (!shimMode && !cssModulesEnabled) throw featErr('css-modules');
+            if (!cssModulesEnabled) throw featErr('css-modules');
             if (supportsCssType) source = '';
             else load.n = true;
           }
