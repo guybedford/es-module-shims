@@ -34,8 +34,9 @@ window.ESMS_DEBUG = true;
     runMochaTests('hot');
   }, () => {
     // TypeScript loader not supported due to Wasm limit
-    console.log('SKIPPING TESTS DUE TO 4KB WASM LIMIT FAILURE');
-    fetch('/done', { method: 'POST' });
+    console.log('SKIPPING TS TESTS DUE TO 4KB WASM LIMIT FAILURE');
+    window.testTs = false;
+    runMochaTests('hot');
   });
 </script>
 

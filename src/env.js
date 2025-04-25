@@ -69,7 +69,7 @@ if (!nonce && hasDocument) {
   if (nonceElement) nonce = nonceElement.nonce || nonceElement.getAttribute('nonce');
 }
 
-export const onerror = globalHook(esmsInitOptions.onerror || noop);
+export const onerror = globalHook(esmsInitOptions.onerror || console.error.bind(console));
 
 const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
 const enableAll = esmsInitOptions.polyfillEnable === 'all' || enable.includes('all');
@@ -107,10 +107,10 @@ if (Array.isArray(skip)) {
   skip = s => skip.test(s);
 }
 
-const reportError = console.error.bind(console);
+const dispatchError = error => self.dispatchEvent(Object.assign(new Event('error'), { error }));
 
 export const throwError = err => {
-  (self.reportError || reportError)(err), void onerror(err);
+  (self.reportError || dispatchError)(err), void onerror(err);
 };
 
 export const fromParent = parent => (parent ? ` imported from ${parent}` : '');
