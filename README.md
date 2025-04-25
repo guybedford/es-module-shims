@@ -701,6 +701,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [revokeBlobURLs](#revoke-blob-urls)
 * [shimMode](#shim-mode-option)
 * [skip](#skip)
+* [version](#version)
 
 ```html
 <script>
@@ -739,6 +740,8 @@ window.esmsInitOptions = {
   meta: (meta, url) => void // default is noop
   // Hook top-level imports
   onimport: (url, options, parentUrl, source) => void // default is noop
+  // Ensure only the exact provided version of es-module-shims registered
+  version: '2.3.0' // default is empty
 }
 </script>
 <script async src="es-module-shims.js"></script>
@@ -887,6 +890,14 @@ When passing an array, relative URLs or paths ending in `/` can be provided:
 </script>
 <script async src="es-module-shims.js"></script>
 ```
+
+### Version
+
+When there is a risk of multiple versions of ES Module Shims on the same page, this is avoid by logic that will opt-out of initializing ES Module Shims if it has already been initialized.
+
+To better support initialization versions, as of version 2.3.X, we support a `version` option, which when set will skip initialization for any versions of ES Module Shims that do not match this exact version.
+
+This way, any other old versions after version 2.3.X running on the page can effectively be turned off, ensuring only the defined version of the polyfill initiates the polyfilling.
 
 ### Revoke Blob URLs
 

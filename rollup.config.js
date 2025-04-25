@@ -35,6 +35,7 @@ function config(isWasm, isDebug) {
       },
       replace({
         'self.ESMS_DEBUG': isDebug.toString(),
+        'self.VERSION': JSON.stringify(version),
         preventAssignment: true
       })
     ]
