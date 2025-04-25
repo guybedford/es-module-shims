@@ -638,7 +638,13 @@ In polyfill mode, all modules will be initialized twice when hot reloading to re
 
 The `hotReloadInterval` option can also be configured which is the interval at which hot reload events are batched together as a single reload operation, with the default of `100`.
 
-When enabled, [native passthrough](#native-passthrough) will be automatically disabled, and all modules will be provided with the `import.meta.hot` API fully supporting [Vite's `import.meta.hot`](https://vite.dev/guide/api-hmr), except for the event handlers.
+When enabled, [native passthrough](#native-passthrough) will be automatically disabled, and all modules will be provided with the `import.meta.hot` API fully supporting [Vite's `import.meta.hot`](https://vite.dev/guide/api-hmr), supporting the following methods except for the event handlers:
+
+* `hot.accept(cb)`: Accept a hot update.
+* `hot.accept(dep, cb)`: Accept a hot update of a dependency specifier string.
+* `hot.accept(deps, cb)`: Accept a hot update of a list of dependency specifier strings.
+* `hot.dispose(cb)`: Provide a dispose function for when this module is expected to be accepted by others.
+* 
 
 To trigger a hot reload, call the `importShim.hotReload(url)` API with the URL of the module that has changed. All of CSS, JSON, Wasm and TypeScript imports are supported in hot reloading.
 

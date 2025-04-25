@@ -74,7 +74,7 @@ export const initHotReload = () => {
       v: 0,
       // accept list ([deps, cb] pairs)
       a: null,
-      // accepting
+      // accepting acceptors
       A: true,
       // unload callback
       u: null,
@@ -99,7 +99,6 @@ export const initHotReload = () => {
         ) {
           curInvalidationRoots.add(fromUrl);
         } else {
-          if (hotState.u) hotState.u(hotState.d);
           if (hotState.e || hotState.a) curInvalidationRoots.add(url);
           hotState.v++;
           if (!hotState.a) for (const parent of hotState.p) invalidate(parent, url, seen);
@@ -111,11 +110,17 @@ export const initHotReload = () => {
         curInvalidationInterval = null;
         const earlyRoots = new Set();
         for (const root of curInvalidationRoots) {
-          const promise = importShim(toVersioned(root));
-          const { a, p } = hotRegistry[root];
-          promise.then(m => {
-            if (a) a.every(([d, c]) => d === null && !earlyRoots.has(c) && c(m));
-            for (const parent of p) {
+          const hotState = hotRegistry[root];
+          importShim(toVersioned(root)).then(m => {
+            if (hotState.a) {
+              hotState.a.every(([d, c]) => d === null && !earlyRoots.has(c) && c(m));
+              // unload should be the latest unload handler from the just loaded module
+              if (hotState.u) {
+                hotState.u(hotState.d);
+                hotState.u = null;
+              }
+            }
+            for (const parent of hotState.p) {
               const hotState = hotRegistry[parent];
               if (hotState && hotState.a)
                 hotState.a.every(async ([d, c]) => {
@@ -128,7 +133,7 @@ export const initHotReload = () => {
                   );
                 });
             }
-          });
+          }, noop);
         }
         curInvalidationRoots = new Set();
       }, hotReloadInterval);
