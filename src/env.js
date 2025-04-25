@@ -38,9 +38,9 @@ export const {
   revokeBlobURLs,
   noLoadEventRetriggers,
   enforceIntegrity,
-  nativePassthrough,
   hotReload,
-  hotReloadInterval = 100
+  hotReloadInterval = 100,
+  nativePassthrough = !hotReload
 } = esmsInitOptions;
 
 const globalHook = name => (typeof name === 'string' ? self[name] : name);
@@ -51,8 +51,7 @@ if (esmsInitOptions.fetch) fetchHook = globalHook(esmsInitOptions.fetch);
 if (esmsInitOptions.meta) metaHook = globalHook(esmsInitOptions.meta);
 if (esmsInitOptions.tsTransform) tsTransform = globalHook(esmsInitOptions.tsTransform);
 
-if (hotReload)
-  [importHook, resolveHook, metaHook] = initHotReload();
+if (hotReload) [importHook, resolveHook, metaHook] = initHotReload();
 
 export const mapOverrides = esmsInitOptions.mapOverrides;
 

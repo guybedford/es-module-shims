@@ -13,7 +13,7 @@ The following modules features are polyfilled:
 * [Wasm modules](#wasm-modules) with support for Source Phase Imports, when enabled.
 * [Import defer](#import-defer) via syntax stripping to allow usage in modern browsers with a polyfill fallback, when enabled.
 * [TypeScript](#typescript-type-stripping) type stripping.
-* [Hot Reloading](#hot-reloading) with a Vite-style `import.meta.host` API.
+* [Hot Reloading](#hot-reloading) with a Vite-style `import.meta.hot` API.
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
 
@@ -634,11 +634,13 @@ test.html
 <script type="module" src="/app.js"></script>
 ```
 
+In polyfill mode, all modules will be initialized twice when hot reloading to reinitiate with `import.meta.hot`. To avoid this, shim mode is recommended for hot reloading workflows whenever possible.
+
 The `hotReloadInterval` option can also be configured which is the interval at which hot reload events are batched together as a single reload operation, with the default of `100`.
 
-When enabled, [native passthrough](#native-passthrough) will be automatically disabled, and all modules will be provided with the `import.meta.hot` API.
+When enabled, [native passthrough](#native-passthrough) will be automatically disabled, and all modules will be provided with the `import.meta.hot` API fully supporting [Vite's `import.meta.hot`](https://vite.dev/guide/api-hmr), except for the event handlers.
 
-To trigger a hot reload, call the `importShim.hotReload(url)` API with the URL of the module that has changed. All of CSS, JSON, Wasm and TypeScript imports loaded through the module system are supported in this API.
+To trigger a hot reload, call the `importShim.hotReload(url)` API with the URL of the module that has changed. All of CSS, JSON and TypeScript imports are supported in hot reloading. Wasm hot reloading support is still a work in progress.
 
 This hot reload API can then be attached to a Web Socket, Server Side Events emitter or any other event source to provide a native hot reloading development environment.
 

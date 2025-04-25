@@ -21,7 +21,8 @@ import {
   fromParent,
   esmsInitOptions,
   nativePassthrough,
-  hasDocument
+  hasDocument,
+  hotReload as hotReloadEnabled
 } from './env.js';
 import {
   supportsImportMaps,
@@ -33,6 +34,7 @@ import {
   featureDetectionPromise
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
+import { hotReload } from './hot-reload.js';
 
 const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
@@ -125,6 +127,8 @@ if (shimMode || wasmSourcePhaseEnabled)
 
 // import.defer() is just a proxy for import(), since we can't actually defer
 if (shimMode || deferPhaseEnabled) importShim.defer = importShim;
+
+if (hotReloadEnabled) importShim.hotReload = hotReload;
 
 self.importShim = importShim;
 
@@ -272,7 +276,7 @@ const topLevelLoad = async (url, parentUrl, fetchOpts, source, nativelyLoaded, l
 
   if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, parentUrl);
   // early analysis opt-out - no need to even fetch if we have feature support
-  if (!shimMode && baselinePassthrough && sourceType !== 'ts') {
+  if (!shimMode && baselinePassthrough && nativePassthrough && sourceType !== 'ts') {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: early exit for ${url} due to baseline modules support`);
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded) return null;
@@ -396,7 +400,8 @@ const resolveDeps = (load, seen) => {
         const assertion = source.slice(a, statementEnd - 1);
         // strip assertions only when unsupported in polyfill mode
         keepAssertion =
-          (supportsJsonType && assertion.includes('json')) || (supportsCssType && assertion.includes('css'));
+          nativePassthrough &&
+          ((supportsJsonType && assertion.includes('json')) || (supportsCssType && assertion.includes('css')));
       }
 
       // defer phase stripping
@@ -539,6 +544,7 @@ const initTs = async () => {
   if (!esmsTsTransform) esmsTsTransform = m.transform;
 };
 
+const hotPrefix = 'var h=import.meta.hot,';
 const fetchModule = async (url, fetchOpts, parent) => {
   const mapIntegrity = composedImportMap.integrity[url];
   const res = await doFetch(
@@ -557,25 +563,26 @@ const fetchModule = async (url, fetchOpts, parent) => {
       importObj = '';
     for (const impt of WebAssembly.Module.imports(module)) {
       const specifier = urlJsString(impt.module);
-      s += `import * as impt${i} from ${specifier};\n`;
+      s += `import*as impt${i} from ${specifier};\n`;
       importObj += `${specifier}:impt${i++},`;
     }
     i = 0;
-    s += `const instance = await WebAssembly.instantiate(importShim._s[${urlJsString(r)}], {${importObj}});\n`;
+    s += `const i=await WebAssembly.instantiate(importShim._s[${urlJsString(r)}],{${importObj}});\n`;
     for (const expt of WebAssembly.Module.exports(module)) {
-      s += `export const ${expt.name} = instance.exports['${expt.name}'];\n`;
+      s += `export const ${expt.name}=i.exports['${expt.name}'];\n`;
     }
     return { r, s, t: 'wasm' };
-  } else if (jsonContentType.test(contentType)) return { r, s: `export default ${await res.text()}`, t: 'json' };
+  } else if (jsonContentType.test(contentType))
+    return { r, s: `${hotPrefix}j=${await res.text()};export{j as default};if(h)h.accept(m=>j=m.default)`, t: 'json' };
   else if (cssContentType.test(contentType)) {
     return {
       r,
-      s: `var s=new CSSStyleSheet();s.replaceSync(${JSON.stringify(
+      s: `${hotPrefix}s=h&&h.data.s||new CSSStyleSheet();s.replaceSync(${JSON.stringify(
         (await res.text()).replace(
           cssUrlRegEx,
           (_match, quotes = '', relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`
         )
-      )});export default s;`,
+      )});if(h){h.data.s=s;h.accept(()=>{})}export default s`,
       t: 'css'
     };
   } else if (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts')) {
@@ -675,7 +682,7 @@ const linkLoad = (load, fetchOpts) => {
           if (!sourcePhase || !supportsWasmSourcePhase) load.n = true;
         }
         let source = undefined;
-        if (a > 0 && !shimMode) {
+        if (a > 0 && !shimMode && nativePassthrough) {
           const assertion = load.S.slice(a, se - 1);
           // no need to fetch JSON/CSS if supported, since it's a leaf node, we'll just strip the assertion syntax
           if (assertion.includes('json')) {

@@ -1,5 +1,7 @@
-import { hotReloadInterval, importHook, resolveHook, metaHook, baseUrl } from './env.js';
+import { hotReloadInterval, importHook, resolveHook, metaHook, baseUrl, noop } from './env.js';
 
+let invalidate;
+export const hotReload = url => invalidate(new URL(url, baseUrl).href);
 export const initHotReload = () => {
   let _importHook = importHook,
     _resolveHook = resolveHook,
@@ -10,12 +12,12 @@ export const initHotReload = () => {
     if (!defaultResolve) defaultResolve = _defaultResolve;
     const originalParent = stripVersion(parent);
     const url = stripVersion(defaultResolve(id, originalParent));
-    const parents = getHotData(url).p;
+    const parents = getHotState(url).p;
     if (!parents.includes(originalParent)) parents.push(originalParent);
     return toVersioned(url);
   };
   const hotImportHook = url => {
-    getHotData(url).e = true;
+    getHotState(url).e = true;
   };
   const hotMetaHook = (metaObj, url) => {
     metaObj.hot = new Hot(url);
@@ -23,15 +25,16 @@ export const initHotReload = () => {
 
   const Hot = class Hot {
     constructor(url) {
-      this.data = getHotData((this.url = stripVersion(url))).d;
+      this.data = getHotState((this.url = stripVersion(url))).d;
     }
     accept(deps, cb) {
       if (typeof deps === 'function') {
         cb = deps;
         deps = null;
       }
-      const hotData = getHotData(this.url);
-      (hotData.a = hotData.a || []).push([
+      const hotState = getHotState(this.url);
+      if (!hotState.A) return;
+      (hotState.a = hotState.a || []).push([
         typeof deps === 'string' ? defaultResolve(deps, this.url)
         : deps ? deps.map(d => defaultResolve(d, this.url))
         : null,
@@ -39,42 +42,40 @@ export const initHotReload = () => {
       ]);
     }
     dispose(cb) {
-      getHotData(this.url).u = cb;
-    }
-    decline() {
-      getHotData(this.url).r = true;
+      getHotState(this.url).u = cb;
     }
     invalidate() {
-      invalidate(this.url);
-      queueInvalidationInterval();
+      const hotState = getHotState(this.url);
+      hotState.a = null;
+      hotState.A = true;
+      const seen = [this.url];
+      for (const p of hotState.p) invalidate(p, this.url, seen);
     }
   };
 
   const versionedRegEx = /\?v=\d+$/;
   const stripVersion = url => {
     const versionMatch = url.match(versionedRegEx);
-    if (!versionMatch) return url;
-    return url.slice(0, -versionMatch[0].length);
+    return versionMatch ? url.slice(0, -versionMatch[0].length) : url;
   };
 
   const toVersioned = url => {
-    const { v } = getHotData(url);
+    const v = getHotState(url).v;
     return url + (v ? '?v=' + v : '');
   };
 
-  let hotRegistry = {};
-  let curInvalidationRoots = new Set();
-  let curInvalidationInterval;
-
-  const getHotData = url =>
+  let hotRegistry = {},
+    curInvalidationRoots = new Set(),
+    curInvalidationInterval;
+  const getHotState = url =>
     hotRegistry[url] ||
     (hotRegistry[url] = {
       // version
       v: 0,
-      // refresh (decline)
-      r: false,
       // accept list ([deps, cb] pairs)
       a: null,
+      // accepting
+      A: true,
       // unload callback
       u: null,
       // entry point
@@ -85,61 +86,52 @@ export const initHotReload = () => {
       p: []
     });
 
-  const invalidate = (url, fromUrl, seen = []) => {
+  invalidate = (url, fromUrl, seen = []) => {
     if (!seen.includes(url)) {
       seen.push(url);
-      const hotData = hotRegistry[url];
-      if (hotData) {
-        if (hotData.r) {
-          location.href = location.href;
+      if (self.ESMS_DEBUG) console.info(`es-module-shims: hot reload ${url}`);
+      const hotState = hotRegistry[url];
+      if (hotState) {
+        hotState.A = false;
+        if (
+          hotState.a &&
+          hotState.a.some(([d]) => d && (typeof d === 'string' ? d === fromUrl : d.includes(fromUrl)))
+        ) {
+          curInvalidationRoots.add(fromUrl);
         } else {
-          if (
-            hotData.a &&
-            hotData.a.some(([d]) => d && (typeof d === 'string' ? d === fromUrl : d.includes(fromUrl)))
-          ) {
-            curInvalidationRoots.add(fromUrl);
-          } else {
-            if (hotData.u) hotData.u(hotData.d);
-            if (hotData.e || hotData.a) curInvalidationRoots.add(url);
-            hotData.v++;
-            if (!hotData.a) {
-              for (const parent of hotData.p) invalidate(parent, url, seen);
-            }
-          }
+          if (hotState.u) hotState.u(hotState.d);
+          if (hotState.e || hotState.a) curInvalidationRoots.add(url);
+          hotState.v++;
+          if (!hotState.a) for (const parent of hotState.p) invalidate(parent, url, seen);
         }
       }
     }
-  };
-
-  const queueInvalidationInterval = () => {
-    curInvalidationInterval = setTimeout(() => {
-      const earlyRoots = new Set();
-      for (const root of curInvalidationRoots) {
-        const promise = importShim(toVersioned(root));
-        const { a, p } = hotRegistry[root];
-        promise.then(m => {
-          if (a) a.every(([d, c]) => d === null && !earlyRoots.has(c) && c(m));
-          for (const parent of p) {
-            const hotData = hotRegistry[parent];
-            if (hotData && hotData.a)
-              hotData.a.every(
-                async ([d, c]) =>
-                  d &&
-                  !earlyRoots.has(c) &&
-                  (typeof d === 'string' ?
-                    d === root && c(m)
-                  : c(await Promise.all(d.map(d => (earlyRoots.push(c), importShim(toVersioned(d)))))))
-              );
-          }
-        });
-      }
-      curInvalidationRoots = new Set();
-    }, hotReloadInterval);
-  };
-
-  importShim.hotReload = (url) => {
-    invalidate(new URL(url, baseUrl).href);
-    queueInvalidationInterval();
+    if (!curInvalidationInterval)
+      curInvalidationInterval = setTimeout(() => {
+        curInvalidationInterval = null;
+        const earlyRoots = new Set();
+        for (const root of curInvalidationRoots) {
+          const promise = importShim(toVersioned(root));
+          const { a, p } = hotRegistry[root];
+          promise.then(m => {
+            if (a) a.every(([d, c]) => d === null && !earlyRoots.has(c) && c(m));
+            for (const parent of p) {
+              const hotState = hotRegistry[parent];
+              if (hotState && hotState.a)
+                hotState.a.every(async ([d, c]) => {
+                  return (
+                    d &&
+                    !earlyRoots.has(c) &&
+                    (typeof d === 'string' ?
+                      d === root && c(m)
+                    : c(await Promise.all(d.map(d => (earlyRoots.push(c), importShim(toVersioned(d)))))))
+                  );
+                });
+            }
+          });
+        }
+        curInvalidationRoots = new Set();
+      }, hotReloadInterval);
   };
 
   return [
