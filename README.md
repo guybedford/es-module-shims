@@ -644,7 +644,8 @@ When enabled, [native passthrough](#native-passthrough) will be automatically di
 * `hot.accept(dep, cb)`: Accept a hot update of a dependency specifier string.
 * `hot.accept(deps, cb)`: Accept a hot update of a list of dependency specifier strings.
 * `hot.dispose(cb)`: Provide a dispose function for when this module is expected to be accepted by others.
-* 
+* `hot.data`: Shared data object between hot reload instances.
+* `hot.invalidate()`: Fully invalidate the current module, without accepting. Can be called within accept itself.
 
 To trigger a hot reload, call the `importShim.hotReload(url)` API with the URL of the module that has changed. All of CSS, JSON, Wasm and TypeScript imports are supported in hot reloading.
 
