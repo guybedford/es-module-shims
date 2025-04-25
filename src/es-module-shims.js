@@ -557,20 +557,23 @@ const fetchModule = async (url, fetchOpts, parent) => {
   if (jsContentType.test(contentType)) return { r, s: await res.text(), t: 'js' };
   else if (wasmContentType.test(contentType)) {
     const module = await (sourceCache[r] || (sourceCache[r] = WebAssembly.compileStreaming(res)));
+    const exports = WebAssembly.Module.exports(module);
     sourceCache[r] = module;
     let s = '',
       i = 0,
-      importObj = '';
+      obj = '';
     for (const impt of WebAssembly.Module.imports(module)) {
       const specifier = urlJsString(impt.module);
       s += `import*as impt${i} from ${specifier};\n`;
-      importObj += `${specifier}:impt${i++},`;
+      obj += `${specifier}:impt${i++},`;
     }
-    i = 0;
-    s += `const i=await WebAssembly.instantiate(importShim._s[${urlJsString(r)}],{${importObj}});\n`;
-    for (const expt of WebAssembly.Module.exports(module)) {
-      s += `export const ${expt.name}=i.exports['${expt.name}'];\n`;
+    s += `${hotPrefix}i=await WebAssembly.instantiate(importShim._s[${urlJsString(r)}],{${obj}});`;
+    obj = '';
+    for (const expt of exports) {
+      s += `export let ${expt.name}=i.exports['${expt.name}'];`;
+      obj += `${expt.name},`;
     }
+    s += `if(h)h.accept(m=>({${obj}}=m))`;
     return { r, s, t: 'wasm' };
   } else if (jsonContentType.test(contentType))
     return { r, s: `${hotPrefix}j=${await res.text()};export{j as default};if(h)h.accept(m=>j=m.default)`, t: 'json' };

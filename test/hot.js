@@ -11,7 +11,7 @@ function syntheticResponse (contents, contentType = 'text/javascript') {
   };
 }
 
-const HOT_WAIT = 1000;
+const HOT_WAIT = 2000;
 
 let jsonSource = '{ "json": "module" }';
 let cssSource = 'body { background-color: mistyrose }';

@@ -640,7 +640,7 @@ The `hotReloadInterval` option can also be configured which is the interval at w
 
 When enabled, [native passthrough](#native-passthrough) will be automatically disabled, and all modules will be provided with the `import.meta.hot` API fully supporting [Vite's `import.meta.hot`](https://vite.dev/guide/api-hmr), except for the event handlers.
 
-To trigger a hot reload, call the `importShim.hotReload(url)` API with the URL of the module that has changed. All of CSS, JSON and TypeScript imports are supported in hot reloading. Wasm hot reloading support is still a work in progress.
+To trigger a hot reload, call the `importShim.hotReload(url)` API with the URL of the module that has changed. All of CSS, JSON, Wasm and TypeScript imports are supported in hot reloading.
 
 This hot reload API can then be attached to a Web Socket, Server Side Events emitter or any other event source to provide a native hot reloading development environment.
 
