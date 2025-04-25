@@ -1,5 +1,5 @@
 import stylesheet from './sheet.css' with { type: 'css' }
-document.adoptedStyleSheets.push(stylesheet);
+document.adoptedStyleSheets = [...document.adoptedStyleSheets, stylesheet];
 
 if (import.meta.hot) {
   import.meta.hot.accept(newMod => {
