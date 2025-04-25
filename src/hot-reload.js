@@ -1,4 +1,15 @@
-import { hotReloadInterval, importHook, resolveHook, metaHook, baseUrl, noop } from './env.js';
+import {
+  hotReloadInterval,
+  importHook,
+  resolveHook,
+  metaHook,
+  baseUrl,
+  noop,
+  defaultFetchOpts,
+  throwError,
+  chain
+} from './env.js';
+import { topLevelLoad } from './es-module-shims.js';
 
 let invalidate;
 export const hotReload = url => invalidate(new URL(url, baseUrl).href);
@@ -16,8 +27,10 @@ export const initHotReload = () => {
     if (!parents.includes(originalParent)) parents.push(originalParent);
     return toVersioned(url);
   };
-  const hotImportHook = url => {
-    getHotState(url).e = true;
+  const hotImportHook = (url, _, __, source, sourceType) => {
+    const hotState = getHotState(url);
+    hotState.e = typeof source === 'string' ? source : true;
+    hotState.t = sourceType;
   };
   const hotMetaHook = (metaObj, url) => {
     metaObj.hot = new Hot(url);
@@ -78,16 +91,18 @@ export const initHotReload = () => {
       A: true,
       // unload callback
       u: null,
-      // entry point
+      // entry point or inline script source
       e: false,
       // hot data
       d: {},
       // parents
-      p: []
+      p: [],
+      // source type
+      t: undefined
     });
 
   invalidate = (url, fromUrl, seen = []) => {
-    if (!seen.includes(url) && url !== baseUrl) {
+    if (!seen.includes(url)) {
       seen.push(url);
       if (self.ESMS_DEBUG) console.info(`es-module-shims: hot reload ${url}`);
       const hotState = hotRegistry[url];
@@ -111,7 +126,15 @@ export const initHotReload = () => {
         const earlyRoots = new Set();
         for (const root of curInvalidationRoots) {
           const hotState = hotRegistry[root];
-          importShim(toVersioned(root)).then(m => {
+          topLevelLoad(
+            toVersioned(root),
+            baseUrl,
+            defaultFetchOpts,
+            typeof hotState.e === 'string' ? hotState.e : undefined,
+            false,
+            undefined,
+            hotState.t
+          ).then(m => {
             if (hotState.a) {
               hotState.a.every(([d, c]) => d === null && !earlyRoots.has(c) && c(m));
               // unload should be the latest unload handler from the just loaded module
@@ -133,28 +156,18 @@ export const initHotReload = () => {
                   );
                 });
             }
-          }, noop);
+          }, throwError);
         }
         curInvalidationRoots = new Set();
       }, hotReloadInterval);
   };
 
   return [
-    _importHook ?
-      (url, opts, parentUrl) => {
-        _importHook(url, opts, parentUrl);
-        hotImportHook(url);
-      }
-    : hotImportHook,
+    _importHook ? chain(_importHook, hotImportHook) : hotImportHook,
     _resolveHook ?
       (id, parent, defaultResolve) =>
         hotResolveHook(id, parent, (id, parent) => _resolveHook(id, parent, defaultResolve))
     : hotResolveHook,
-    _metaHook ?
-      (metaObj, url) => {
-        _metaHook(metaObj, url);
-        hotMetaHook(metaObj, url);
-      }
-    : hotMetaHook
+    _metaHook ? chain(_metaHook, hotMetaHook) : hotMetaHook
   ];
 };

@@ -12,6 +12,12 @@ export const hasDocument = typeof document !== 'undefined';
 
 export const noop = () => {};
 
+export const chain = (a, b) =>
+  function () {
+    a.apply(this, arguments);
+    b.apply(this, arguments);
+  };
+
 export const dynamicImport = (u, errUrl) => import(u);
 
 const optionsScript = hasDocument ? document.querySelector('script[type=esms-options]') : undefined;
@@ -29,10 +35,13 @@ export const shimMode =
 export let importHook,
   resolveHook,
   fetchHook = fetch,
-  metaHook = noop,
+  metaHook,
   tsTransform =
+    esmsInitOptions.tsTransform ||
     (hasDocument && document.currentScript && document.currentScript.src.replace(/(\.\w+)?\.js$/, '-typescript.js')) ||
     './es-module-shims-typescript.js';
+
+export const defaultFetchOpts = { credentials: 'same-origin' };
 
 export const {
   revokeBlobURLs,
@@ -49,7 +58,6 @@ if (esmsInitOptions.onimport) importHook = globalHook(esmsInitOptions.onimport);
 if (esmsInitOptions.resolve) resolveHook = globalHook(esmsInitOptions.resolve);
 if (esmsInitOptions.fetch) fetchHook = globalHook(esmsInitOptions.fetch);
 if (esmsInitOptions.meta) metaHook = globalHook(esmsInitOptions.meta);
-if (esmsInitOptions.tsTransform) tsTransform = globalHook(esmsInitOptions.tsTransform);
 
 if (hotReload) [importHook, resolveHook, metaHook] = initHotReload();
 

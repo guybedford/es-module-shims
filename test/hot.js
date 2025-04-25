@@ -59,6 +59,14 @@ suite('Hot reloading tests', () => {
     assert.equal(m.m.json, 'hot2');
   });
 
+  test('TS inline hot reload', async function () {
+    await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
+    assert.equal(window.num, 5);
+    importShim.hotReload('fixtures/dep.ts');
+    await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
+    assert.equal(window.num, 10);
+  });
+
   test('Accept invalidate', async function () {
     window.acceptInvalidate = true;
     assert.equal(window.hotReloadParentCnt, 1);

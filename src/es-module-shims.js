@@ -22,7 +22,8 @@ import {
   esmsInitOptions,
   nativePassthrough,
   hasDocument,
-  hotReload as hotReloadEnabled
+  hotReload as hotReloadEnabled,
+  defaultFetchOpts
 } from './env.js';
 import {
   supportsImportMaps,
@@ -88,15 +89,7 @@ async function importShim(id, opts, parentUrl) {
       sourceType = opts.with.type;
     }
   }
-  return topLevelLoad(
-    id,
-    parentUrl || pageBaseUrl,
-    { credentials: 'same-origin' },
-    undefined,
-    undefined,
-    undefined,
-    sourceType
-  );
+  return topLevelLoad(id, parentUrl || pageBaseUrl, defaultFetchOpts, undefined, undefined, undefined, sourceType);
 }
 
 // import.source()
@@ -116,7 +109,7 @@ if (shimMode || wasmSourcePhaseEnabled)
     }
     await importMapPromise;
     const url = resolve(id, parentUrl || pageBaseUrl).r;
-    const load = getOrCreateLoad(url, { credentials: 'same-origin' }, undefined, undefined);
+    const load = getOrCreateLoad(url, defaultFetchOpts, undefined, undefined);
     if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
       onpolyfill();
       firstPolyfillLoad = false;
@@ -261,7 +254,15 @@ let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let legacyAcceptingImportMaps = true;
 
-const topLevelLoad = async (url, parentUrl, fetchOpts, source, nativelyLoaded, lastStaticLoadPromise, sourceType) => {
+export const topLevelLoad = async (
+  url,
+  parentUrl,
+  fetchOpts,
+  source,
+  nativelyLoaded,
+  lastStaticLoadPromise,
+  sourceType
+) => {
   await initPromise;
   await importMapPromise;
   url = (await resolve(url, parentUrl)).r;
@@ -273,7 +274,7 @@ const topLevelLoad = async (url, parentUrl, fetchOpts, source, nativelyLoaded, l
     url += '?entry';
   }
 
-  if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, parentUrl);
+  if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, parentUrl, source, sourceType);
   // early analysis opt-out - no need to even fetch if we have feature support
   if (!shimMode && baselinePassthrough && nativePassthrough && sourceType !== 'ts') {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: early exit for ${url} due to baseline modules support`);
@@ -615,8 +616,8 @@ const isUnsupportedType = type => {
 const getOrCreateLoad = (url, fetchOpts, parent, source) => {
   if (source && registry[url]) {
     let i = 0;
-    while (registry[url + '?' + ++i]);
-    url += '?' + i;
+    while (registry[url + '#' + ++i]);
+    url += '#' + i;
   }
   let load = registry[url];
   if (load) return load;
