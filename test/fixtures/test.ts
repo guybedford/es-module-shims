@@ -1,3 +1,4 @@
+console.log('hi');
 export type P = number;
 
 export var p: number = 5;

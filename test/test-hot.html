@@ -1,0 +1,31 @@
+<!doctype html>
+<link rel="stylesheet" type="text/css" href="../node_modules/mocha/mocha.css"/>
+<script src="https://unpkg.com/construct-style-sheets-polyfill@3.0.0/dist/adoptedStyleSheets.js"></script>
+<script src="../node_modules/mocha/mocha.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "hotdep": "/test/fixtures/once.js",
+    "test/": "/test/fixtures/"
+  }
+}
+</script>
+<script>
+window.hotFetch = fetch;
+window._hotFetch = (url, opts) => {
+  return window.hotFetch(url, opts);
+};
+window.ESMS_DEBUG = true;
+</script>
+<script type="esms-options">{
+  "hotReload": true,
+  "fetch": "_hotFetch"
+}</script>
+<script type="module" noshim src="../src/es-module-shims.js"></script>
+
+<script type="module" noshim>
+  import { runMochaTests } from "./runMochaTests.js";
+  runMochaTests('hot');
+</script>
+
+<div id="mocha"></div>

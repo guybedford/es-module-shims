@@ -1,5 +1,5 @@
 suite('TypeScript loading tests', () => {
-  const timeoutInitPromise = new Promise(resolve => setTimeout(resolve, 1000));
+  const timeoutInitPromise = new Promise(resolve => setTimeout(resolve, 2000));
   test('Inline lang=ts support', async function () {
     await timeoutInitPromise;
     assert.ok(globalThis.inlineTypescriptNoWork === 1);

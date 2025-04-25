@@ -2,17 +2,16 @@ import { mapOverrides, shimMode } from './env.js';
 
 const backslashRegEx = /\\/g;
 
-export function asURL(url) {
+export const asURL = url => {
   try {
     if (url.indexOf(':') !== -1) return new URL(url).href;
   } catch (_) {}
-}
+};
 
-export function resolveUrl(relUrl, parentUrl) {
-  return resolveIfNotPlainOrUrl(relUrl, parentUrl) || asURL(relUrl) || resolveIfNotPlainOrUrl('./' + relUrl, parentUrl);
-}
+export const resolveUrl = (relUrl, parentUrl) =>
+  resolveIfNotPlainOrUrl(relUrl, parentUrl) || asURL(relUrl) || resolveIfNotPlainOrUrl('./' + relUrl, parentUrl);
 
-export function resolveIfNotPlainOrUrl(relUrl, parentUrl) {
+export const resolveIfNotPlainOrUrl = (relUrl, parentUrl) => {
   const hIdx = parentUrl.indexOf('#'),
     qIdx = parentUrl.indexOf('?');
   if (hIdx + qIdx > -2)
@@ -100,9 +99,9 @@ export function resolveIfNotPlainOrUrl(relUrl, parentUrl) {
     if (segmentIndex !== -1) output.push(segmented.slice(segmentIndex));
     return parentUrl.slice(0, parentUrl.length - pathname.length) + output.join('');
   }
-}
+};
 
-export function resolveAndComposeImportMap(json, baseUrl, parentMap) {
+export const resolveAndComposeImportMap = (json, baseUrl, parentMap) => {
   const outMap = {
     imports: Object.assign({}, parentMap.imports),
     scopes: Object.assign({}, parentMap.scopes),
@@ -125,27 +124,27 @@ export function resolveAndComposeImportMap(json, baseUrl, parentMap) {
   if (json.integrity) resolveAndComposeIntegrity(json.integrity, outMap.integrity, baseUrl);
 
   return outMap;
-}
+};
 
-function getMatch(path, matchObj) {
+const getMatch = (path, matchObj) => {
   if (matchObj[path]) return path;
   let sepIndex = path.length;
   do {
     const segment = path.slice(0, sepIndex + 1);
     if (segment in matchObj) return segment;
   } while ((sepIndex = path.lastIndexOf('/', sepIndex - 1)) !== -1);
-}
+};
 
-function applyPackages(id, packages) {
+const applyPackages = (id, packages) => {
   const pkgName = getMatch(id, packages);
   if (pkgName) {
     const pkg = packages[pkgName];
     if (pkg === null) return;
     return pkg + id.slice(pkgName.length);
   }
-}
+};
 
-export function resolveImportMap(importMap, resolvedOrPlain, parentUrl) {
+export const resolveImportMap = (importMap, resolvedOrPlain, parentUrl) => {
   let scopeUrl = parentUrl && getMatch(parentUrl, importMap.scopes);
   while (scopeUrl) {
     const packageResolution = applyPackages(resolvedOrPlain, importMap.scopes[scopeUrl]);
@@ -153,9 +152,9 @@ export function resolveImportMap(importMap, resolvedOrPlain, parentUrl) {
     scopeUrl = getMatch(scopeUrl.slice(0, scopeUrl.lastIndexOf('/')), importMap.scopes);
   }
   return applyPackages(resolvedOrPlain, importMap.imports) || (resolvedOrPlain.indexOf(':') !== -1 && resolvedOrPlain);
-}
+};
 
-function resolveAndComposePackages(packages, outPackages, baseUrl, parentMap) {
+const resolveAndComposePackages = (packages, outPackages, baseUrl, parentMap) => {
   for (let p in packages) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
     if (
@@ -177,9 +176,9 @@ function resolveAndComposePackages(packages, outPackages, baseUrl, parentMap) {
     }
     console.warn(`es-module-shims: Mapping "${p}" -> "${packages[p]}" does not resolve`);
   }
-}
+};
 
-function resolveAndComposeIntegrity(integrity, outIntegrity, baseUrl) {
+const resolveAndComposeIntegrity = (integrity, outIntegrity, baseUrl) => {
   for (let p in integrity) {
     const resolvedLhs = resolveIfNotPlainOrUrl(p, baseUrl) || p;
     if (
@@ -193,4 +192,4 @@ function resolveAndComposeIntegrity(integrity, outIntegrity, baseUrl) {
     }
     outIntegrity[resolvedLhs] = integrity[p];
   }
-}
+};
