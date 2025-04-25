@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script async src="../dist/es-module-shims.debug.js"></script>
+    <script async src="../dist/es-module-shims.debug.js"></script>
+
+    <script type="module">
+      console.log('Logging from a module script before the importmap tag to break older browsers');
+    </script>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "statically-imported-module": "./fixtures/module-static.js",
+          "dynamically-imported-module": "./fixtures/module-dynamic.js"
+        }
+      }
+    </script>
+
+    <script type="module">
+        import "statically-imported-module";
+        document.addEventListener('DOMContentLoaded', () => {
+          window.domContentLoaded = true;
+        });
+        import("dynamically-imported-module");
+    </script>
+  </head>
+  <body>
+    <h2 style="text-align: center;">Statically imported module: <span id="static">not loaded</span></h2>
+    <h2 style="text-align: center;">Dynamically imported module: <span id="dynamic">not loaded</span></h2>
+  </body>
+</html>
