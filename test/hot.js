@@ -11,6 +11,8 @@ function syntheticResponse (contents, contentType = 'text/javascript') {
   };
 }
 
+const HOT_WAIT = 1000;
+
 let jsonSource = '{ "json": "module" }';
 let cssSource = 'body { background-color: mistyrose }';
 let hotreloadSource = 'export var p = 5';
@@ -34,7 +36,7 @@ suite('Hot reloading tests', () => {
       return fetch(url, opts);
     };
     importShim.hotReload('fixtures/hotreload.js');
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
     assert.equal(mod.getP(), 5);
     assert.equal(window.disposed, true);
     assert.equal(window.hotReloadParentCnt, 1);
@@ -49,11 +51,11 @@ suite('Hot reloading tests', () => {
     assert.equal(m.m.json, 'module');
     jsonSource = '{ "json": "hot" }';
     importShim.hotReload('fixtures/json.json');
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
     assert.equal(m.m.json, 'hot');
     jsonSource = '{ "json": "hot2" }';
     importShim.hotReload('fixtures/json.json');
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
     assert.equal(m.m.json, 'hot2');
   });
 
@@ -61,7 +63,7 @@ suite('Hot reloading tests', () => {
     window.acceptInvalidate = true;
     assert.equal(window.hotReloadParentCnt, 1);
     importShim.hotReload('fixtures/hotreload.js');
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
     assert.equal(window.hotReloadParentCnt, 2);
   });
 
@@ -70,7 +72,7 @@ suite('Hot reloading tests', () => {
     assert.equal(window.depUpdated, false);
     assert.equal(window.hotReloadAcceptDepCnt, 1);
     importShim.hotReload('fixtures/hotreload.js');
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
     assert.equal(window.depUpdated, true);
     assert.equal(window.hotReloadAcceptDepCnt, 1);
   });
