@@ -24,6 +24,7 @@ import {
   hasDocument,
   hotReload as hotReloadEnabled,
   defaultFetchOpts
+  defineValue
 } from './env.js';
 import {
   supportsImportMaps,
@@ -123,8 +124,6 @@ if (shimMode || deferPhaseEnabled) importShim.defer = importShim;
 
 if (hotReloadEnabled) importShim.hotReload = hotReload;
 
-self.importShim = importShim;
-
 const defaultResolve = (id, parentUrl) => {
   return (
     resolveImportMap(composedImportMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl) ||
@@ -151,6 +150,13 @@ const registry = (importShim._r = {});
 // Wasm caches
 const sourceCache = (importShim._s = {});
 const instanceCache = (importShim._i = new WeakMap());
+
+// Ensure this version is the only version
+defineValue(self, 'importShim', Object.freeze(importShim));
+const shimModeOptions = { ...esmsInitOptions, shimMode: true };
+if (optionsScript) optionsScript.innerHTML = JSON.stringify(shimModeOptions);
+else self.esmsInitOptions = shimModeOptions;
+defineValue(self, '_d', undefined);
 
 const loadAll = async (load, seen) => {
   seen[load.u] = 1;
@@ -185,8 +191,6 @@ const initPromise = featureDetectionPromise.then(() => {
   if (!shimMode && typeof WebAssembly !== 'undefined') {
     if (wasmSourcePhaseEnabled && !Object.getPrototypeOf(WebAssembly.Module).name) {
       const s = Symbol();
-      const brand = m =>
-        Object.defineProperty(m, s, { writable: false, configurable: false, value: 'WebAssembly.Module' });
       class AbstractModuleSource {
         get [Symbol.toStringTag]() {
           if (this[s]) return this[s];
@@ -202,7 +206,7 @@ const initPromise = featureDetectionPromise.then(() => {
       );
       WebAssembly.Module.prototype = Object.setPrototypeOf(wasmModule.prototype, AbstractModuleSource.prototype);
       WebAssembly.compile = function compile(...args) {
-        return wasmCompile(...args).then(brand);
+        return wasmCompile(...args).then(m => defineValue(m, s, 'WebAssembly.Module'));
       };
       WebAssembly.compileStreaming = function compileStreaming(...args) {
         return wasmCompileStreaming(...args).then(brand);

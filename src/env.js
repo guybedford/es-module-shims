@@ -20,7 +20,10 @@ export const chain = (a, b) =>
 
 export const dynamicImport = (u, errUrl) => import(u);
 
-const optionsScript = hasDocument ? document.querySelector('script[type=esms-options]') : undefined;
+export const defineValue = (obj, prop, value) =>
+  Object.defineProperty(obj, prop, { writable: false, configurable: false, value });
+
+export const optionsScript = hasDocument ? document.querySelector('script[type=esms-options]') : undefined;
 
 export const esmsInitOptions = optionsScript ? JSON.parse(optionsScript.innerHTML) : {};
 Object.assign(esmsInitOptions, self.esmsInitOptions || {});
