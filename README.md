@@ -738,7 +738,7 @@ window.esmsInitOptions = {
   // Hook import.meta construction
   meta: (meta, url) => void // default is noop
   // Hook top-level imports
-  onimport: (url, options, parentUrl) => void // default is noop
+  onimport: (url, options, parentUrl, source) => void // default is noop
 }
 </script>
 <script async src="es-module-shims.js"></script>
@@ -998,8 +998,11 @@ The import hook is supported for both shim and polyfill modes and provides an as
 ```js
 <script>
   window.esmsInitOptions = {
-    onimport: function (url, options, parentUrl) {
-      console.log(`Top-level import for ${url}`);
+    onimport: function (url, options, parentUrl, source) {
+      if (source !== undefined)
+        console.log(`Top-level inline script with source: ${source}`);
+      else
+        console.log(`Top-level URL import (static or dynamic) for ${url}`);
     }
   }
 </script>

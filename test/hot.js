@@ -18,6 +18,14 @@ let cssSource = 'body { background-color: mistyrose }';
 let hotreloadSource = 'export var p = 5';
 
 suite('Hot reloading tests', () => {
+  (window.testTs === false ? test.skip : test)('TS inline hot reload', async function () {
+    await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
+    assert.equal(window.num, 5);
+    importShim.hotReload('fixtures/dep.ts');
+    await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
+    assert.equal(window.num, 10);
+  });
+
   test('Hot reload', async function () {
     const mod = await importShim('test/hotreload-parent.js');
     assert.equal(mod.getP(), 10);
