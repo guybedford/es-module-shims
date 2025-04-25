@@ -23,8 +23,9 @@ import {
   nativePassthrough,
   hasDocument,
   hotReload as hotReloadEnabled,
-  defaultFetchOpts
-  defineValue
+  defaultFetchOpts,
+  defineValue,
+  optionsScript
 } from './env.js';
 import {
   supportsImportMaps,
@@ -191,6 +192,7 @@ const initPromise = featureDetectionPromise.then(() => {
   if (!shimMode && typeof WebAssembly !== 'undefined') {
     if (wasmSourcePhaseEnabled && !Object.getPrototypeOf(WebAssembly.Module).name) {
       const s = Symbol();
+      const brand = m => defineValue(m, s, 'WebAssembly.Module');
       class AbstractModuleSource {
         get [Symbol.toStringTag]() {
           if (this[s]) return this[s];
@@ -206,7 +208,7 @@ const initPromise = featureDetectionPromise.then(() => {
       );
       WebAssembly.Module.prototype = Object.setPrototypeOf(wasmModule.prototype, AbstractModuleSource.prototype);
       WebAssembly.compile = function compile(...args) {
-        return wasmCompile(...args).then(m => defineValue(m, s, 'WebAssembly.Module'));
+        return wasmCompile(...args).then(brand);
       };
       WebAssembly.compileStreaming = function compileStreaming(...args) {
         return wasmCompileStreaming(...args).then(brand);
