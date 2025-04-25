@@ -745,6 +745,7 @@ let lastStaticLoadPromise = Promise.resolve();
 let domContentLoaded = false;
 let domContentLoadedCnt = 1;
 const domContentLoadedCheck = () => {
+  console.log(domContentLoadedCnt - 1);
   if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: DOMContentLoaded refire`);
     document.removeEventListener('DOMContentLoaded', domContentLoadedEvent);
@@ -755,7 +756,7 @@ let loadCnt = 1;
 const loadCheck = () => {
   if (--loadCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: load refire`);
-    window.removeEventListener('DOMContentLoaded', loadEvent);
+    window.removeEventListener('load', loadEvent);
     window.dispatchEvent(new Event('load'));
   }
 };
@@ -766,6 +767,7 @@ const domContentLoadedEvent = async () => {
 };
 const loadEvent = async () => {
   await initPromise;
+  if (!domContentLoaded) domContentLoadedCheck();
   loadCheck();
 };
 
