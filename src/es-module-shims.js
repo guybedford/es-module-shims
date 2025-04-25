@@ -155,7 +155,9 @@ importShim.addImportMap = importMapIn => {
 };
 
 const registry = (importShim._r = {});
+// Wasm caches
 const sourceCache = (importShim._s = {});
+const instanceCache = (importShim._i = new WeakMap());
 
 const loadAll = async (load, seen) => {
   seen[load.u] = 1;
@@ -187,35 +189,32 @@ const initPromise = featureDetectionPromise.then(() => {
     !deferPhaseEnabled &&
     (!multipleImportMaps || supportsMultipleImportMaps) &&
     !importMapSrc;
-  if (
-    !shimMode &&
-    wasmSourcePhaseEnabled &&
-    typeof WebAssembly !== 'undefined' &&
-    !Object.getPrototypeOf(WebAssembly.Module).name
-  ) {
-    const s = Symbol();
-    const brand = m =>
-      Object.defineProperty(m, s, { writable: false, configurable: false, value: 'WebAssembly.Module' });
-    class AbstractModuleSource {
-      get [Symbol.toStringTag]() {
-        if (this[s]) return this[s];
-        throw new TypeError('Not an AbstractModuleSource');
+  if (!shimMode && typeof WebAssembly !== 'undefined') {
+    if (wasmSourcePhaseEnabled && !Object.getPrototypeOf(WebAssembly.Module).name) {
+      const s = Symbol();
+      const brand = m =>
+        Object.defineProperty(m, s, { writable: false, configurable: false, value: 'WebAssembly.Module' });
+      class AbstractModuleSource {
+        get [Symbol.toStringTag]() {
+          if (this[s]) return this[s];
+          throw new TypeError('Not an AbstractModuleSource');
+        }
       }
+      const { Module: wasmModule, compile: wasmCompile, compileStreaming: wasmCompileStreaming } = WebAssembly;
+      WebAssembly.Module = Object.setPrototypeOf(
+        Object.assign(function Module(...args) {
+          return brand(new wasmModule(...args));
+        }, wasmModule),
+        AbstractModuleSource
+      );
+      WebAssembly.Module.prototype = Object.setPrototypeOf(wasmModule.prototype, AbstractModuleSource.prototype);
+      WebAssembly.compile = function compile(...args) {
+        return wasmCompile(...args).then(brand);
+      };
+      WebAssembly.compileStreaming = function compileStreaming(...args) {
+        return wasmCompileStreaming(...args).then(brand);
+      };
     }
-    const { Module: wasmModule, compile: wasmCompile, compileStreaming: wasmCompileStreaming } = WebAssembly;
-    WebAssembly.Module = Object.setPrototypeOf(
-      Object.assign(function Module(...args) {
-        return brand(new wasmModule(...args));
-      }, wasmModule),
-      AbstractModuleSource
-    );
-    WebAssembly.Module.prototype = Object.setPrototypeOf(wasmModule.prototype, AbstractModuleSource.prototype);
-    WebAssembly.compile = function compile(...args) {
-      return wasmCompile(...args).then(brand);
-    };
-    WebAssembly.compileStreaming = function compileStreaming(...args) {
-      return wasmCompileStreaming(...args).then(brand);
-    };
   }
   if (hasDocument) {
     if (!supportsImportMaps) {
@@ -556,22 +555,24 @@ const fetchModule = async (url, fetchOpts, parent) => {
   const contentType = res.headers.get('content-type');
   if (jsContentType.test(contentType)) return { r, s: await res.text(), t: 'js' };
   else if (wasmContentType.test(contentType)) {
-    const module = await (sourceCache[r] || (sourceCache[r] = WebAssembly.compileStreaming(res)));
-    const exports = WebAssembly.Module.exports(module);
-    sourceCache[r] = module;
-    let s = '',
+    const wasmModule = await (sourceCache[r] || (sourceCache[r] = WebAssembly.compileStreaming(res)));
+    const exports = WebAssembly.Module.exports(wasmModule);
+    sourceCache[r] = wasmModule;
+    const rStr = urlJsString(r);
+    let s = `import*as $_ns from${rStr};`,
       i = 0,
       obj = '';
-    for (const impt of WebAssembly.Module.imports(module)) {
-      const specifier = urlJsString(impt.module);
-      s += `import*as impt${i} from ${specifier};\n`;
-      obj += `${specifier}:impt${i++},`;
+    for (const { module, kind } of WebAssembly.Module.imports(wasmModule)) {
+      const specifier = urlJsString(module);
+      s += `import*as impt${i} from${specifier};\n`;
+      obj += `${specifier}:${kind === 'global' ? `importShim._i.get(impt${i})||impt${i++}` : `impt${i++}`},`;
     }
-    s += `${hotPrefix}i=await WebAssembly.instantiate(importShim._s[${urlJsString(r)}],{${obj}});`;
+    s += `${hotPrefix}i=await WebAssembly.instantiate(importShim._s[${rStr}],{${obj}});importShim._i.set($_ns,i);`;
     obj = '';
-    for (const expt of exports) {
-      s += `export let ${expt.name}=i.exports['${expt.name}'];`;
-      obj += `${expt.name},`;
+    for (const { name, kind } of exports) {
+      s += `export let ${name}=i.exports['${name}'];`;
+      if (kind === 'global') s += `try{${name}=${name}.value}catch{${name}=undefined}`;
+      obj += `${name},`;
     }
     s += `if(h)h.accept(m=>({${obj}}=m))`;
     return { r, s, t: 'wasm' };
