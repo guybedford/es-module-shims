@@ -87,7 +87,7 @@ export const initHotReload = () => {
     });
 
   invalidate = (url, fromUrl, seen = []) => {
-    if (!seen.includes(url)) {
+    if (!seen.includes(url) && url !== baseUrl) {
       seen.push(url);
       if (self.ESMS_DEBUG) console.info(`es-module-shims: hot reload ${url}`);
       const hotState = hotRegistry[url];
