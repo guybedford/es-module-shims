@@ -744,7 +744,12 @@ let lastStaticLoadPromise = Promise.resolve();
 
 let domContentLoaded = false;
 let domContentLoadedCnt = 1;
-const domContentLoadedCheck = () => {
+const domContentLoadedCheck = m => {
+  if (m === undefined) {
+    if (domContentLoaded) return;
+    domContentLoaded = true;
+    domContentLoadedCnt--;
+  }
   if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: DOMContentLoaded refire`);
     document.removeEventListener('DOMContentLoaded', domContentLoadedEvent);
@@ -761,16 +766,12 @@ const loadCheck = () => {
 };
 
 const domContentLoadedEvent = async () => {
-  domContentLoaded = true;
   await initPromise;
   domContentLoadedCheck();
 };
 const loadEvent = async () => {
   await initPromise;
-  if (!domContentLoaded) {
-    domContentLoadedCheck();
-    domContentLoaded = true;
-  }
+  domContentLoadedCheck();
   loadCheck();
 };
 
@@ -791,10 +792,7 @@ const readyListener = async () => {
 let readyStateCompleteCnt = 1;
 const readyStateCompleteCheck = () => {
   if (--readyStateCompleteCnt === 0) {
-    if (!domContentLoaded) {
-      domContentLoaded = true;
-      domContentLoadedCheck();
-    }
+    domContentLoadedCheck();
     if (!noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
       if (self.ESMS_DEBUG) console.info(`es-module-shims: readystatechange complete refire`);
       document.removeEventListener('readystatechange', readyListener);
