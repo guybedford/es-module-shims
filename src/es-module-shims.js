@@ -882,7 +882,7 @@ const processScript = (script, ready = readyStateCompleteCnt > 0) => {
       !script.src ? script.innerHTML : undefined,
       !shimMode,
       isBlockingReadyScript && lastStaticLoadPromise,
-      'ts'
+      ts ? 'ts' : undefined
     ).catch(throwError);
   }
   if (!noLoadEventRetriggers) loadPromise.then(() => script.dispatchEvent(new Event('load')));

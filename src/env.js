@@ -107,10 +107,10 @@ if (Array.isArray(skip)) {
   skip = s => skip.test(s);
 }
 
-const dispatchError = error => self.dispatchEvent(Object.assign(new Event('error'), { error }));
+const reportError = console.error.bind(console);
 
 export const throwError = err => {
-  (self.reportError || dispatchError)(err), void onerror(err);
+  (self.reportError || reportError)(err), void onerror(err);
 };
 
 export const fromParent = parent => (parent ? ` imported from ${parent}` : '');
