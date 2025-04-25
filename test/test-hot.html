@@ -30,13 +30,13 @@ window.ESMS_DEBUG = true;
 
 <script type="module" noshim>
   import { runMochaTests } from "./runMochaTests.js";
-  // import('../dist/es-module-shims-typescript.js').then(() => {
+  import('../dist/es-module-shims-typescript.js').then(() => {
     runMochaTests('hot');
-  // }, () => {
+  }, () => {
     // TypeScript loader not supported due to Wasm limit
-    // console.log('SKIPPING TESTS DUE TO 4KB WASM LIMIT FAILURE');
-    // fetch('/done', { method: 'POST' });
-  // });
+    console.log('SKIPPING TESTS DUE TO 4KB WASM LIMIT FAILURE');
+    fetch('/done', { method: 'POST' });
+  });
 </script>
 
 <div id="mocha"></div>
