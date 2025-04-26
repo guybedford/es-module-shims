@@ -157,7 +157,6 @@ defineValue(self, 'importShim', Object.freeze(importShim));
 const shimModeOptions = { ...esmsInitOptions, shimMode: true };
 if (optionsScript) optionsScript.innerHTML = JSON.stringify(shimModeOptions);
 self.esmsInitOptions = shimModeOptions;
-defineValue(self, '_d', undefined);
 
 const loadAll = async (load, seen) => {
   seen[load.u] = 1;
