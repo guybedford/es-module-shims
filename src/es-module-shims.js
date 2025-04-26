@@ -555,7 +555,7 @@ const fetchModule = async (url, fetchOpts, parent) => {
   const mapIntegrity = composedImportMap.integrity[url];
   const res = await doFetch(
     url,
-    mapIntegrity && !fetchOpts.integrity ? Object.assign({}, fetchOpts, { integrity: mapIntegrity }) : fetchOpts,
+    mapIntegrity && !fetchOpts.integrity ? { ...fetchOpts, integrity: mapIntegrity } : fetchOpts,
     parent
   );
   const r = res.url;
@@ -710,7 +710,7 @@ const linkLoad = (load, fetchOpts) => {
         if (d >= 0 || resolved.N) load.N = true;
         if (d !== -1) return;
         if (skip && skip(resolved.r) && !sourcePhase) return { l: { b: resolved.r }, s: false };
-        if (childFetchOpts.integrity) childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
+        if (childFetchOpts.integrity) childFetchOpts = { ...childFetchOpts, integrity: undefined };
         const child = { l: getOrCreateLoad(resolved.r, childFetchOpts, load.r, source), s: sourcePhase };
         // assertion case -> inline the CSS / JSON URL directly
         if (source === '') child.l.b = child.l.u;

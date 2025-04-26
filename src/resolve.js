@@ -103,9 +103,9 @@ export const resolveIfNotPlainOrUrl = (relUrl, parentUrl) => {
 
 export const resolveAndComposeImportMap = (json, baseUrl, parentMap) => {
   const outMap = {
-    imports: Object.assign({}, parentMap.imports),
-    scopes: Object.assign({}, parentMap.scopes),
-    integrity: Object.assign({}, parentMap.integrity)
+    imports: { ...parentMap.imports },
+    scopes: { ...parentMap.scopes },
+    integrity: { ...parentMap.integrity }
   };
 
   if (json.imports) resolveAndComposePackages(json.imports, outMap.imports, baseUrl, parentMap, null);
