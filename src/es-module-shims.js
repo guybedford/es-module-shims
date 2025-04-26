@@ -156,7 +156,7 @@ const instanceCache = (importShim._i = new WeakMap());
 defineValue(self, 'importShim', Object.freeze(importShim));
 const shimModeOptions = { ...esmsInitOptions, shimMode: true };
 if (optionsScript) optionsScript.innerHTML = JSON.stringify(shimModeOptions);
-else self.esmsInitOptions = shimModeOptions;
+self.esmsInitOptions = shimModeOptions;
 defineValue(self, '_d', undefined);
 
 const loadAll = async (load, seen) => {
