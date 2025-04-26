@@ -21,7 +21,7 @@ function config(isWasm, isDebug) {
       format: 'iife',
       strict: false,
       sourcemap: false,
-      banner: `/** ES Module Shims ${isWasm ? 'Wasm ' : ''}${version} */`
+      banner: `/** ES Module Shims ${isWasm ? 'Wasm ' : ''}@version ${version} */`
     },
     plugins: [
       {
@@ -35,6 +35,7 @@ function config(isWasm, isDebug) {
       },
       replace({
         'self.ESMS_DEBUG': isDebug.toString(),
+        'self.VERSION': JSON.stringify(version),
         preventAssignment: true
       })
     ]

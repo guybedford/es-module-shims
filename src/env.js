@@ -1,13 +1,5 @@
 import { initHotReload } from './hot-reload.js';
 
-if (self.importShim) {
-  if (self.ESMS_DEBUG)
-    console.info(
-      `es-module-shims: skipping initialization as importShim was already registered by another polyfill instance`
-    );
-  $ret();
-}
-
 export const hasDocument = typeof document !== 'undefined';
 
 export const noop = () => {};
@@ -20,10 +12,22 @@ export const chain = (a, b) =>
 
 export const dynamicImport = (u, errUrl) => import(u);
 
-const optionsScript = hasDocument ? document.querySelector('script[type=esms-options]') : undefined;
+export const defineValue = (obj, prop, value) =>
+  Object.defineProperty(obj, prop, { writable: false, configurable: false, value });
+
+export const optionsScript = hasDocument ? document.querySelector('script[type=esms-options]') : undefined;
 
 export const esmsInitOptions = optionsScript ? JSON.parse(optionsScript.innerHTML) : {};
 Object.assign(esmsInitOptions, self.esmsInitOptions || {});
+
+const r = esmsInitOptions.version;
+if (self.importShim || (r && r !== self.VERSION)) {
+  if (self.ESMS_DEBUG)
+    console.info(
+      `es-module-shims: skipping initialization as ${r ? `configured for ${r}` : 'another instance has already registered'}`
+    );
+  $ret();
+}
 
 // shim mode is determined on initialization, no late shim mode
 export const shimMode =

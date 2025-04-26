@@ -23,7 +23,9 @@ import {
   nativePassthrough,
   hasDocument,
   hotReload as hotReloadEnabled,
-  defaultFetchOpts
+  defaultFetchOpts,
+  defineValue,
+  optionsScript
 } from './env.js';
 import {
   supportsImportMaps,
@@ -123,8 +125,6 @@ if (shimMode || deferPhaseEnabled) importShim.defer = importShim;
 
 if (hotReloadEnabled) importShim.hotReload = hotReload;
 
-self.importShim = importShim;
-
 const defaultResolve = (id, parentUrl) => {
   return (
     resolveImportMap(composedImportMap, resolveIfNotPlainOrUrl(id, parentUrl) || id, parentUrl) ||
@@ -151,6 +151,13 @@ const registry = (importShim._r = {});
 // Wasm caches
 const sourceCache = (importShim._s = {});
 const instanceCache = (importShim._i = new WeakMap());
+
+// Ensure this version is the only version
+defineValue(self, 'importShim', Object.freeze(importShim));
+const shimModeOptions = { ...esmsInitOptions, shimMode: true };
+if (optionsScript) optionsScript.innerHTML = JSON.stringify(shimModeOptions);
+self.esmsInitOptions = shimModeOptions;
+defineValue(self, '_d', undefined);
 
 const loadAll = async (load, seen) => {
   seen[load.u] = 1;
@@ -185,8 +192,7 @@ const initPromise = featureDetectionPromise.then(() => {
   if (!shimMode && typeof WebAssembly !== 'undefined') {
     if (wasmSourcePhaseEnabled && !Object.getPrototypeOf(WebAssembly.Module).name) {
       const s = Symbol();
-      const brand = m =>
-        Object.defineProperty(m, s, { writable: false, configurable: false, value: 'WebAssembly.Module' });
+      const brand = m => defineValue(m, s, 'WebAssembly.Module');
       class AbstractModuleSource {
         get [Symbol.toStringTag]() {
           if (this[s]) return this[s];
@@ -549,7 +555,7 @@ const fetchModule = async (url, fetchOpts, parent) => {
   const mapIntegrity = composedImportMap.integrity[url];
   const res = await doFetch(
     url,
-    mapIntegrity && !fetchOpts.integrity ? Object.assign({}, fetchOpts, { integrity: mapIntegrity }) : fetchOpts,
+    mapIntegrity && !fetchOpts.integrity ? { ...fetchOpts, integrity: mapIntegrity } : fetchOpts,
     parent
   );
   const r = res.url;
@@ -704,7 +710,7 @@ const linkLoad = (load, fetchOpts) => {
         if (d >= 0 || resolved.N) load.N = true;
         if (d !== -1) return;
         if (skip && skip(resolved.r) && !sourcePhase) return { l: { b: resolved.r }, s: false };
-        if (childFetchOpts.integrity) childFetchOpts = Object.assign({}, childFetchOpts, { integrity: undefined });
+        if (childFetchOpts.integrity) childFetchOpts = { ...childFetchOpts, integrity: undefined };
         const child = { l: getOrCreateLoad(resolved.r, childFetchOpts, load.r, source), s: sourcePhase };
         // assertion case -> inline the CSS / JSON URL directly
         if (source === '') child.l.b = child.l.u;
