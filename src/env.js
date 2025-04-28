@@ -20,8 +20,10 @@ export const optionsScript = hasDocument ? document.querySelector('script[type=e
 export const esmsInitOptions = optionsScript ? JSON.parse(optionsScript.innerHTML) : {};
 Object.assign(esmsInitOptions, self.esmsInitOptions || {});
 
+export const version = self.VERSION;
+
 const r = esmsInitOptions.version;
-if (self.importShim || (r && r !== self.VERSION)) {
+if (self.importShim || (r && r !== version)) {
   if (self.ESMS_DEBUG)
     console.info(
       `es-module-shims: skipping initialization as ${r ? `configured for ${r}` : 'another instance has already registered'}`
