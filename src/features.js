@@ -46,7 +46,7 @@ export let featureDetectionPromise = (async function () {
         )
     ]);
 
-  const msgTag = `esms-${version}`;
+  const msgTag = `s${version}`;
   return new Promise(resolve => {
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
