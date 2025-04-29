@@ -1,4 +1,12 @@
-import { createBlob, noop, nonce, wasmInstancePhaseEnabled, wasmSourcePhaseEnabled, hasDocument } from './env.js';
+import {
+  createBlob,
+  noop,
+  nonce,
+  wasmInstancePhaseEnabled,
+  wasmSourcePhaseEnabled,
+  hasDocument,
+  version
+} from './env.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsJsonType = false;
@@ -38,12 +46,13 @@ export let featureDetectionPromise = (async function () {
         )
     ]);
 
+  const msgTag = `s${version}`;
   return new Promise(resolve => {
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     iframe.setAttribute('nonce', nonce);
     function cb({ data }) {
-      const isFeatureDetectionMessage = Array.isArray(data) && data[0] === 'esms';
+      const isFeatureDetectionMessage = Array.isArray(data) && data[0] === msgTag;
       if (!isFeatureDetectionMessage) return;
       [
         ,
@@ -73,7 +82,7 @@ export let featureDetectionPromise = (async function () {
       supportsImportMaps && wasmInstancePhaseEnabled ?
         `${wasmSourcePhaseEnabled ? 'sp.then(s=>s?' : ''}c(b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`))${wasmSourcePhaseEnabled ? ':false)' : ''}`
       : 'false'
-    }]).then(a=>parent.postMessage(['esms'].concat(a),'*'))<${''}/script>`;
+    }]).then(a=>parent.postMessage(['${msgTag}'].concat(a),'*'))<${''}/script>`;
 
     // Safari will call onload eagerly on head injection, but we don't want the Wechat
     // path to trigger before setting srcdoc, therefore we track the timing

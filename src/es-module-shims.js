@@ -25,7 +25,8 @@ import {
   hotReload as hotReloadEnabled,
   defaultFetchOpts,
   defineValue,
-  optionsScript
+  optionsScript,
+  version
 } from './env.js';
 import {
   supportsImportMaps,
@@ -146,6 +147,7 @@ importShim.addImportMap = importMapIn => {
   if (!shimMode) throw new Error('Unsupported in polyfill mode.');
   composedImportMap = resolveAndComposeImportMap(importMapIn, pageBaseUrl, composedImportMap);
 };
+importShim.version = version;
 
 const registry = (importShim._r = {});
 // Wasm caches
@@ -157,7 +159,6 @@ defineValue(self, 'importShim', Object.freeze(importShim));
 const shimModeOptions = { ...esmsInitOptions, shimMode: true };
 if (optionsScript) optionsScript.innerHTML = JSON.stringify(shimModeOptions);
 self.esmsInitOptions = shimModeOptions;
-defineValue(self, '_d', undefined);
 
 const loadAll = async (load, seen) => {
   seen[load.u] = 1;
