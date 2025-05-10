@@ -278,7 +278,8 @@ export const topLevelLoad = async (
   // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
   // because we can't syntactically pass through to dynamic import with a second argument
   if (sourceType === 'css' || sourceType === 'json') {
-    source = `import m from'${url}'with{type:"${sourceType}"};export ${isFirefox ? 'default m' : '{m as default}'};`;
+    // Direct reexport for hot reloading skipped due to Firefox bug https://bugzilla.mozilla.org/show_bug.cgi?id=1965620
+    source = `import m from'${url}'with{type:"${sourceType}"};export default m;`;
     url += '?entry';
   }
 
@@ -588,7 +589,7 @@ const fetchModule = async (url, fetchOpts, parent) => {
   } else if (jsonContentType.test(contentType))
     return {
       r,
-      s: `${hotPrefix}j=${await res.text()};export{j as default};${isFirefox ? '' : 'if(h)h.accept(m=>j=m.default)'}`,
+      s: `${hotPrefix}j=${await res.text()};export{j as default};if(h)h.accept(m=>j=m.default)`,
       t: 'json'
     };
   else if (cssContentType.test(contentType)) {

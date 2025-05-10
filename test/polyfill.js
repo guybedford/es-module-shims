@@ -42,7 +42,8 @@ suite('Polyfill tests', () => {
   });
 
   test('should support json imports', async function () {
-    const { m } = await importShim('./fixtures/json-assertion.js');
+    const { getJson } = await importShim('./fixtures/json-assertion.js');
+    const m = getJson();
     assert.equal(m.json, 'module');
     let maybeNative;
     try {

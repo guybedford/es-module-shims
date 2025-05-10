@@ -22,8 +22,6 @@ Object.assign(esmsInitOptions, self.esmsInitOptions || {});
 
 export const version = self.VERSION;
 
-export const isFirefox = navigator.userAgent.indexOf('Firefox') > 0;
-
 const r = esmsInitOptions.version;
 if (self.importShim || (r && r !== version)) {
   if (self.ESMS_DEBUG)
