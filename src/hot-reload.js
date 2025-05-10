@@ -12,7 +12,7 @@ import {
 import { topLevelLoad } from './es-module-shims.js';
 
 let invalidate;
-export const hotReload = url => invalidate(new URL(url, baseUrl).href);
+export const hotReload = (url) => invalidate(new URL(url, baseUrl).href);
 export const initHotReload = () => {
   let _importHook = importHook,
     _resolveHook = resolveHook,
@@ -23,9 +23,10 @@ export const initHotReload = () => {
     if (!defaultResolve) defaultResolve = _defaultResolve;
     const originalParent = stripVersion(parent);
     const url = stripVersion(defaultResolve(id, originalParent));
-    const parents = getHotState(url).p;
+    const hotState = getHotState(url);
+    const parents = hotState.p;
     if (!parents.includes(originalParent)) parents.push(originalParent);
-    return toVersioned(url);
+    return toVersioned(url, hotState);
   };
   const hotImportHook = (url, _, __, source, sourceType) => {
     const hotState = getHotState(url);
@@ -72,8 +73,8 @@ export const initHotReload = () => {
     return versionMatch ? url.slice(0, -versionMatch[0].length) : url;
   };
 
-  const toVersioned = url => {
-    const v = getHotState(url).v;
+  const toVersioned = (url, hotState) => {
+    const { v } = hotState;
     return url + (v ? '?v=' + v : '');
   };
 
@@ -109,6 +110,7 @@ export const initHotReload = () => {
       if (hotState) {
         hotState.A = false;
         if (
+          fromUrl &&
           hotState.a &&
           hotState.a.some(([d]) => d && (typeof d === 'string' ? d === fromUrl : d.includes(fromUrl)))
         ) {
@@ -119,47 +121,48 @@ export const initHotReload = () => {
           if (!hotState.a) for (const parent of hotState.p) invalidate(parent, url, seen);
         }
       }
+      if (!curInvalidationInterval) curInvalidationInterval = setTimeout(handleInvalidations, hotReloadInterval);
     }
-    if (!curInvalidationInterval)
-      curInvalidationInterval = setTimeout(() => {
-        curInvalidationInterval = null;
-        const earlyRoots = new Set();
-        for (const root of curInvalidationRoots) {
-          const hotState = hotRegistry[root];
-          topLevelLoad(
-            toVersioned(root),
-            baseUrl,
-            defaultFetchOpts,
-            typeof hotState.e === 'string' ? hotState.e : undefined,
-            false,
-            undefined,
-            hotState.t
-          ).then(m => {
-            if (hotState.a) {
-              hotState.a.every(([d, c]) => d === null && !earlyRoots.has(c) && c(m));
-              // unload should be the latest unload handler from the just loaded module
-              if (hotState.u) {
-                hotState.u(hotState.d);
-                hotState.u = null;
-              }
-            }
-            for (const parent of hotState.p) {
-              const hotState = hotRegistry[parent];
-              if (hotState && hotState.a)
-                hotState.a.every(async ([d, c]) => {
-                  return (
-                    d &&
-                    !earlyRoots.has(c) &&
-                    (typeof d === 'string' ?
-                      d === root && c(m)
-                    : c(await Promise.all(d.map(d => (earlyRoots.push(c), importShim(toVersioned(d)))))))
-                  );
-                });
-            }
-          }, throwError);
+  };
+
+  const handleInvalidations = () => {
+    curInvalidationInterval = null;
+    const earlyRoots = new Set();
+    for (const root of curInvalidationRoots) {
+      const hotState = hotRegistry[root];
+      topLevelLoad(
+        toVersioned(root, hotState),
+        baseUrl,
+        defaultFetchOpts,
+        typeof hotState.e === 'string' ? hotState.e : undefined,
+        false,
+        undefined,
+        hotState.t
+      ).then(m => {
+        if (hotState.a) {
+          hotState.a.every(([d, c]) => d === null && !earlyRoots.has(c) && c(m));
+          // unload should be the latest unload handler from the just loaded module
+          if (hotState.u) {
+            hotState.u(hotState.d);
+            hotState.u = null;
+          }
         }
-        curInvalidationRoots = new Set();
-      }, hotReloadInterval);
+        for (const parent of hotState.p) {
+          const hotState = hotRegistry[parent];
+          if (hotState && hotState.a)
+            hotState.a.every(async ([d, c]) => {
+              return (
+                d &&
+                !earlyRoots.has(c) &&
+                (typeof d === 'string' ?
+                  d === root && c(m)
+                : c(await Promise.all(d.map(d => (earlyRoots.push(c), importShim(toVersioned(d, getHotState(d))))))))
+              );
+            });
+        }
+      }, throwError);
+    }
+    curInvalidationRoots = new Set();
   };
 
   return [

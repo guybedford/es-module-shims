@@ -600,6 +600,7 @@ const fetchModule = async (url, fetchOpts, parent) => {
   } else if (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts')) {
     const source = await res.text();
     if (!esmsTsTransform) await initTs();
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: Compiling TypeScript file ${url}`);
     const transformed = esmsTsTransform(source, url);
     // even if the TypeScript is valid JavaScript, unless it was a top-level inline source, it wasn't served with
     // a valid JS MIME here, so we must still polyfill it
@@ -865,6 +866,7 @@ const processScript = (script, ready = readyStateCompleteCnt > 0) => {
   if (ts && !script.src) {
     loadPromise = Promise.resolve(esmsTsTransform || initTs())
       .then(() => {
+        if (self.ESMS_DEBUG) console.info(`es-module-shims: Compiling TypeScript module script`, script);
         const transformed = esmsTsTransform(script.innerHTML, pageBaseUrl);
         if (transformed !== undefined) {
           onpolyfill();
