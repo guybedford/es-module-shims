@@ -26,7 +26,8 @@ import {
   defaultFetchOpts,
   defineValue,
   optionsScript,
-  version
+  version,
+  isFirefox
 } from './env.js';
 import {
   supportsImportMaps,
@@ -277,8 +278,7 @@ export const topLevelLoad = async (
   // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
   // because we can't syntactically pass through to dynamic import with a second argument
   if (sourceType === 'css' || sourceType === 'json') {
-    // we don't do a direct reexport here because of Firefox crash https://bugzilla.mozilla.org/show_bug.cgi?id=1965620
-    source = `import m from'${url}'with{type:"${sourceType}"};export default m;`;
+    source = `import m from'${url}'with{type:"${sourceType}"};export ${isFirefox ? 'default m' : '{m as default}'};`;
     url += '?entry';
   }
 
@@ -586,7 +586,11 @@ const fetchModule = async (url, fetchOpts, parent) => {
     s += `if(h)h.accept(m=>({${obj}}=m))`;
     return { r, s, t: 'wasm' };
   } else if (jsonContentType.test(contentType))
-    return { r, s: `${hotPrefix}j=${await res.text()};export{j as default};if(h)h.accept(m=>j=m.default)`, t: 'json' };
+    return {
+      r,
+      s: `${hotPrefix}j=${await res.text()};export{j as default};${isFirefox ? '' : 'if(h)h.accept(m=>j=m.default)'}`,
+      t: 'json'
+    };
   else if (cssContentType.test(contentType)) {
     return {
       r,

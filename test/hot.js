@@ -54,7 +54,7 @@ suite('Hot reloading tests', () => {
     importShim.hotReload('fixtures/sheet.css');
   });
 
-  test('JSON Hot reload', async function () {
+  (navigator.userAgent.indexOf('Firefox') > 0 ? test.skip : test)('JSON Hot reload', async function () {
     const m = await importShim('test/json-assertion.js');
     assert.equal(m.m.json, 'module');
     jsonSource = '{ "json": "hot" }';
