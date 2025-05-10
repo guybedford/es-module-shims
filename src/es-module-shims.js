@@ -26,8 +26,7 @@ import {
   defaultFetchOpts,
   defineValue,
   optionsScript,
-  version,
-  isFirefox
+  version
 } from './env.js';
 import {
   supportsImportMaps,
