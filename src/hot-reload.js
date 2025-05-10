@@ -12,7 +12,7 @@ import {
 import { topLevelLoad } from './es-module-shims.js';
 
 let invalidate;
-export const hotReload = (url) => invalidate(new URL(url, baseUrl).href);
+export const hotReload = url => invalidate(new URL(url, baseUrl).href);
 export const initHotReload = () => {
   let _importHook = importHook,
     _resolveHook = resolveHook,
