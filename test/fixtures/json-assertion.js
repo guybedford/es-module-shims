@@ -1,3 +1,6 @@
 import json from './json.json' with { type: 'json' };
 
-export { json as m }
+// Firefox crash avoidance :(
+let foo = json;
+
+export { foo as m }

@@ -277,7 +277,8 @@ export const topLevelLoad = async (
   // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
   // because we can't syntactically pass through to dynamic import with a second argument
   if (sourceType === 'css' || sourceType === 'json') {
-    source = `export{default}from'${url}'with{type:"${sourceType}"}`;
+    // we don't do a direct reexport here because of Firefox crash https://bugzilla.mozilla.org/show_bug.cgi?id=1965620
+    source = `import m from'${url}'with{type:"${sourceType}"};export default m;`;
     url += '?entry';
   }
 
