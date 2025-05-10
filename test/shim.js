@@ -80,7 +80,7 @@ suite('Basic loading tests', () => {
 
   test('should support import assertions', async function () {
     var m = await importShim('./fixtures/json-assertion.js');
-    assert.equal(m.m.json, 'module');
+    assert.equal(m.getJson().json, 'module');
   });
 
   test('should support css imports', async function () {

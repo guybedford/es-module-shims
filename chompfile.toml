@@ -42,6 +42,7 @@ function require(mod) {
 }
 ${amaroSource}
 const amaroTransformSync = module.exports.transformSync;
+console.warn('es-module-shims: TypeScript modules are being compiled in the browser. Make sure to compile these files in production workflows. Use es-module-shims.debug.js to trace TypeScript compilations.');
 export function transform(source, url) {
   try {
     const transformed = amaroTransformSync(source, { filename: url, transform: { mode: 'strip-only', noEmptyExport: true } }).code;

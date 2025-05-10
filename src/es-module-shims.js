@@ -277,7 +277,8 @@ export const topLevelLoad = async (
   // we mock import('./x.css', { with: { type: 'css' }}) support via an inline static reexport
   // because we can't syntactically pass through to dynamic import with a second argument
   if (sourceType === 'css' || sourceType === 'json') {
-    source = `export{default}from'${url}'with{type:"${sourceType}"}`;
+    // Direct reexport for hot reloading skipped due to Firefox bug https://bugzilla.mozilla.org/show_bug.cgi?id=1965620
+    source = `import m from'${url}'with{type:"${sourceType}"};export default m;`;
     url += '?entry';
   }
 
@@ -585,7 +586,11 @@ const fetchModule = async (url, fetchOpts, parent) => {
     s += `if(h)h.accept(m=>({${obj}}=m))`;
     return { r, s, t: 'wasm' };
   } else if (jsonContentType.test(contentType))
-    return { r, s: `${hotPrefix}j=${await res.text()};export{j as default};if(h)h.accept(m=>j=m.default)`, t: 'json' };
+    return {
+      r,
+      s: `${hotPrefix}j=${await res.text()};export{j as default};if(h)h.accept(m=>j=m.default)`,
+      t: 'json'
+    };
   else if (cssContentType.test(contentType)) {
     return {
       r,
@@ -600,6 +605,7 @@ const fetchModule = async (url, fetchOpts, parent) => {
   } else if (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts')) {
     const source = await res.text();
     if (!esmsTsTransform) await initTs();
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: Compiling TypeScript file ${url}`);
     const transformed = esmsTsTransform(source, url);
     // even if the TypeScript is valid JavaScript, unless it was a top-level inline source, it wasn't served with
     // a valid JS MIME here, so we must still polyfill it
@@ -865,6 +871,7 @@ const processScript = (script, ready = readyStateCompleteCnt > 0) => {
   if (ts && !script.src) {
     loadPromise = Promise.resolve(esmsTsTransform || initTs())
       .then(() => {
+        if (self.ESMS_DEBUG) console.info(`es-module-shims: Compiling TypeScript module script`, script);
         const transformed = esmsTsTransform(script.innerHTML, pageBaseUrl);
         if (transformed !== undefined) {
           onpolyfill();

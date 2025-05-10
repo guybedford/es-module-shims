@@ -1,3 +1,5 @@
 import json from './json.json' with { type: 'json' };
 
-export { json as m }
+export function getJson () {
+  return json;
+}

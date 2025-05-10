@@ -56,15 +56,15 @@ suite('Hot reloading tests', () => {
 
   test('JSON Hot reload', async function () {
     const m = await importShim('test/json-assertion.js');
-    assert.equal(m.m.json, 'module');
+    assert.equal(m.getJson().json, 'module');
     jsonSource = '{ "json": "hot" }';
     importShim.hotReload('fixtures/json.json');
     await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
-    assert.equal(m.m.json, 'hot');
+    assert.equal(m.getJson().json, 'hot');
     jsonSource = '{ "json": "hot2" }';
     importShim.hotReload('fixtures/json.json');
     await new Promise(resolve => setTimeout(resolve, HOT_WAIT));
-    assert.equal(m.m.json, 'hot2');
+    assert.equal(m.getJson().json, 'hot2');
   });
 
   test('Accept invalidate', async function () {
