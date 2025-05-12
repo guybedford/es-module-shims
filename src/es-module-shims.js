@@ -910,6 +910,9 @@ const processScript = (script, ready = readyStateCompleteCnt > 0) => {
 const fetchCache = {};
 const processPreload = link => {
   link.ep = true;
-  if (fetchCache[link.href]) return;
-  fetchCache[link.href] = fetchModule(link.href, getFetchOpts(link));
+  initPromise.then(() => {
+    if (baselinePassthrough && !shimMode) return;
+    if (fetchCache[link.href]) return;
+    fetchCache[link.href] = fetchModule(link.href, getFetchOpts(link));
+  });
 };
