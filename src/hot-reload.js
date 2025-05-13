@@ -9,7 +9,7 @@ import {
   throwError,
   chain
 } from './env.js';
-import { topLevelLoad } from './es-module-shims.js';
+import { topLevelLoad } from './core.js';
 
 let invalidate;
 export const hotReload = url => invalidate(new URL(url, baseUrl).href);
