@@ -693,7 +693,6 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [nativePassthrough](#native-passthrough)
 * [modulepreload](#modulepreload)
 * [noLoadEventRetriggers](#no-load-event-retriggers)
-* [globalLoadEventRetrigger](#global-load-event-retrigger)
 * [nonce](#nonce)
 * [onerror](#error-hook)
 * [onpolyfill](#polyfill-hook)
