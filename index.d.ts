@@ -5,10 +5,36 @@ interface ESMSInitOptions {
   shimMode?: boolean;
 
   /**
-   * Enable polyfill features.
-   * Currently supports ['css-modules', 'json-modules', 'wasm-modules', 'source-phase']
+   * Enable hot reloading
    */
-  polyfillEnable?: Array<'css-modules' | 'json-modules' | 'wasm-modules' | 'source-phase'>
+  hotReload?: boolean;
+
+  /**
+   * Set the hot reload refresh interval in ms
+   */
+  hotReloadInterval?: number;
+
+  /**
+   * Enable polyfill features.
+   * 
+   * Currently supports:
+   * - 'wasm-modules': Both 'wasm-module-sources' and 'wasm-module-instances'
+   * - 'wasm-module-sources': Support for Wasm source phase imports (import source mod from './mod.wasm')
+   * - 'wasm-module-instances': Support for Wasm instance phase imports (import * as mod from './mod.wasm')
+   * - 'import-defer': Support for import defer syntax (import defer * as ns from './foo.js')
+   */
+  polyfillEnable?: Array<'wasm-modules' | 'wasm-module-instances' | 'wasm-module-sources' | 'import-defer'>;
+
+  /**
+   * Version
+   * 
+   * Useful when there are multiple instances of ES Module Shims for whatever reason
+   * interacting in an application.
+   * 
+   * When set, ES Module Shims will early exit if its own version is not the expected version.
+   * Note that this feature is only supported from version 2.4.0 upwards.
+   */
+  version?: string;
 
   /**
    * #### Enforce Integrity
@@ -210,6 +236,8 @@ declare namespace importShim {
   const resolve: (id: string, parentURL?: string) => string;
   const addImportMap: (importMap: Partial<ImportMap>) => void;
   const getImportMap: () => ImportMap;
+  const hotReload: ((url: string) => boolean) | undefined;
+  const version: string;
 }
 
 interface Window {

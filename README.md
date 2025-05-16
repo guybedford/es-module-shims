@@ -520,7 +520,7 @@ In addition CSS files need to be served with a valid CSS content type.
 
 Implements the [WebAssembly ESM Integration](https://github.com/WebAssembly/esm-integration) spec, including support for source phase imports.
 
-In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules require the `polyfillEnable: ['wasm-module-sources']` (or `'wasm-modules-instances'` for instance imports) [init option](#polyfill-enable-option).
+In shim mode, Wasm modules are always supported. In polyfill mode, Wasm modules require the `polyfillEnable: ['wasm-module-sources']` (or `'wasm-module-instances'` for instance imports) [init option](#polyfill-enable-option).
 
 WebAssembly module exports are made available as module exports and WebAssembly module imports will be resolved using the browser module loader.
 
