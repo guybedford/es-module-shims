@@ -1,14 +1,13 @@
 import { topLevelLoad } from './core.js';
 import {
   baseUrl,
-  chain
   defaultFetchOpts,
   hotReloadInterval,
   importHook,
   metaHook,
   noop,
   resolveHook,
-  throwError,
+  throwError
 } from './env.js';
 
 let invalidate;
@@ -103,25 +102,24 @@ export const initHotReload = () => {
     });
 
   invalidate = (url, fromUrl, seen = []) => {
-      const hotState = hotRegistry[url];
-      if (!hotState || seen.includes(url)) return false;
-      seen.push(url);
-      if (self.ESMS_DEBUG) console.info(`es-module-shims: hot reload ${url}`);
-      hotState.A = false;
-      if (
-        fromUrl &&
-        hotState.a &&
-        hotState.a.some(([d]) => d && (typeof d === 'string' ? d === fromUrl : d.includes(fromUrl)))
-      ) {
-        curInvalidationRoots.add(fromUrl);
-      } else {
-        if (hotState.e || hotState.a) curInvalidationRoots.add(url);
-        hotState.v++;
-        if (!hotState.a) for (const parent of hotState.p) invalidate(parent, url, seen);
-      }
-      if (!curInvalidationInterval) curInvalidationInterval = setTimeout(handleInvalidations, hotReloadInterval);
-      return true;
+    const hotState = hotRegistry[url];
+    if (!hotState || seen.includes(url)) return false;
+    seen.push(url);
+    if (self.ESMS_DEBUG) console.info(`es-module-shims: hot reload ${url}`);
+    hotState.A = false;
+    if (
+      fromUrl &&
+      hotState.a &&
+      hotState.a.some(([d]) => d && (typeof d === 'string' ? d === fromUrl : d.includes(fromUrl)))
+    ) {
+      curInvalidationRoots.add(fromUrl);
+    } else {
+      if (hotState.e || hotState.a) curInvalidationRoots.add(url);
+      hotState.v++;
+      if (!hotState.a) for (const parent of hotState.p) invalidate(parent, url, seen);
     }
+    if (!curInvalidationInterval) curInvalidationInterval = setTimeout(handleInvalidations, hotReloadInterval);
+    return true;
   };
 
   const handleInvalidations = () => {
