@@ -78,12 +78,16 @@ if (!nonce && hasDocument) {
 export const onerror = globalHook(esmsInitOptions.onerror || console.error.bind(console));
 
 const enable = Array.isArray(esmsInitOptions.polyfillEnable) ? esmsInitOptions.polyfillEnable : [];
+const disable = Array.isArray(esmsInitOptions.polyfillDisable) ? esmsInitOptions.polyfillDisable : [];
+
 const enableAll = esmsInitOptions.polyfillEnable === 'all' || enable.includes('all');
 export const wasmInstancePhaseEnabled =
   enable.includes('wasm-modules') || enable.includes('wasm-module-instances') || enableAll;
 export const wasmSourcePhaseEnabled =
   enable.includes('wasm-modules') || enable.includes('wasm-module-sources') || enableAll;
 export const deferPhaseEnabled = enable.includes('import-defer') || enableAll;
+export const cssModulesEnabled = !disable.includes('css-modules');
+export const jsonModulesEnabled = !disable.includes('json-modules');
 
 export const onpolyfill =
   esmsInitOptions.onpolyfill ?

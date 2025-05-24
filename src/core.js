@@ -15,6 +15,8 @@ import {
   noLoadEventRetriggers,
   wasmInstancePhaseEnabled,
   wasmSourcePhaseEnabled,
+  cssModulesEnabled,
+  jsonModulesEnabled,
   deferPhaseEnabled,
   onpolyfill,
   enforceIntegrity,
@@ -183,8 +185,8 @@ const initPromise = featureDetectionPromise.then(() => {
   baselinePassthrough =
     esmsInitOptions.polyfillEnable !== true &&
     supportsImportMaps &&
-    supportsJsonType &&
-    supportsCssType &&
+    (!jsonModulesEnabled || supportsJsonType) &&
+    (!cssModulesEnabled || supportsCssType) &&
     (!wasmInstancePhaseEnabled || supportsWasmInstancePhase) &&
     (!wasmSourcePhaseEnabled || supportsWasmSourcePhase) &&
     !deferPhaseEnabled &&
@@ -617,7 +619,6 @@ const fetchModule = async (url, fetchOpts, parent) => {
 };
 
 const isUnsupportedType = type => {
-  if (type === 'wasm' && !wasmInstancePhaseEnabled && !wasmSourcePhaseEnabled) throw featErr(`wasm-modules`);
   return (
     (type === 'css' && !supportsCssType) ||
     (type === 'json' && !supportsJsonType) ||
