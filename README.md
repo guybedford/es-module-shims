@@ -686,7 +686,8 @@ const worker = new Worker(getWorkerScriptURL('myEsModule.js'));
 
 Provide a `esmsInitOptions` on the global scope before `es-module-shims` is loaded to configure various aspects of the module loading process:
 
-* [polyfillEnable](#polyfill-enable)
+* [polyfillEnable](#polyfill-enable-option)
+* [polyfillDisable](#polyfill-disable-option)
 * [enforceIntegrity](#enforce-integrity)
 * [fetch](#fetch-hook)
 * [mapOverrides](#overriding-import-map-entries)
@@ -709,6 +710,8 @@ window.esmsInitOptions = {
   shimMode: true, // default false
   // Enable newer modules features
   polyfillEnable: ['wasm-module-sources'], // default empty
+  // Disable features that are unused
+  polyfillDisable: ['css-modules'], // default empty
   // Custom CSP nonce
   nonce: 'n0nce', // default is automatic detection
   // Don't retrigger load events on module scripts (DOMContentLoaded, domready, window 'onload')
@@ -802,6 +805,26 @@ The reason the `polyfillEnable` option is needed is because ES Module Shims impl
 If the application code then tries to use modern features like CSS modules beyond this baseline it won't support those features. As a result all modules features which are considered newer or beyond the recommended baseline require explicit enabling. This common baseline itself will change to track the common future modules baseline supported by this project for each release cycle.
 
 This option can also be set to `true` to entirely disable the native passthrough system and ensure all sources are fetched and analyzed through ES Module Shims. This will still avoid duplicate execution since module graphs are still only reexecuted when they use unsupported native features, but there is a small extra cost in doing the analysis.
+
+### Pollyfill Disable Option
+
+Conversely to `polyfillEnable` it can be beneficial to dissable unused features where excluding those features from the baseline allows avoiding unnecessary feature detections or unnecessary analysis of module graphs.
+
+This option effectively lowers the baseline support allowing wider passthrough cases.
+
+The supported options currently are just `css-modules` and `json-modules`.
+
+For example:
+
+```html
+<script type="esms-options">
+{
+  "polyfillDisable": ["css-modules", "json-modules"]
+}
+</script>
+```
+
+will disable the CSS and JSON feature detections, and lower the baseline passthrough modules support from Chrome 123, Firefox 138 and Safari 17.2 down to Chrome 64, Safari 11.1 and Firefox 67.
 
 ### Enforce Integrity
 
