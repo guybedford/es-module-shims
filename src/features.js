@@ -79,7 +79,9 @@ export let featureDetectionPromise = (async function () {
         `c(b(\`import source x from "\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`))`
       : 'false'
     };Promise.all([${supportsImportMaps ? 'true' : "c('x')"},${supportsImportMaps ? "c('y')" : false},cm,${
-      supportsImportMaps && cssModulesEnabled ? `cm.then(s=>s?c(b(\`import"\${b('','text/css')\}"with{type:"css"}\`)):false)` : 'false'
+      supportsImportMaps && cssModulesEnabled ?
+        `cm.then(s=>s?c(b(\`import"\${b('','text/css')\}"with{type:"css"}\`)):false)`
+      : 'false'
     },sp,${
       supportsImportMaps && wasmInstancePhaseEnabled ?
         `${wasmSourcePhaseEnabled ? 'sp.then(s=>s?' : ''}c(b(\`import"\${b(new Uint8Array(${JSON.stringify(wasmBytes)}),'application/wasm')\}"\`))${wasmSourcePhaseEnabled ? ':false)' : ''}`
