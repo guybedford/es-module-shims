@@ -698,7 +698,7 @@ Provide a `esmsInitOptions` on the global scope before `es-module-shims` is load
 * [onerror](#error-hook)
 * [onpolyfill](#polyfill-hook)
 * [resolve](#resolve-hook)
-* [revokeBlobURLs](#revoke-blob-urls)
+* [source](#source-hook)
 * [shimMode](#shim-mode-option)
 * [skip](#skip)
 * [version](#version)
@@ -718,8 +718,6 @@ window.esmsInitOptions = {
   noLoadEventRetriggers: true, // default false
   // Skip source analysis of certain URLs for full native passthrough
   skip: /^https:\/\/cdn\.com/, // defaults to null
-  // Clean up blob URLs after execution
-  revokeBlobURLs: true, // default false
   // Secure mode to not support loading modules without integrity
   // (integrity is always verified even when disabled though)
   enforceIntegrity: true, // default false
@@ -736,6 +734,8 @@ window.esmsInitOptions = {
   onpolyfill: () => {}, // default logs to the console
   // Hook all module resolutions
   resolve: (id, parentUrl, resolve) => resolve(id, parentUrl), // default is spec resolution
+  // Hook module source loading
+  source: (url, options, parentUrl, defaultSourceHook) => ({ type: 'js', source: 'export var p = 5' }),
   // Hook source fetch function
   fetch: (url, options) => fetch(url, options), // default is native
   // Hook import.meta construction
@@ -796,15 +796,7 @@ In adddition, the `"all"` option will enable all features.
 </script>
 ```
 
-The above is necessary to enable CSS modules and JSON modules alongside TypeScript type stripping support.
-
-#### Baseline Support Analysis Opt-Out
-
 The reason the `polyfillEnable` option is needed is because ES Module Shims implements a performance optimization where if a browser supports modern modules features to an expected baseline of import maps support, it will skip all polyfill source analysis resulting in full native passthrough performance.
-
-If the application code then tries to use modern features like CSS modules beyond this baseline it won't support those features. As a result all modules features which are considered newer or beyond the recommended baseline require explicit enabling. This common baseline itself will change to track the common future modules baseline supported by this project for each release cycle.
-
-This option can also be set to `true` to entirely disable the native passthrough system and ensure all sources are fetched and analyzed through ES Module Shims. This will still avoid duplicate execution since module graphs are still only reexecuted when they use unsupported native features, but there is a small extra cost in doing the analysis.
 
 ### Pollyfill Disable Option
 
@@ -1011,6 +1003,8 @@ Overriding this hook with an empty function will disable the default polyfill lo
 
 In the above, running in latest Chromium browsers, nothing will be logged, while running in an older browser that does not support newer features like import maps the console log will be output.
 
+> As this hook does not affect execution, it is recommended for use in polyfill mode.
+
 #### Error hook
 
 You can provide a function to handle errors during the module loading process by providing an `onerror` option:
@@ -1023,6 +1017,8 @@ You can provide a function to handle errors during the module loading process by
 </script>
 <script async src="es-module-shims.js"></script>
 ```
+
+> As this hook does not affect execution, it is recommended for use in polyfill mode.
 
 #### Import Hook
 
@@ -1041,14 +1037,11 @@ The import hook is supported for both shim and polyfill modes and provides an as
 </script>
 ```
 
+> It is usually recommended to use shim mode with module customization hooks. When the resolve hook is enabled in polyfill mode (or any other hooks), native passthrough will be disabled and modules may be executed twice if they correctly execute without the hook.
+
 #### Resolve Hook
 
 The resolve hook is supported for both shim and polyfill modes and allows full customization of the resolver, while still having access to the original resolve function.
-
-Note that in polyfill mode the resolve hook may not be called for all modules when native passthrough is occurring and that it still will not affect
-the native passthrough executions.
-
-If the resolve hook should apply for all modules in the entire module graph, make sure to set `polyfillEnable: true` to [disable the baseline support analysis opt-out](#baseline-support-analysis-opt-out).
 
 ```js
 <script>
@@ -1064,6 +1057,59 @@ If the resolve hook should apply for all modules in the entire module graph, mak
   }
 </script>
 ```
+
+> It is usually recommended to use shim mode with module customization hooks. When the resolve hook is enabled in polyfill mode (or any other hooks), native passthrough will be disabled and modules may be executed twice if they correctly execute without the hook.
+
+#### Source Hook
+
+The source hook used to obtain the module source for a given URL, allowing for the implementation
+of virtual module sources.
+
+Note that only valid fetch scheme URLs are supported - `http:` / `https:` / `data:` / `blob:` / `file:`.
+`https:` or `file:` is therefore recommended for virtual module paths.
+
+For example:
+
+```html
+<script>
+const virtualFs = {
+  'index.js': `import './src/dep.js';`,
+  'src/dep.js': 'console.log("virtual source execution!")'
+};
+esmsInitOptions = {
+  source (url, fetchOpts, parent, defaultSourceHook) {
+    // Only virtualize sources under the URL file:///virtual-pkg/ (i.e. via
+    // `import('file:///virtual-pkg/index.js)`.
+    if (!url.startsWith('file:///virtual-pkg/')) return defaultSourceHook(url, fetchOpts, parent);
+
+    // Strip the query string prefix for hot reloading workflow support
+    const versionQueryParam = url.match(/\?v=\d+$/);
+    if (versionQueryParam) url = url.slice(0, -versionQueryParam[0].length);
+
+    // Lookup the virtual source from the virtual filesystem and return if found
+    const virtualSource = virtualFs[url.slice('file:///virtual-pkg/'.length)];
+    if (!virtualSource) throw new Error(`Virtual module ${url} not found, imported from ${parent}`);
+    return {
+      type: 'js',
+      source: virtualSource
+    };
+  }
+};
+</script>
+```
+
+For support in hot reloading workflows, note that the ?v={Number} version query
+string suffix will be passed so needs to be checked and removed if applicable.
+
+For JS, CSS, JSON and TypeScript, it provides the source text string.
+For WebAssembly, it provides the compiled WebAssembly.Module record.
+
+The default implementation uses globalThis.fetch to obtain the response and then
+the 'content-type' MIME type header to infer the module type, per HTML semantics.
+
+URL may be returned differently from the request URL because responseURL
+is allowed to be distinct from requestURL in the module system even thoough
+requestURL is used as the registry key only.
 
 #### Meta Hook
 
@@ -1090,6 +1136,8 @@ Where within the module the following would be supported:
 import assert from 'assert';
 assert.ok(import.meta.custom.startsWith('custom value'));
 ```
+
+> It is usually recommended to use shim mode with module customization hooks. When the resolve hook is enabled in polyfill mode (or any other hooks), native passthrough will be disabled and modules may be executed twice if they correctly execute without the hook.
 
 #### Fetch Hook
 
@@ -1147,6 +1195,8 @@ window.esmsInitOptions = {
   }
 }
 ```
+
+> It is usually recommended to use shim mode with module customization hooks. When the resolve hook is enabled in polyfill mode (or any other hooks), native passthrough will be disabled and modules may be executed twice if they correctly execute without the hook.
 
 ## Implementation Details
 

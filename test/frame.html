@@ -1,18 +1,44 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-  <script type="importmap">
-  {
-    "imports": {
-      "x": "/test/fixtures/test-dep.js"
-    }
+<script type="importmap">
+{
+  "imports": {
+    "x": "/test/fixtures/test-dep.js"
   }
-  </script>
-  <script type="module" src="../src/es-module-shims.js" crossorigin="anonymous"></script>
-  <script type="module">
-    import 'x';
-    window.parent.postMessage('OK', '*');
-  </script>
+}
+</script>
+<script>
+  const virtualFs = {
+    'index.js': `import './src/dep.js';`,
+    'src/dep.js': 'console.log("virtual source execution!")'
+  };
+  esmsInitOptions = {
+    source (url, fetchOpts, parent, defaultSourceHook) {
+      // Only virtualize sources under the URL file:///virtual-pkg/ (i.e. via
+      // `import('file:///virtual-pkg/index.js)`.
+      if (!url.startsWith('file:///virtual-pkg/')) return defaultSourceHook(url, fetchOpts, parent);
+
+      // Strip the query string prefix for hot reloading workflow support
+      const versionQueryParam = url.match(/\?v=\d+$/);
+      if (versionQueryParam) url = url.slice(0, -versionQueryParam[0].length);
+
+      // Lookup the virtual source from some `virtualFs: Record<string, string>` object
+      const virtualSource = virtualFs[url.slice('file:///virtual-pkg/'.length)];
+      if (!virtualSource) throw new Error(`Virtual module ${url} not found, imported from ${parent}`);
+      return {
+        type: 'js',
+        source: virtualSource
+      };
+    }
+  };
+</script>
+<script type="module" src="../src/es-module-shims.js" crossorigin="anonymous"></script>
+<script type="module">
+  import 'x';
+  import 'file:///virtual-pkg/index.js';
+  window.parent.postMessage('OK', '*');
+</script>
 </head>
 <body>
 </body>

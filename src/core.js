@@ -7,11 +7,11 @@ import {
   shimMode,
   resolveHook,
   fetchHook,
+  sourceHook,
   importHook,
   metaHook,
   tsTransform,
   skip,
-  revokeBlobURLs,
   noLoadEventRetriggers,
   wasmInstancePhaseEnabled,
   wasmSourcePhaseEnabled,
@@ -25,6 +25,7 @@ import {
   nativePassthrough,
   hasDocument,
   hotReload as hotReloadEnabled,
+  hasCustomizationHooks,
   defaultFetchOpts,
   defineValue,
   optionsScript,
@@ -83,7 +84,7 @@ async function importShim(id, opts, parentUrl) {
   }
   await initPromise; // needed for shim check
   if (self.ESMS_DEBUG) console.info(`es-module-shims: importShim("${id}"${opts ? ', ' + JSON.stringify(opts) : ''})`);
-  if (shimMode || !baselinePassthrough) {
+  if (shimMode || !baselineSupport) {
     if (hasDocument) processScriptsAndPreloads();
     legacyAcceptingImportMaps = false;
   }
@@ -108,7 +109,7 @@ if (shimMode || wasmSourcePhaseEnabled)
     await initPromise; // needed for shim check
     if (self.ESMS_DEBUG)
       console.info(`es-module-shims: importShim.source("${id}"${opts ? ', ' + JSON.stringify(opts) : ''})`);
-    if (shimMode || !baselinePassthrough) {
+    if (shimMode || !baselineSupport) {
       if (hasDocument) processScriptsAndPreloads();
       legacyAcceptingImportMaps = false;
     }
@@ -179,11 +180,10 @@ let multipleImportMaps = false;
 let firstImportMap = null;
 // To support polyfilling multiple import maps, we separately track the composed import map from the first import map
 let composedImportMap = { imports: {}, scopes: {}, integrity: {} };
-let baselinePassthrough;
+let baselineSupport;
 
 const initPromise = featureDetectionPromise.then(() => {
-  baselinePassthrough =
-    esmsInitOptions.polyfillEnable !== true &&
+  baselineSupport =
     supportsImportMaps &&
     (!jsonModulesEnabled || supportsJsonType) &&
     (!cssModulesEnabled || supportsCssType) &&
@@ -191,7 +191,8 @@ const initPromise = featureDetectionPromise.then(() => {
     (!wasmSourcePhaseEnabled || supportsWasmSourcePhase) &&
     !deferPhaseEnabled &&
     (!multipleImportMaps || supportsMultipleImportMaps) &&
-    !importMapSrc;
+    !importMapSrc &&
+    !hasCustomizationHooks;
   if (!shimMode && typeof WebAssembly !== 'undefined') {
     if (wasmSourcePhaseEnabled && !Object.getPrototypeOf(WebAssembly.Module).name) {
       const s = Symbol();
@@ -223,7 +224,7 @@ const initPromise = featureDetectionPromise.then(() => {
       const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
       HTMLScriptElement.supports = type => type === 'importmap' || supports(type);
     }
-    if (shimMode || !baselinePassthrough) {
+    if (shimMode || !baselineSupport) {
       attachMutationObserver();
       if (document.readyState === 'complete') {
         readyStateCompleteCheck();
@@ -286,7 +287,7 @@ export const topLevelLoad = async (
 
   if (importHook) await importHook(url, typeof fetchOpts !== 'string' ? fetchOpts : {}, parentUrl, source, sourceType);
   // early analysis opt-out - no need to even fetch if we have feature support
-  if (!shimMode && baselinePassthrough && nativePassthrough && sourceType !== 'ts') {
+  if (!shimMode && baselineSupport && nativePassthrough && sourceType !== 'ts') {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: early exit for ${url} due to baseline modules support`);
     // for polyfill case, only dynamic import needs a return value here, and dynamic import will never pass nativelyLoaded
     if (nativelyLoaded) return null;
@@ -320,7 +321,7 @@ export const topLevelLoad = async (
   : import(load.u));
   // if the top-level load is a shell, run its update function
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
-  if (revokeBlobURLs) revokeObjectURLs(Object.keys(seen));
+  revokeObjectURLs(Object.keys(seen));
   return module;
 };
 
@@ -554,68 +555,65 @@ const initTs = async () => {
   if (!esmsTsTransform) esmsTsTransform = m.transform;
 };
 
-const hotPrefix = 'var h=import.meta.hot,';
-const fetchModule = async (url, fetchOpts, parent) => {
-  const mapIntegrity = composedImportMap.integrity[url];
-  const res = await doFetch(
-    url,
-    mapIntegrity && !fetchOpts.integrity ? { ...fetchOpts, integrity: mapIntegrity } : fetchOpts,
-    parent
-  );
-  const r = res.url;
+async function defaultSourceHook(url, fetchOpts, parent) {
+  const res = await doFetch(url, fetchOpts, parent);
   const contentType = res.headers.get('content-type');
-  if (jsContentType.test(contentType)) return { r, s: await res.text(), t: 'js' };
-  else if (wasmContentType.test(contentType)) {
-    const wasmModule = await (sourceCache[r] || (sourceCache[r] = WebAssembly.compileStreaming(res)));
-    const exports = WebAssembly.Module.exports(wasmModule);
-    sourceCache[r] = wasmModule;
-    const rStr = urlJsString(r);
-    let s = `import*as $_ns from${rStr};`,
-      i = 0,
+  const t =
+    jsContentType.test(contentType) ? 'js'
+    : wasmContentType.test(contentType) ? 'wasm'
+    : jsonContentType.test(contentType) ? 'json'
+    : cssContentType.test(contentType) ? 'css'
+    : (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts')) && 'ts';
+  if (!t)
+    throw Error(
+      `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
+    );
+  return { url: res.url, source: t === 'wasm' ? await WebAssembly.compileStreaming(res) : await res.text(), type: t };
+}
+
+const hotPrefix = 'var h=import.meta.hot,';
+const fetchModule = async (reqUrl, fetchOpts, parent) => {
+  const mapIntegrity = composedImportMap.integrity[reqUrl];
+  fetchOpts = mapIntegrity && !fetchOpts.integrity ? { ...fetchOpts, integrity: mapIntegrity } : fetchOpts;
+  let { url = reqUrl, source, type } = await (sourceHook || defaultSourceHook)(reqUrl, fetchOpts, parent, defaultSourceHook) || {};
+  if (type === 'wasm') {
+    const exports = WebAssembly.Module.exports((sourceCache[url] = source));
+    const imports = WebAssembly.Module.imports(source);
+    const rStr = urlJsString(url);
+    source = `import*as $_ns from${rStr};`;
+    let i = 0,
       obj = '';
-    for (const { module, kind } of WebAssembly.Module.imports(wasmModule)) {
+    for (const { module, kind } of imports) {
       const specifier = urlJsString(module);
-      s += `import*as impt${i} from${specifier};\n`;
+      source += `import*as impt${i} from${specifier};\n`;
       obj += `${specifier}:${kind === 'global' ? `importShim._i.get(impt${i})||impt${i++}` : `impt${i++}`},`;
     }
-    s += `${hotPrefix}i=await WebAssembly.instantiate(importShim._s[${rStr}],{${obj}});importShim._i.set($_ns,i);`;
+    source += `${hotPrefix}i=await WebAssembly.instantiate(importShim._s[${rStr}],{${obj}});importShim._i.set($_ns,i);`;
     obj = '';
     for (const { name, kind } of exports) {
-      s += `export let ${name}=i.exports['${name}'];`;
-      if (kind === 'global') s += `try{${name}=${name}.value}catch{${name}=undefined}`;
+      source += `export let ${name}=i.exports['${name}'];`;
+      if (kind === 'global') source += `try{${name}=${name}.value}catch{${name}=undefined}`;
       obj += `${name},`;
     }
-    s += `if(h)h.accept(m=>({${obj}}=m))`;
-    return { r, s, t: 'wasm' };
-  } else if (jsonContentType.test(contentType))
-    return {
-      r,
-      s: `${hotPrefix}j=${await res.text()};export{j as default};if(h)h.accept(m=>j=m.default)`,
-      t: 'json'
-    };
-  else if (cssContentType.test(contentType)) {
-    return {
-      r,
-      s: `${hotPrefix}s=h&&h.data.s||new CSSStyleSheet();s.replaceSync(${JSON.stringify(
-        (await res.text()).replace(
-          cssUrlRegEx,
-          (_match, quotes = '', relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`
-        )
-      )});if(h){h.data.s=s;h.accept(()=>{})}export default s`,
-      t: 'css'
-    };
-  } else if (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts')) {
-    const source = await res.text();
+    source += `if(h)h.accept(m=>({${obj}}=m))`;
+  } else if (type === 'json') {
+    source = `${hotPrefix}j=${source};export{j as default};if(h)h.accept(m=>j=m.default)`;
+  } else if (type === 'css') {
+    source = `${hotPrefix}s=h&&h.data.s||new CSSStyleSheet();s.replaceSync(${JSON.stringify(
+      source.replace(
+        cssUrlRegEx,
+        (_match, quotes = '', relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`
+      )
+    )});if(h){h.data.s=s;h.accept(()=>{})}export default s`;
+  } else if (type === 'ts') {
     if (!esmsTsTransform) await initTs();
     if (self.ESMS_DEBUG) console.info(`es-module-shims: Compiling TypeScript file ${url}`);
     const transformed = esmsTsTransform(source, url);
     // even if the TypeScript is valid JavaScript, unless it was a top-level inline source, it wasn't served with
     // a valid JS MIME here, so we must still polyfill it
-    return { r, s: transformed === undefined ? source : transformed, t: 'ts' };
-  } else
-    throw Error(
-      `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
-    );
+    source = transformed === undefined ? source : transformed;
+  }
+  return { url, source, type };
 };
 
 const isUnsupportedType = type => {
@@ -666,7 +664,7 @@ const getOrCreateLoad = (url, fetchOpts, parent, source) => {
   load.f = (async () => {
     if (load.S === undefined) {
       // preload fetch options override fetch options (race)
-      ({ r: load.r, s: load.S, t: load.t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
+      ({ url: load.r, source: load.S, type: load.t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
       if (!load.n && load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
         load.n = true;
       }
@@ -714,7 +712,7 @@ const linkLoad = (load, fetchOpts) => {
         }
         if (d !== -1 || !n) return;
         const resolved = resolve(n, load.r || load.u);
-        if (resolved.n) load.n = true;
+        if (resolved.n || hasCustomizationHooks) load.n = true;
         if (d >= 0 || resolved.N) load.N = true;
         if (d !== -1) return;
         if (skip && skip(resolved.r) && !sourcePhase) return { l: { b: resolved.r }, s: false };
@@ -765,7 +763,7 @@ const domContentLoadedCheck = m => {
     domContentLoaded = true;
     domContentLoadedCnt--;
   }
-  if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
+  if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselineSupport)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: DOMContentLoaded refire`);
     document.removeEventListener('DOMContentLoaded', domContentLoadedEvent);
     document.dispatchEvent(new Event('DOMContentLoaded'));
@@ -773,7 +771,7 @@ const domContentLoadedCheck = m => {
 };
 let loadCnt = 1;
 const loadCheck = () => {
-  if (--loadCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
+  if (--loadCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselineSupport)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: load refire`);
     window.removeEventListener('load', loadEvent);
     window.dispatchEvent(new Event('load'));
@@ -808,7 +806,7 @@ let readyStateCompleteCnt = 1;
 const readyStateCompleteCheck = () => {
   if (--readyStateCompleteCnt === 0) {
     domContentLoadedCheck();
-    if (!noLoadEventRetriggers && (shimMode || !baselinePassthrough)) {
+    if (!noLoadEventRetriggers && (shimMode || !baselineSupport)) {
       if (self.ESMS_DEBUG) console.info(`es-module-shims: readystatechange complete refire`);
       document.removeEventListener('readystatechange', readyListener);
       document.dispatchEvent(new Event('readystatechange'));
@@ -847,9 +845,9 @@ const processImportMap = (script, ready = readyStateCompleteCnt > 0) => {
   if (!firstImportMap && legacyAcceptingImportMaps) importMapPromise.then(() => (firstImportMap = composedImportMap));
   if (!legacyAcceptingImportMaps && !multipleImportMaps) {
     multipleImportMaps = true;
-    if (!shimMode && baselinePassthrough && !supportsMultipleImportMaps) {
+    if (!shimMode && baselineSupport && !supportsMultipleImportMaps) {
       if (self.ESMS_DEBUG) console.info(`es-module-shims: disabling baseline passthrough due to multiple import maps`);
-      baselinePassthrough = false;
+      baselineSupport = false;
       if (hasDocument) attachMutationObserver();
     }
   }
@@ -912,7 +910,7 @@ const fetchCache = {};
 const processPreload = link => {
   link.ep = true;
   initPromise.then(() => {
-    if (baselinePassthrough && !shimMode) return;
+    if (baselineSupport && !shimMode) return;
     if (fetchCache[link.href]) return;
     fetchCache[link.href] = fetchModule(link.href, getFetchOpts(link));
   });
