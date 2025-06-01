@@ -14,6 +14,7 @@ The following modules features are polyfilled:
 * [Import defer](#import-defer) via syntax stripping to allow usage in modern browsers with a polyfill fallback, when enabled.
 * [TypeScript](#typescript-type-stripping) type stripping.
 * [Hot Reloading](#hot-reloading) with a Vite-style `import.meta.hot` API.
+* [Loader Hooks](#hooks) custom loader hooks for customizing module resolution and sources, including support for [virtual module sources](#source-hook).
 
 When running in shim mode, module rewriting is applied for all users and custom [resolve](#resolve-hook) and [fetch](#fetch-hook) hooks can be implemented allowing for custom resolution and streaming in-browser transform workflows.
 
@@ -215,7 +216,7 @@ Shim mode is an alternative to polyfill mode and doesn't rely on native modules 
 
 In shim mode, only the above `importmap-shim` and `module-shim` tags will be parsed and executed by ES Module Shims.
 
-Shim mode also provides some additional features that aren't yet natively supported such as supporting multiple import maps, [external import maps](#external-import-maps) with a `"src"` attribute, [dynamically injecting import maps](#dynamic-import-maps), and [reading current import map state](#reading-current-import-map-state), which can be useful in certain applications.
+Shim mode also provides some additional features that aren't yet natively supported such as [external import maps](#external-import-maps) with a `"src"` attribute and [reading current import map state](#reading-current-import-map-state), which can be useful in certain applications.
 
 ## Benchmarks
 
@@ -231,7 +232,7 @@ Benchmark summary:
 
 ### Browser Support
 
-Works in all browsers with [baseline ES module support](https://caniuse.com/#feat=es6-module).
+Works in all browsers with [ES module dynamic import support](https://caniuse.com/es6-module-dynamic-import).
 
 Browser Compatibility on baseline ES modules support **with** ES Module Shims:
 
