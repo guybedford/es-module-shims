@@ -508,13 +508,6 @@ const resolveDeps = (load, seen) => {
 
 const sourceURLCommentPrefix = '\n//# sourceURL=';
 const sourceMapURLCommentPrefix = '\n//# sourceMappingURL=';
-
-const jsContentType = /^(text|application)\/(x-)?javascript(;|$)/;
-const wasmContentType = /^application\/wasm(;|$)/;
-const jsonContentType = /^(text|application)\/json(;|$)/;
-const cssContentType = /^(text|application)\/css(;|$)/;
-const tsContentType = /^application\/typescript(;|$)|/;
-
 const cssUrlRegEx = /url\(\s*(?:(["'])((?:\\.|[^\n\\"'])+)\1|((?:\\.|[^\s,"'()\\])+))\s*\)/g;
 
 // restrict in-flight fetches to a pool of 100
@@ -555,27 +548,36 @@ const initTs = async () => {
   if (!esmsTsTransform) esmsTsTransform = m.transform;
 };
 
+const contentTypeRegEx = /^(text|application)\/((x-)?javascript|wasm|json|css|typescript)(;|$)/;
 async function defaultSourceHook(url, fetchOpts, parent) {
   const res = await doFetch(url, fetchOpts, parent);
-  const contentType = res.headers.get('content-type');
-  const t =
-    jsContentType.test(contentType) ? 'js'
-    : wasmContentType.test(contentType) ? 'wasm'
-    : jsonContentType.test(contentType) ? 'json'
-    : cssContentType.test(contentType) ? 'css'
-    : (tsContentType.test(contentType) || url.endsWith('.ts') || url.endsWith('.mts')) && 'ts';
-  if (!t)
-    throw Error(
-      `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
-    );
-  return { url: res.url, source: t === 'wasm' ? await WebAssembly.compileStreaming(res) : await res.text(), type: t };
+  let [, , t] = (res.headers.get('content-type') || '').match(contentTypeRegEx) || [];
+  if (!t) {
+    if (url.endsWith('.ts') || url.endsWith('.mts')) t = 'ts';
+    else
+      throw Error(
+        `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
+      );
+  }
+  return {
+    url: res.url,
+    source: t === 'wasm' ? await WebAssembly.compileStreaming(res) : await res.text(),
+    type:
+      t[0] === 'x' || (t[0] === 'j' && t[1] === 'a') ? 'js'
+      : t[0] === 't' ? 'ts'
+      : t
+  };
 }
 
 const hotPrefix = 'var h=import.meta.hot,';
 const fetchModule = async (reqUrl, fetchOpts, parent) => {
   const mapIntegrity = composedImportMap.integrity[reqUrl];
   fetchOpts = mapIntegrity && !fetchOpts.integrity ? { ...fetchOpts, integrity: mapIntegrity } : fetchOpts;
-  let { url = reqUrl, source, type } = await (sourceHook || defaultSourceHook)(reqUrl, fetchOpts, parent, defaultSourceHook) || {};
+  let {
+    url = reqUrl,
+    source,
+    type
+  } = (await (sourceHook || defaultSourceHook)(reqUrl, fetchOpts, parent, defaultSourceHook)) || {};
   if (type === 'wasm') {
     const exports = WebAssembly.Module.exports((sourceCache[url] = source));
     const imports = WebAssembly.Module.imports(source);
@@ -614,15 +616,6 @@ const fetchModule = async (reqUrl, fetchOpts, parent) => {
     source = transformed === undefined ? source : transformed;
   }
   return { url, source, type };
-};
-
-const isUnsupportedType = type => {
-  return (
-    (type === 'css' && !supportsCssType) ||
-    (type === 'json' && !supportsJsonType) ||
-    (type === 'wasm' && !supportsWasmInstancePhase && !supportsWasmSourcePhase) ||
-    type === 'ts'
-  );
 };
 
 const getOrCreateLoad = (url, fetchOpts, parent, source) => {
@@ -665,7 +658,15 @@ const getOrCreateLoad = (url, fetchOpts, parent, source) => {
     if (load.S === undefined) {
       // preload fetch options override fetch options (race)
       ({ url: load.r, source: load.S, type: load.t } = await (fetchCache[url] || fetchModule(url, fetchOpts, parent)));
-      if (!load.n && load.t !== 'js' && !shimMode && isUnsupportedType(load.t)) {
+      if (
+        !load.n &&
+        load.t !== 'js' &&
+        !shimMode &&
+        ((load.t === 'css' && !supportsCssType) ||
+          (load.t === 'json' && !supportsJsonType) ||
+          (load.t === 'wasm' && !supportsWasmInstancePhase && !supportsWasmSourcePhase) ||
+          load.t === 'ts')
+      ) {
         load.n = true;
       }
     }

@@ -32,9 +32,7 @@ export const initHotReload = () => {
     hotState.e = typeof source === 'string' ? source : true;
     hotState.t = sourceType;
   };
-  const hotMetaHook = (metaObj, url) => {
-    metaObj.hot = new Hot(url);
-  };
+  const hotMetaHook = (metaObj, url) => metaObj.hot = new Hot(url);
 
   const Hot = class Hot {
     constructor(url) {
@@ -59,10 +57,9 @@ export const initHotReload = () => {
     }
     invalidate() {
       const hotState = getHotState(this.url);
-      hotState.a = null;
-      hotState.A = true;
+      hotState.a = hotState.A = null;
       const seen = [this.url];
-      for (const p of hotState.p) invalidate(p, this.url, seen);
+      hotState.p.forEach(p => invalidate(p, this.url, seen));
     }
   };
 
@@ -116,7 +113,7 @@ export const initHotReload = () => {
     } else {
       if (hotState.e || hotState.a) curInvalidationRoots.add(url);
       hotState.v++;
-      if (!hotState.a) for (const parent of hotState.p) invalidate(parent, url, seen);
+      if (!hotState.a) hotState.p.forEach(p => invalidate(p, url, seen));
     }
     if (!curInvalidationInterval) curInvalidationInterval = setTimeout(handleInvalidations, hotReloadInterval);
     return true;
@@ -137,26 +134,25 @@ export const initHotReload = () => {
         hotState.t
       ).then(m => {
         if (hotState.a) {
-          hotState.a.every(([d, c]) => d === null && !earlyRoots.has(c) && c(m));
+          hotState.a.forEach(([d, c]) => d === null && !earlyRoots.has(c) && c(m));
           // unload should be the latest unload handler from the just loaded module
           if (hotState.u) {
             hotState.u(hotState.d);
             hotState.u = null;
           }
         }
-        for (const parent of hotState.p) {
-          const hotState = hotRegistry[parent];
+        hotState.p.forEach(p => {
+          const hotState = hotRegistry[p];
           if (hotState && hotState.a)
-            hotState.a.every(async ([d, c]) => {
-              return (
+            hotState.a.forEach(
+              async ([d, c]) =>
                 d &&
                 !earlyRoots.has(c) &&
                 (typeof d === 'string' ?
                   d === root && c(m)
                 : c(await Promise.all(d.map(d => (earlyRoots.push(c), importShim(toVersioned(d, getHotState(d))))))))
-              );
-            });
-        }
+            );
+        });
       }, throwError);
     }
     curInvalidationRoots = new Set();
