@@ -253,8 +253,8 @@ Browser compatibility **without** ES Module Shims:
 | --------------------------------------------- | ------------------ | ------------------ | ------------------ |
 | [modulepreload](#modulepreload)               | 66+                | 115+               | 17.5+              |
 | [Import Maps](#import-maps)                   | 89+                | 108+               | 16.4+              |
-| [Import Map Integrity](#import-map-integrity) | 127+               | :x:                | :x:                |
-| [Multiple Import Maps](#multiple-import-maps) | 135+               | :x:                | :x:                |
+| [Import Map Integrity](#import-map-integrity) | 127+               | 138+               | 18+                |
+| [Multiple Import Maps](#multiple-import-maps) | 135+               | :x:                | 18.4+              |
 | [JSON Modules](#json-modules)                 | 123+               | :x:                | 17.2+              |
 | [CSS Modules](#css-modules)                   | 123+               | :x:                | :x:                |
 | [Wasm Modules](#wasm-modules)                 | Pending            | :x:                | :x:                |
