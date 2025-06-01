@@ -32,7 +32,7 @@ export const initHotReload = () => {
     hotState.e = typeof source === 'string' ? source : true;
     hotState.t = sourceType;
   };
-  const hotMetaHook = (metaObj, url) => metaObj.hot = new Hot(url);
+  const hotMetaHook = (metaObj, url) => (metaObj.hot = new Hot(url));
 
   const Hot = class Hot {
     constructor(url) {

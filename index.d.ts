@@ -241,8 +241,8 @@ interface ESMSInitOptions {
    * };
    * esmsInitOptions = {
    *   source (url, fetchOpts, parent, defaultSourceHook) {
-   *     // Only virtualize sources under the URL file:///virtual-pkg/ (i.e. via
-   *     // `import('file:///virtual-pkg/index.js)`.
+   *     // Only virtualize sources under the URL file:///virtual-pkg/ i.e. via
+   *     // `import 'file:///virtual-pkg/index.js'`.
    *     if (!url.startsWith('file:///virtual-pkg/')) return defaultSourceHook(url, fetchOpts, parent);
    *
    *     // Strip the query string prefix for hot reloading workflow support

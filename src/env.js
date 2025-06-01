@@ -65,7 +65,7 @@ export const {
   enforceIntegrity,
   hotReload,
   hotReloadInterval = 100,
-  nativePassthrough = !hasCustomizationHooks && !hotReload,
+  nativePassthrough = !hasCustomizationHooks && !hotReload
 } = esmsInitOptions;
 
 if (hotReload) [importHook, resolveHook, metaHook] = initHotReload();
