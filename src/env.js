@@ -41,6 +41,7 @@ export const shimMode =
 export let importHook,
   resolveHook,
   fetchHook = fetch,
+  sourceHook,
   metaHook,
   tsTransform =
     esmsInitOptions.tsTransform ||
@@ -49,21 +50,23 @@ export let importHook,
 
 export const defaultFetchOpts = { credentials: 'same-origin' };
 
-export const {
-  revokeBlobURLs,
-  noLoadEventRetriggers,
-  enforceIntegrity,
-  hotReload,
-  hotReloadInterval = 100,
-  nativePassthrough = !hotReload
-} = esmsInitOptions;
-
 const globalHook = name => (typeof name === 'string' ? self[name] : name);
 
 if (esmsInitOptions.onimport) importHook = globalHook(esmsInitOptions.onimport);
 if (esmsInitOptions.resolve) resolveHook = globalHook(esmsInitOptions.resolve);
 if (esmsInitOptions.fetch) fetchHook = globalHook(esmsInitOptions.fetch);
+if (esmsInitOptions.source) sourceHook = globalHook(esmsInitOptions.source);
 if (esmsInitOptions.meta) metaHook = globalHook(esmsInitOptions.meta);
+
+export const hasCustomizationHooks = importHook || resolveHook || fetchHook !== fetch || sourceHook || metaHook;
+
+export const {
+  noLoadEventRetriggers,
+  enforceIntegrity,
+  hotReload,
+  hotReloadInterval = 100,
+  nativePassthrough = !hasCustomizationHooks && !hotReload
+} = esmsInitOptions;
 
 if (hotReload) [importHook, resolveHook, metaHook] = initHotReload();
 
