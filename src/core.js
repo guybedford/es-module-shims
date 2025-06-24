@@ -327,7 +327,7 @@ export const topLevelLoad = async (
 
 const revokeObjectURLs = registryKeys => {
   let curIdx = 0;
-  const handler = self.requestIdleCallback || self.requestAnimationFrame;
+  const handler = self.requestIdleCallback || self.requestAnimationFrame || (fn => setTimeout(fn, 0));
   handler(cleanup);
   function cleanup() {
     for (const key of registryKeys.slice(curIdx, (curIdx += 100))) {
