@@ -327,7 +327,7 @@ export const topLevelLoad = async (
 
 const revokeObjectURLs = registryKeys => {
   let curIdx = 0;
-  const handler = self.requestIdleCallback || self.requestAnimationFrame;
+  const handler = self.requestIdleCallback || self.requestAnimationFrame || (fn => setTimeout(fn, 0));
   handler(cleanup);
   function cleanup() {
     for (const key of registryKeys.slice(curIdx, (curIdx += 100))) {
@@ -394,7 +394,8 @@ const resolveDeps = (load, seen) => {
 
   // once all deps have loaded we can inline the dependency resolution blobs
   // and define this blob
-  (resolvedSource = ''), (lastIndex = 0);
+  resolvedSource = '';
+  lastIndex = 0;
 
   for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a } of imports) {
     // source phase
