@@ -123,7 +123,8 @@ if (Array.isArray(skip)) {
 const dispatchError = error => self.dispatchEvent(Object.assign(new Event('error'), { error }));
 
 export const throwError = err => {
-  (self.reportError || dispatchError)(err), void onerror(err);
+  (self.reportError || dispatchError)(err);
+  onerror(err);
 };
 
 export const fromParent = parent => (parent ? ` imported from ${parent}` : '');

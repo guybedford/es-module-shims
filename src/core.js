@@ -394,7 +394,8 @@ const resolveDeps = (load, seen) => {
 
   // once all deps have loaded we can inline the dependency resolution blobs
   // and define this blob
-  (resolvedSource = ''), (lastIndex = 0);
+  resolvedSource = '';
+  lastIndex = 0;
 
   for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a } of imports) {
     // source phase
