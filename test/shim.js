@@ -83,6 +83,11 @@ suite('Basic loading tests', () => {
     assert.equal(m.getJson().json, 'module');
   });
 
+  test('should support __proto__ key in json', async function () {
+    var m = await importShim('./fixtures/json-proto.js');
+    assert.equal(m.getJson().__proto__, 'module');
+  });
+
   test('should support css imports', async function () {
     var m = await importShim('./fixtures/css-assertion.js');
     assert.equal(m.default.cssRules[0].selectorText, 'body');
