@@ -21,14 +21,12 @@ import {
   onpolyfill,
   enforceIntegrity,
   fromParent,
-  esmsInitOptions,
   nativePassthrough,
   hasDocument,
   hotReload as hotReloadEnabled,
   hasCustomizationHooks,
   defaultFetchOpts,
   defineValue,
-  optionsScript,
   version
 } from './env.js';
 import {
@@ -77,7 +75,7 @@ const resolve = (id, parentUrl) => {
 };
 
 // import()
-async function importShim(id, opts, parentUrl) {
+export async function importShim(id, opts, parentUrl) {
   if (typeof opts === 'string') {
     parentUrl = opts;
     opts = undefined;
@@ -157,11 +155,7 @@ const registry = (importShim._r = {});
 const sourceCache = (importShim._s = {});
 const instanceCache = (importShim._i = new WeakMap());
 
-// Ensure this version is the only version
-defineValue(self, 'importShim', Object.freeze(importShim));
-const shimModeOptions = { ...esmsInitOptions, shimMode: true };
-if (optionsScript) optionsScript.innerHTML = JSON.stringify(shimModeOptions);
-self.esmsInitOptions = shimModeOptions;
+Object.freeze(importShim);
 
 const loadAll = async (load, seen) => {
   seen[load.u] = 1;
