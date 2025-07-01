@@ -264,6 +264,7 @@ let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let legacyAcceptingImportMaps = true;
 
+// This must always return either a module namespace or null
 export const topLevelLoad = async (
   url,
   parentUrl,
