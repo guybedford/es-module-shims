@@ -306,7 +306,7 @@ export const topLevelLoad = async (
         console.info(
           `es-module-shims: early exit after graph analysis of ${url} - graph ran natively without needing polyfill`
         );
-      return;
+      return null;
     }
     if (source) {
       return await dynamicImport(createBlob(source), source);
