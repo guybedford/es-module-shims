@@ -115,10 +115,6 @@ if (shimMode || wasmSourcePhaseEnabled)
     await importMapPromise;
     const url = resolve(id, parentUrl || pageBaseUrl).r;
     const load = getOrCreateLoad(url, defaultFetchOpts, undefined, undefined);
-    if (firstPolyfillLoad && !shimMode && load.n) {
-      onpolyfill();
-      firstPolyfillLoad = false;
-    }
     await load.f;
     return importShim._s[load.r];
   };
