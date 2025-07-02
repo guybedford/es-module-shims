@@ -1,3 +1,4 @@
+import { self } from './self.js';
 import { initHotReload } from './hot-reload.js';
 
 export const hasDocument = typeof document !== 'undefined';
