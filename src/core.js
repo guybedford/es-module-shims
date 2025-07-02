@@ -42,7 +42,7 @@ import {
   featureDetectionPromise
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
-import { hotReload } from './hot-reload.js';
+import { hotReload, initHotReload } from './hot-reload.js';
 
 const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
@@ -123,7 +123,10 @@ if (shimMode || wasmSourcePhaseEnabled)
 // import.defer() is just a proxy for import(), since we can't actually defer
 if (shimMode || deferPhaseEnabled) importShim.defer = importShim;
 
-if (hotReloadEnabled) importShim.hotReload = hotReload;
+if (hotReloadEnabled) {
+  initHotReload(topLevelLoad, importShim);
+  importShim.hotReload = hotReload;
+}
 
 const defaultResolve = (id, parentUrl) => {
   return (
@@ -260,7 +263,7 @@ let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let legacyAcceptingImportMaps = true;
 
-export const topLevelLoad = async (
+export async function topLevelLoad(
   url,
   parentUrl,
   fetchOpts,
@@ -268,7 +271,7 @@ export const topLevelLoad = async (
   nativelyLoaded,
   lastStaticLoadPromise,
   sourceType
-) => {
+) {
   await initPromise;
   await importMapPromise;
   url = (await resolve(url, parentUrl)).r;
@@ -319,7 +322,7 @@ export const topLevelLoad = async (
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
   revokeObjectURLs(Object.keys(seen));
   return module;
-};
+}
 
 const revokeObjectURLs = registryKeys => {
   let curIdx = 0;
