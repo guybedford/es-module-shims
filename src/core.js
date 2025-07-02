@@ -180,6 +180,7 @@ let firstImportMap = null;
 // To support polyfilling multiple import maps, we separately track the composed import map from the first import map
 let composedImportMap = { imports: {}, scopes: {}, integrity: {} };
 let baselineSupport;
+let registryUrl;
 
 const initPromise = featureDetectionPromise.then(() => {
   baselineSupport =
@@ -233,7 +234,10 @@ const initPromise = featureDetectionPromise.then(() => {
     }
     processScriptsAndPreloads();
   }
-  return lexer.init;
+  return Promise.all([
+    dynamicImport((registryUrl = createBlob('export let i,s=_=>i=_'))).then(m => m.s(importShim)),
+    lexer.init
+  ]);
 });
 
 const attachMutationObserver = () => {
@@ -396,12 +400,15 @@ const resolveDeps = (load, seen) => {
   resolvedSource = '';
   lastIndex = 0;
 
+  // don't rely on the global
+  resolvedSource += `import{i as importShim}from'${registryUrl}';`;
+
   for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a } of imports) {
     // source phase
     if (t === 4) {
       let { l: depLoad } = load.d[depIndex++];
       pushStringTo(load, statementStart, dynamicImportEndStack);
-      resolvedSource += `${source.slice(statementStart, start - 1).replace('source', '')}/*${source.slice(start - 1, end + 1)}*/'${createBlob(`export default importShim._s[${urlJsString(depLoad.r)}]`)}'`;
+      resolvedSource += `${source.slice(statementStart, start - 1).replace('source', '')}/*${source.slice(start - 1, end + 1)}*/'${createBlob(`import{i}from'${registryUrl}';export default i._s[${urlJsString(depLoad.r)}]`)}'`;
       lastIndex = end + 1;
     }
     // dependency source replacements
