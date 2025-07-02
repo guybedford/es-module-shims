@@ -5,7 +5,7 @@ import {
   hotReloadInterval,
   importHook,
   metaHook,
-  noop,
+  chain,
   resolveHook,
   throwError
 } from './env.js';
