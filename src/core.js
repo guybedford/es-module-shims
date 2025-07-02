@@ -1,3 +1,4 @@
+import { self } from './self.js';
 import { resolveAndComposeImportMap, resolveUrl, resolveImportMap, resolveIfNotPlainOrUrl, asURL } from './resolve.js';
 import {
   baseUrl as pageBaseUrl,
