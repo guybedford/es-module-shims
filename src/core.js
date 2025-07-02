@@ -601,7 +601,7 @@ const fetchModule = async (reqUrl, fetchOpts, parent) => {
     }
     source += `if(h)h.accept(m=>({${obj}}=m))`;
   } else if (type === 'json') {
-    source = `${hotPrefix}j=${source};export{j as default};if(h)h.accept(m=>j=m.default)`;
+    source = `${hotPrefix}j=JSON.parse(${JSON.stringify(source)});export{j as default};if(h)h.accept(m=>j=m.default)`;
   } else if (type === 'css') {
     source = `${hotPrefix}s=h&&h.data.s||new CSSStyleSheet();s.replaceSync(${JSON.stringify(
       source.replace(
