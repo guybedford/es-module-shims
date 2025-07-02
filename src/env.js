@@ -100,13 +100,14 @@ export const onpolyfill =
     };
 
 export const baseUrl =
-  hasDocument ?
-    document.baseURI
-  : `${location.protocol}//${location.host}${
+  hasDocument ? document.baseURI
+  : typeof location !== 'undefined' ?
+    `${location.protocol}//${location.host}${
       location.pathname.includes('/') ?
         location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1)
       : location.pathname
-    }`;
+    }`
+  : 'about:blank';
 
 export const createBlob = (source, type = 'text/javascript') => URL.createObjectURL(new Blob([source], { type }));
 export let { skip } = esmsInitOptions;
