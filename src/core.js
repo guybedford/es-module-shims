@@ -46,7 +46,6 @@ import { hotReload } from './hot-reload.js';
 
 const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
-  let composedFallback = false;
   const firstResolved = firstImportMap && resolveImportMap(firstImportMap, urlResolved || id, parentUrl);
   const composedResolved =
     composedImportMap === firstImportMap ? firstResolved : (
@@ -117,10 +116,6 @@ if (shimMode || wasmSourcePhaseEnabled)
     await importMapPromise;
     const url = resolve(id, parentUrl || pageBaseUrl).r;
     const load = getOrCreateLoad(url, defaultFetchOpts, undefined, undefined);
-    if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
-      onpolyfill();
-      firstPolyfillLoad = false;
-    }
     await load.f;
     return importShim._s[load.r];
   };
@@ -156,7 +151,7 @@ importShim.version = version;
 const registry = (importShim._r = {});
 // Wasm caches
 const sourceCache = (importShim._s = {});
-const instanceCache = (importShim._i = new WeakMap());
+/* const instanceCache = */ importShim._i = new WeakMap();
 
 // Ensure this version is the only version
 defineValue(self, 'importShim', Object.freeze(importShim));
@@ -525,10 +520,11 @@ const popFetchPool = () => {
 
 const doFetch = async (url, fetchOpts, parent) => {
   if (enforceIntegrity && !fetchOpts.integrity) throw Error(`No integrity for ${url}${fromParent(parent)}.`);
-  const poolQueue = pushFetchPool();
+  let res,
+    poolQueue = pushFetchPool();
   if (poolQueue) await poolQueue;
   try {
-    var res = await fetchHook(url, fetchOpts);
+    res = await fetchHook(url, fetchOpts);
   } catch (e) {
     e.message = `Unable to fetch ${url}${fromParent(parent)} - see network log for details.\n` + e.message;
     throw e;
@@ -690,7 +686,7 @@ const featErr = feat =>
 
 const linkLoad = (load, fetchOpts) => {
   if (load.L) return;
-  load.L = load.f.then(async () => {
+  load.L = load.f.then(() => {
     let childFetchOpts = fetchOpts;
     load.d = load.a[0]
       .map(({ n, d, t, a, se }) => {

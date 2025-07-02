@@ -11,7 +11,7 @@ export const chain = (a, b) =>
     b.apply(this, arguments);
   };
 
-export const dynamicImport = (u, errUrl) => import(u);
+export const dynamicImport = (u, _errUrl) => import(u);
 
 export const defineValue = (obj, prop, value) =>
   Object.defineProperty(obj, prop, { writable: false, configurable: false, value });
