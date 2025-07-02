@@ -519,7 +519,8 @@ const popFetchPool = () => {
 
 const doFetch = async (url, fetchOpts, parent) => {
   if (enforceIntegrity && !fetchOpts.integrity) throw Error(`No integrity for ${url}${fromParent(parent)}.`);
-  let res, poolQueue = pushFetchPool();
+  let res,
+    poolQueue = pushFetchPool();
   if (poolQueue) await poolQueue;
   try {
     res = await fetchHook(url, fetchOpts);
