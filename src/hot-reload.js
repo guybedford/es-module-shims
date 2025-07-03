@@ -1,5 +1,4 @@
 import { self } from './self.js';
-import { topLevelLoad } from './core.js';
 import {
   baseUrl,
   defaultFetchOpts,
@@ -8,12 +7,13 @@ import {
   metaHook,
   chain,
   resolveHook,
-  throwError
+  throwError,
+  setHooks
 } from './env.js';
 
 let invalidate;
 export const hotReload = url => invalidate(new URL(url, baseUrl).href);
-export const initHotReload = () => {
+export const initHotReload = (topLevelLoad, importShim) => {
   let _importHook = importHook,
     _resolveHook = resolveHook,
     _metaHook = metaHook;
@@ -159,12 +159,12 @@ export const initHotReload = () => {
     curInvalidationRoots = new Set();
   };
 
-  return [
+  setHooks(
     _importHook ? chain(_importHook, hotImportHook) : hotImportHook,
     _resolveHook ?
       (id, parent, defaultResolve) =>
         hotResolveHook(id, parent, (id, parent) => _resolveHook(id, parent, defaultResolve))
     : hotResolveHook,
     _metaHook ? chain(_metaHook, hotMetaHook) : hotMetaHook
-  ];
+  );
 };
