@@ -549,7 +549,7 @@ const initTs = async () => {
   if (!esmsTsTransform) esmsTsTransform = m.transform;
 };
 
-const contentTypeRegEx = /^((text|application)\/(x-)?|[^\/;]+\/[^\/;]*\+)((java|type)script|wasm|json|css)(;|$)/;
+const contentTypeRegEx = /^(text|application)\/([^\/;]*\+|x-)?((java|type)script|wasm|json|css)(;|$)/
 async function defaultSourceHook(url, fetchOpts, parent) {
   let res = await doFetch(url, fetchOpts, parent),
     contentType,
