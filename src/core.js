@@ -553,7 +553,7 @@ const contentTypeRegEx = /^(text|application)\/([^\/;]*\+|x-)?((java|type)script
 async function defaultSourceHook(url, fetchOpts, parent) {
   let res = await doFetch(url, fetchOpts, parent),
     contentType,
-    [, , , , type, jsts] = (contentType = res.headers.get('content-type') || '').match(contentTypeRegEx) || [];
+    [, , , type, jsts] = (contentType = res.headers.get('content-type') || '').match(contentTypeRegEx) || [];
   type =
     /\.m?ts([?#]|$)/.test(url) ? 'ts'
     : jsts ? jsts[0] + 's'
