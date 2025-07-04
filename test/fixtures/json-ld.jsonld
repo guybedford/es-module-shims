@@ -1,0 +1,14 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "@type": "Create",
+  "actor": {
+    "@type": "Person",
+    "@id": "acct:alice@example.org",
+    "name": "Alice"
+  },
+  "object": {
+    "@type": "Note",
+    "content": "This is a simple note"
+  },
+  "published": "2025-07-02T23:40:12Z"
+}
