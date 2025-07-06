@@ -1,1 +1,1 @@
-export var p = 'p';
+/* no line endings or git will break on windows vs linux */ export var p = 'p';

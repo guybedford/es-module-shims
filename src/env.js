@@ -1,3 +1,4 @@
+import { self } from './self.js';
 import { initHotReload } from './hot-reload.js';
 
 export const hasDocument = typeof document !== 'undefined';
@@ -10,7 +11,7 @@ export const chain = (a, b) =>
     b.apply(this, arguments);
   };
 
-export const dynamicImport = (u, errUrl) => import(u);
+export const dynamicImport = (u, _errUrl) => import(u);
 
 export const defineValue = (obj, prop, value) =>
   Object.defineProperty(obj, prop, { writable: false, configurable: false, value });
@@ -68,7 +69,11 @@ export const {
   nativePassthrough = !hasCustomizationHooks && !hotReload
 } = esmsInitOptions;
 
-if (hotReload) [importHook, resolveHook, metaHook] = initHotReload();
+export const setHooks = (importHook_, resolveHook_, metaHook_) => (
+  (importHook = importHook_),
+  (resolveHook = resolveHook_),
+  (metaHook = metaHook_)
+);
 
 export const mapOverrides = esmsInitOptions.mapOverrides;
 
@@ -100,13 +105,14 @@ export const onpolyfill =
     };
 
 export const baseUrl =
-  hasDocument ?
-    document.baseURI
-  : `${location.protocol}//${location.host}${
+  hasDocument ? document.baseURI
+  : typeof location !== 'undefined' ?
+    `${location.protocol}//${location.host}${
       location.pathname.includes('/') ?
         location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1)
       : location.pathname
-    }`;
+    }`
+  : 'about:blank';
 
 export const createBlob = (source, type = 'text/javascript') => URL.createObjectURL(new Blob([source], { type }));
 export let { skip } = esmsInitOptions;

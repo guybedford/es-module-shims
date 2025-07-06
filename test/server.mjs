@@ -17,6 +17,7 @@ const mimes = {
   '.js': 'application/javascript',
   '.mjs': 'application/javascript',
   '.json': 'application/json',
+  '.jsonld': 'application/ld+json',
   '.wasm': 'application/wasm',
   '.ts': 'application/typescript'
 };

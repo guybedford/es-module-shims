@@ -1,3 +1,4 @@
+import { self } from './self.js';
 import { resolveAndComposeImportMap, resolveUrl, resolveImportMap, resolveIfNotPlainOrUrl, asURL } from './resolve.js';
 import {
   baseUrl as pageBaseUrl,
@@ -41,11 +42,10 @@ import {
   featureDetectionPromise
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
-import { hotReload } from './hot-reload.js';
+import { hotReload, initHotReload } from './hot-reload.js';
 
 const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
-  let composedFallback = false;
   const firstResolved = firstImportMap && resolveImportMap(firstImportMap, urlResolved || id, parentUrl);
   const composedResolved =
     composedImportMap === firstImportMap ? firstResolved : (
@@ -116,10 +116,6 @@ if (shimMode || wasmSourcePhaseEnabled)
     await importMapPromise;
     const url = resolve(id, parentUrl || pageBaseUrl).r;
     const load = getOrCreateLoad(url, defaultFetchOpts, undefined, undefined);
-    if (firstPolyfillLoad && !shimMode && load.n && nativelyLoaded) {
-      onpolyfill();
-      firstPolyfillLoad = false;
-    }
     await load.f;
     return importShim._s[load.r];
   };
@@ -127,7 +123,10 @@ if (shimMode || wasmSourcePhaseEnabled)
 // import.defer() is just a proxy for import(), since we can't actually defer
 if (shimMode || deferPhaseEnabled) importShim.defer = importShim;
 
-if (hotReloadEnabled) importShim.hotReload = hotReload;
+if (hotReloadEnabled) {
+  initHotReload(topLevelLoad, importShim);
+  importShim.hotReload = hotReload;
+}
 
 const defaultResolve = (id, parentUrl) => {
   return (
@@ -155,7 +154,7 @@ importShim.version = version;
 const registry = (importShim._r = {});
 // Wasm caches
 const sourceCache = (importShim._s = {});
-const instanceCache = (importShim._i = new WeakMap());
+/* const instanceCache = */ importShim._i = new WeakMap();
 
 // Ensure this version is the only version
 defineValue(self, 'importShim', Object.freeze(importShim));
@@ -264,8 +263,8 @@ let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let legacyAcceptingImportMaps = true;
 
-// This must always return either a module namespace or null
-export const topLevelLoad = async (
+  // This must always return either a module namespace or null
+export async function topLevelLoad(
   url,
   parentUrl,
   fetchOpts,
@@ -273,7 +272,7 @@ export const topLevelLoad = async (
   nativelyLoaded,
   lastStaticLoadPromise,
   sourceType
-) => {
+) {
   await initPromise;
   await importMapPromise;
   url = (await resolve(url, parentUrl)).r;
@@ -324,7 +323,7 @@ export const topLevelLoad = async (
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
   revokeObjectURLs(Object.keys(seen));
   return module;
-};
+}
 
 const revokeObjectURLs = registryKeys => {
   let curIdx = 0;
@@ -525,10 +524,11 @@ const popFetchPool = () => {
 
 const doFetch = async (url, fetchOpts, parent) => {
   if (enforceIntegrity && !fetchOpts.integrity) throw Error(`No integrity for ${url}${fromParent(parent)}.`);
-  const poolQueue = pushFetchPool();
+  let res,
+    poolQueue = pushFetchPool();
   if (poolQueue) await poolQueue;
   try {
-    var res = await fetchHook(url, fetchOpts);
+    res = await fetchHook(url, fetchOpts);
   } catch (e) {
     e.message = `Unable to fetch ${url}${fromParent(parent)} - see network log for details.\n` + e.message;
     throw e;
@@ -550,24 +550,22 @@ const initTs = async () => {
   if (!esmsTsTransform) esmsTsTransform = m.transform;
 };
 
-const contentTypeRegEx = /^(text|application)\/((x-)?javascript|wasm|json|css|typescript)(;|$)/;
 async function defaultSourceHook(url, fetchOpts, parent) {
-  const res = await doFetch(url, fetchOpts, parent);
-  let [, , t] = (res.headers.get('content-type') || '').match(contentTypeRegEx) || [];
-  if (!t) {
-    if (url.endsWith('.ts') || url.endsWith('.mts')) t = 'ts';
-    else
-      throw Error(
-        `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
-      );
+  let res = await doFetch(url, fetchOpts, parent),
+    contentType,
+    [, json, type, jsts] =
+      (contentType = res.headers.get('content-type') || '').match(
+        /^(?:[^/;]+\/(?:[^/+;]+\+)?(json)|(?:text|application)\/(?:x-)?((java|type)script|wasm|css))(?:;|$)/
+      ) || [];
+  if (!(type = json || (jsts ? jsts[0] + 's' : type || (/\.m?ts(\?|#|$)/.test(url) && 'ts')))) {
+    throw Error(
+      `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
+    );
   }
   return {
     url: res.url,
-    source: t === 'wasm' ? await WebAssembly.compileStreaming(res) : await res.text(),
-    type:
-      t[0] === 'x' || (t[0] === 'j' && t[1] === 'a') ? 'js'
-      : t[0] === 't' ? 'ts'
-      : t
+    source: await (type > 'v' ? WebAssembly.compileStreaming(res) : res.text()),
+    type
   };
 }
 
@@ -601,7 +599,7 @@ const fetchModule = async (reqUrl, fetchOpts, parent) => {
     }
     source += `if(h)h.accept(m=>({${obj}}=m))`;
   } else if (type === 'json') {
-    source = `${hotPrefix}j=${source};export{j as default};if(h)h.accept(m=>j=m.default)`;
+    source = `${hotPrefix}j=JSON.parse(${JSON.stringify(source)});export{j as default};if(h)h.accept(m=>j=m.default)`;
   } else if (type === 'css') {
     source = `${hotPrefix}s=h&&h.data.s||new CSSStyleSheet();s.replaceSync(${JSON.stringify(
       source.replace(
@@ -690,7 +688,7 @@ const featErr = feat =>
 
 const linkLoad = (load, fetchOpts) => {
   if (load.L) return;
-  load.L = load.f.then(async () => {
+  load.L = load.f.then(() => {
     let childFetchOpts = fetchOpts;
     load.d = load.a[0]
       .map(({ n, d, t, a, se }) => {

@@ -1,3 +1,4 @@
+import { self } from './self.js';
 import {
   createBlob,
   noop,
