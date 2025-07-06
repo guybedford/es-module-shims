@@ -549,16 +549,13 @@ const initTs = async () => {
   if (!esmsTsTransform) esmsTsTransform = m.transform;
 };
 
-const contentTypeRegEx = /^(text|application)\/([^\/;]*\+|x-)?((java|type)script|wasm|json|css)(;|$)/;
+const contentTypeRegEx =
+  /^(?:[^/;]+\/(?:[^/+;]+\+)?(json)|(?:text|application)\/(?:x-)?((java|type)script|wasm|css))(?:;|$)/;
 async function defaultSourceHook(url, fetchOpts, parent) {
   let res = await doFetch(url, fetchOpts, parent),
     contentType,
-    [, , , type, jsts] = (contentType = res.headers.get('content-type') || '').match(contentTypeRegEx) || [];
-  type =
-    /\.m?ts([?#]|$)/.test(url) ? 'ts'
-    : jsts ? jsts[0] + 's'
-    : type;
-  if (!type) {
+    [, json, type, jsts] = (contentType = res.headers.get('content-type') || '').match(contentTypeRegEx) || [];
+  if (!(type = json || (jsts ? jsts[0] + 's' : type || (/\.m?ts([?#]|$)/.test(url) && 'ts')))) {
     throw Error(
       `Unsupported Content-Type "${contentType}" loading ${url}${fromParent(parent)}. Modules must be served with a valid MIME type like application/javascript.`
     );
@@ -566,7 +563,7 @@ async function defaultSourceHook(url, fetchOpts, parent) {
   return {
     url: res.url,
     source: await (type > 'v' ? WebAssembly.compileStreaming(res) : res.text()),
-    type: type
+    type
   };
 }
 
