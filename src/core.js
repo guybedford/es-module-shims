@@ -762,8 +762,7 @@ const domContentLoadedCheck = m => {
     if (domContentLoaded) return;
     domContentLoaded = true;
     domContentLoadedCnt--;
-  }
-  if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselineSupport)) {
+  } else if (--domContentLoadedCnt === 0 && !noLoadEventRetriggers && (shimMode || !baselineSupport)) {
     if (self.ESMS_DEBUG) console.info(`es-module-shims: DOMContentLoaded refire`);
     document.removeEventListener('DOMContentLoaded', domContentLoadedEvent);
     document.dispatchEvent(new Event('DOMContentLoaded'));

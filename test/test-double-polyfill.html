@@ -22,6 +22,9 @@
 
     <script type="module">
         import "statically-imported-module";
+        window.addEventListener('load', () => {
+          window.loaded = true;
+        });
         document.addEventListener('DOMContentLoaded', () => {
           window.domContentLoaded = true;
         });
