@@ -450,7 +450,7 @@ suite('Source maps', () => {
     const moduleBlobURL = importShim._r[moduleURL].b;
     const blobContent = await fetch(moduleBlobURL).then(r => r.text());
     const sourceURL = new URL('module.ts', moduleURL).href;
-    assert(blobContent.endsWith(`//# sourceURL=${sourceURL}`));
+    assert(blobContent.includes(`//# sourceURL=${sourceURL}`));
     // Should not touch any other occurrences of `//# sourceURL=` in the code.
     assert(blobContent.includes('//# sourceURL=i-should-not-be-affected.no'));
   });
@@ -461,7 +461,7 @@ suite('Source maps', () => {
     const moduleBlobURL = importShim._r[moduleURL].b;
     const blobContent = await fetch(moduleBlobURL).then(r => r.text());
     const sourceMappingURL = new URL('./with-relative-source-mapping-url.js.map', moduleURL).href;
-    assert(blobContent.endsWith(
+    assert(blobContent.includes(
         `//# sourceMappingURL=${sourceMappingURL}\n//# sourceURL=${moduleURL}`
     ));
 
@@ -474,7 +474,7 @@ suite('Source maps', () => {
     await importShim(moduleURL);
     const moduleBlobURL = importShim._r[moduleURL].b;
     const blobContent = await fetch(moduleBlobURL).then(r => r.text());
-    assert(blobContent.endsWith(
+    assert(blobContent.includes(
         `//# sourceMappingURL=https://example.com/module.js.map\n//# sourceURL=${moduleURL}`
     ));
 
@@ -487,7 +487,7 @@ suite('Source maps', () => {
     await importShim(moduleURL);
     const moduleBlobURL = importShim._r[moduleURL].b;
     const blobContent = await fetch(moduleBlobURL).then(r => r.text());
-    assert(blobContent.endsWith(
+    assert(blobContent.includes(
         `//# sourceURL=${new URL('/with-source-url-and-source-mapping-url.js', window.location.origin)}\n//# sourceMappingURL=https://example.com/module.js.map`
     ));
 

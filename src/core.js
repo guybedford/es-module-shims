@@ -44,6 +44,8 @@ import {
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 import { hotReload, initHotReload } from './hot-reload.js';
 
+const jsonStr = JSON.stringify;
+
 const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
   const firstResolved = firstImportMap && resolveImportMap(firstImportMap, urlResolved || id, parentUrl);
@@ -83,7 +85,7 @@ async function importShim(id, opts, parentUrl) {
     opts = undefined;
   }
   await initPromise; // needed for shim check
-  if (self.ESMS_DEBUG) console.info(`es-module-shims: importShim("${id}"${opts ? ', ' + JSON.stringify(opts) : ''})`);
+  if (self.ESMS_DEBUG) console.info(`es-module-shims: importShim("${id}"${opts ? ', ' + jsonStr(opts) : ''})`);
   if (shimMode || !baselineSupport) {
     if (hasDocument) processScriptsAndPreloads();
     legacyAcceptingImportMaps = false;
@@ -108,7 +110,7 @@ if (shimMode || wasmSourcePhaseEnabled)
     }
     await initPromise; // needed for shim check
     if (self.ESMS_DEBUG)
-      console.info(`es-module-shims: importShim.source("${id}"${opts ? ', ' + JSON.stringify(opts) : ''})`);
+      console.info(`es-module-shims: importShim.source("${id}"${opts ? ', ' + jsonStr(opts) : ''})`);
     if (shimMode || !baselineSupport) {
       if (hasDocument) processScriptsAndPreloads();
       legacyAcceptingImportMaps = false;
@@ -144,7 +146,7 @@ const metaResolve = function (id, parentUrl = this.url) {
 };
 
 importShim.resolve = (id, parentUrl) => resolve(id, parentUrl).r;
-importShim.getImportMap = () => JSON.parse(JSON.stringify(composedImportMap));
+importShim.getImportMap = () => JSON.parse(jsonStr(composedImportMap));
 importShim.addImportMap = importMapIn => {
   if (!shimMode) throw new Error('Unsupported in polyfill mode.');
   composedImportMap = resolveAndComposeImportMap(importMapIn, pageBaseUrl, composedImportMap);
@@ -159,7 +161,7 @@ const sourceCache = (importShim._s = {});
 // Ensure this version is the only version
 defineValue(self, 'importShim', Object.freeze(importShim));
 const shimModeOptions = { ...esmsInitOptions, shimMode: true };
-if (optionsScript) optionsScript.innerHTML = JSON.stringify(shimModeOptions);
+if (optionsScript) optionsScript.innerHTML = jsonStr(shimModeOptions);
 self.esmsInitOptions = shimModeOptions;
 
 const loadAll = async (load, seen) => {
@@ -284,7 +286,7 @@ export async function topLevelLoad(
   // because we can't syntactically pass through to dynamic import with a second argument
   if (sourceType === 'css' || sourceType === 'json') {
     // Direct reexport for hot reloading skipped due to Firefox bug https://bugzilla.mozilla.org/show_bug.cgi?id=1965620
-    source = `import m from'${url}'with{type:"${sourceType}"};export default m;`;
+    source = `import m from${jsonStr(url)}with{type:'${sourceType}'};export default m;`;
     url += '?entry';
   }
 
@@ -341,13 +343,11 @@ const revokeObjectURLs = registryKeys => {
   }
 };
 
-const urlJsString = url => `'${url.replace(/'/g, "\\'")}'`;
-
 let resolvedSource, lastIndex;
 const pushStringTo = (load, originalIndex, dynamicImportEndStack) => {
   while (dynamicImportEndStack[dynamicImportEndStack.length - 1] < originalIndex) {
     const dynamicImportEnd = dynamicImportEndStack.pop();
-    resolvedSource += `${load.S.slice(lastIndex, dynamicImportEnd)}, ${urlJsString(load.r)}`;
+    resolvedSource += `${load.S.slice(lastIndex, dynamicImportEnd)},${jsonStr(load.r)}`;
     lastIndex = dynamicImportEnd;
   }
   resolvedSource += load.S.slice(lastIndex, originalIndex);
@@ -400,15 +400,12 @@ const resolveDeps = (load, seen) => {
   resolvedSource = '';
   lastIndex = 0;
 
-  // don't rely on the global
-  resolvedSource += `import{i as importShim}from'${registryUrl}';`;
-
   for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a } of imports) {
     // source phase
     if (t === 4) {
       let { l: depLoad } = load.d[depIndex++];
       pushStringTo(load, statementStart, dynamicImportEndStack);
-      resolvedSource += `${source.slice(statementStart, start - 1).replace('source', '')}/*${source.slice(start - 1, end + 1)}*/'${createBlob(`import{i}from'${registryUrl}';export default i._s[${urlJsString(depLoad.r)}]`)}'`;
+      resolvedSource += `${source.slice(statementStart, start - 1).replace('source', '')}/*${source.slice(start - 1, end + 1)}*/'${createBlob(`import{i}from'${registryUrl}';export default i._s[${jsonStr(depLoad.r)}]`)}'`;
       lastIndex = end + 1;
     }
     // dependency source replacements
@@ -464,13 +461,13 @@ const resolveDeps = (load, seen) => {
       load.m = { url: load.r, resolve: metaResolve };
       if (metaHook) metaHook(load.m, load.u);
       pushStringTo(load, start, dynamicImportEndStack);
-      resolvedSource += `importShim._r[${urlJsString(load.u)}].m`;
+      resolvedSource += `i$_._r[${jsonStr(load.u)}].m`;
       lastIndex = statementEnd;
     }
     // dynamic import
     else {
-      pushStringTo(load, statementStart + 6, dynamicImportEndStack);
-      resolvedSource += `Shim${t === 5 ? '.source' : ''}(`;
+      pushStringTo(load, statementStart, dynamicImportEndStack);
+      resolvedSource += `i$_${t === 5 ? '.source' : ''}(`;
       dynamicImportEndStack.push(statementEnd - 1);
       lastIndex = start;
     }
@@ -508,6 +505,9 @@ const resolveDeps = (load, seen) => {
   pushStringTo(load, source.length, dynamicImportEndStack);
 
   if (sourceURLCommentStart === -1) resolvedSource += sourceURLCommentPrefix + load.r;
+
+  // don't rely on the global
+  resolvedSource += `\nimport{i as i$_}from'${registryUrl}'`;
 
   load.b = createBlob(resolvedSource);
   load.S = resolvedSource = undefined;
@@ -587,27 +587,32 @@ const fetchModule = async (reqUrl, fetchOpts, parent) => {
   if (type === 'wasm') {
     const exports = WebAssembly.Module.exports((sourceCache[url] = source));
     const imports = WebAssembly.Module.imports(source);
-    const rStr = urlJsString(url);
-    source = `import*as $_ns from${rStr};`;
+    const rStr = jsonStr(url);
+    source = `import*as n from${rStr};`;
     let i = 0,
-      obj = '';
+      obj = '',
+      exp = '',
+      idOrName;
     for (const { module, kind } of imports) {
-      const specifier = urlJsString(module);
-      source += `import*as impt${i} from${specifier};\n`;
-      obj += `${specifier}:${kind === 'global' ? `importShim._i.get(impt${i})||impt${i++}` : `impt${i++}`},`;
+      const specifier = jsonStr(module);
+      source += `import*as i${i} from${specifier};\n`;
+      obj += `${specifier}:${kind === 'global' ? `i$_._i.get(i${i})||i${i++}` : `i${i++}`},`;
     }
-    source += `${hotPrefix}i=await WebAssembly.instantiate(importShim._s[${rStr}],{${obj}});importShim._i.set($_ns,i);`;
+    source += `${hotPrefix}i=await WebAssembly.instantiate(i$_._s[${rStr}],{${obj}});i$_._i.set(n,i);`;
     obj = '';
+    i = 0;
     for (const { name, kind } of exports) {
-      source += `export let ${name}=i.exports['${name}'];`;
-      if (kind === 'global') source += `try{${name}=${name}.value}catch{${name}=undefined}`;
-      obj += `${name},`;
+      idOrName = /^[$_a-z][$_a-z0-9]+$/i.test(name) ? name : jsonStr(name)
+      source += `let e${i}=i.exports[${jsonStr(name)}];`;
+      if (kind === 'global') source += `try{e${i}=e${i}.value}catch{e${i}=undefined}`;
+      exp += `e${i} as ${idOrName},`;
+      obj += `${idOrName}:e${i++},`;
     }
-    source += `if(h)h.accept(m=>({${obj}}=m))`;
+    source += `export{${exp}};if(h)h.accept(m=>({${obj}}=m))`;
   } else if (type === 'json') {
-    source = `${hotPrefix}j=JSON.parse(${JSON.stringify(source)});export{j as default};if(h)h.accept(m=>j=m.default)`;
+    source = `${hotPrefix}j=JSON.parse(${jsonStr(source)});export{j as default};if(h)h.accept(m=>j=m.default)`;
   } else if (type === 'css') {
-    source = `${hotPrefix}s=h&&h.data.s||new CSSStyleSheet();s.replaceSync(${JSON.stringify(
+    source = `${hotPrefix}s=h&&h.data.s||new CSSStyleSheet();s.replaceSync(${jsonStr(
       source.replace(
         cssUrlRegEx,
         (_match, quotes = '', relUrl1, relUrl2) => `url(${quotes}${resolveUrl(relUrl1 || relUrl2, url)}${quotes})`
