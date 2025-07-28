@@ -38,7 +38,7 @@ export const shimMode =
   (hasDocument ?
     document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]')
       .length > 0
-  // Without a document, shim mode is always true as we cannot polyfill
+    // Without a document, shim mode is always true as we cannot polyfill
   : true);
 
 export let importHook,
