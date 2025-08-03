@@ -35,9 +35,11 @@ if (self.importShim || (r && r !== version)) {
 // shim mode is determined on initialization, no late shim mode
 export const shimMode =
   esmsInitOptions.shimMode ||
-  (hasDocument &&
+  (hasDocument ?
     document.querySelectorAll('script[type=module-shim],script[type=importmap-shim],link[rel=modulepreload-shim]')
-      .length > 0);
+      .length > 0
+    // Without a document, shim mode is always true as we cannot polyfill
+  : true);
 
 export let importHook,
   resolveHook,
