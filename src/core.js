@@ -357,7 +357,7 @@ const pushSourceURL = (load, commentPrefix, commentStart, dynamicImportEndStack)
   let sourceUrl = load.S.slice(urlStart, urlEnd);
   try {
     sourceUrl = new URL(sourceUrl, load.r).href;
-  } catch {}
+  } catch (e) {}
   pushStringTo(load, urlStart, dynamicImportEndStack);
   resolvedSource += sourceUrl;
   lastIndex = urlEnd;
@@ -593,7 +593,7 @@ const fetchModule = async (reqUrl, fetchOpts, parent) => {
     obj = '';
     for (const { name, kind } of exports) {
       source += `export let ${name}=i.exports['${name}'];`;
-      if (kind === 'global') source += `try{${name}=${name}.value}catch{${name}=undefined}`;
+      if (kind === 'global') source += `try{${name}=${name}.value}catch(_){${name}=undefined}`;
       obj += `${name},`;
     }
     source += `if(h)h.accept(m=>({${obj}}=m))`;
