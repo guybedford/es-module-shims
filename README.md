@@ -397,6 +397,20 @@ const importMap = { imports: {/*...*/}, scopes: {/*...*/} };
 importShim.addImportMap(importMap);
 ```
 
+### Module Scripts
+
+All module scripts except those with a `noshim` attribute are polyfilled. We support all of the the `defer`, `integrity`, `referrerPolicy`, `fetchPriority` and `crossOrigin` script attribute behaviours when polyfilling.
+
+In addition to static module scripts, we also use mutation observers to automatically detect and apply dynamic polyfilling for scripts injected into the head of the page:
+
+```js
+document.head.appendChild(Object.assign(document.createElement('script'), {
+  innerHTML: `import 'maybe-polyfill-dep'; console.log('loaded');`,
+}));
+```
+
+The same attributes as static scripts are also supported.
+
 ### Shim Import
 
 Dynamic `import(...)` within any modules loaded will be rewritten as `importShim(...)` automatically providing full support for all es-module-shims features through dynamic import.
