@@ -795,7 +795,7 @@ For example, if lazy loading `<script type="module-shim">` scripts alongside sta
 
 DOM `load` events are fired for all `"module-shim"` scripts both for success and failure just like for native module scripts.
 
-### Pollyfill Enable Option
+### Polyfill Enable Option
 
 The `polyfillEnable` option allows enabling polyfill features which are newer and would otherwise result in unnecessary polyfilling in modern browsers that haven't yet updated.
 
@@ -813,7 +813,7 @@ In adddition, the `"all"` option will enable all features.
 
 The reason the `polyfillEnable` option is needed is because ES Module Shims implements a performance optimization where if a browser supports modern modules features to an expected baseline of import maps support, it will skip all polyfill source analysis resulting in full native passthrough performance.
 
-### Pollyfill Disable Option
+### Polyfill Disable Option
 
 Conversely to `polyfillEnable` it can be beneficial to dissable unused features where excluding those features from the baseline allows avoiding unnecessary feature detections or unnecessary analysis of module graphs.
 
