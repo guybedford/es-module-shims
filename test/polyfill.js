@@ -1,7 +1,15 @@
+function createPolicy(name, policyOptions) {
+  return (typeof trustedTypes !== "undefined")  ? trustedTypes.createPolicy(name, policyOptions) : policyOptions;
+}
+
+const policy = createPolicy("esmoduleshims#test", { createScript: script => script });
+// Assume mocha html is trusted 
+createPolicy("default", { createHTML: html => html });
+
 const supportsTlaPromise = (async () => {
   let supportsTla = false;
   try {
-    await eval("import('./fixtures/tla.js');");
+    await eval(policy.createScript("import('./fixtures/tla.js');"));
     supportsTla = true;
   } catch (e) {
     console.log(e);
@@ -47,7 +55,7 @@ suite('Polyfill tests', () => {
     assert.equal(m.json, 'module');
     let maybeNative;
     try {
-      maybeNative = await eval("import('./fixtures/json.json', { with: { type: 'json' } })");
+      maybeNative = await eval(policy.createScript("import('./fixtures/json.json', { with: { type: 'json' } })"));
     } catch {}
     if (maybeNative && !window.noEval) {
       maybeNative.default.json = 'mutated';
