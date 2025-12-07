@@ -396,7 +396,7 @@ const resolveDeps = (load, seen) => {
   resolvedSource = '';
   lastIndex = 0;
 
-  for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a } of imports) {
+  for (const { s: start, e: end, ss: statementStart, se: statementEnd, d: dynamicImportIndex, t, a, at } of imports) {
     // source phase
     if (t === 4) {
       let { l: depLoad } = load.d[depIndex++];
@@ -408,11 +408,10 @@ const resolveDeps = (load, seen) => {
     else if (dynamicImportIndex === -1) {
       let keepAssertion = false;
       if (a > 0 && !shimMode) {
-        const assertion = source.slice(a, statementEnd - 1);
         // strip assertions only when unsupported in polyfill mode
         keepAssertion =
           nativePassthrough &&
-          ((supportsJsonType && assertion.includes('json')) || (supportsCssType && assertion.includes('css')));
+          ((supportsJsonType && at.some(([s, t]) => s === 'type' && t === 'json')) || (supportsCssType && at.some(([s, t]) => s=== 'type' && t === 'css')));
       }
 
       // defer phase stripping
