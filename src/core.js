@@ -411,7 +411,8 @@ const resolveDeps = (load, seen) => {
         // strip assertions only when unsupported in polyfill mode
         keepAssertion =
           nativePassthrough &&
-          ((supportsJsonType && at.some(([s, t]) => s === 'type' && t === 'json')) || (supportsCssType && at.some(([s, t]) => s=== 'type' && t === 'css')));
+          ((supportsJsonType && at.some(([s, t]) => s === 'type' && t === 'json')) ||
+            (supportsCssType && at.some(([s, t]) => s === 'type' && t === 'css')));
       }
 
       // defer phase stripping
