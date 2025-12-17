@@ -10,7 +10,7 @@ import {
   hasDocument,
   version
 } from './env.js';
-import { trustedInnerHTML, trustedScript, trustedTypesPolicyEnabled } from './trusted-types.js';
+import { maybeTrustedInnerHTML, maybeTrustedScript, policy } from './trusted-types.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsJsonType = false;
@@ -75,11 +75,11 @@ export let featureDetectionPromise = (async function () {
 
     // Feature checking with careful avoidance of unnecessary work - all gated on initial import map supports check. CSS gates on JSON feature check, Wasm instance phase gates on wasm source phase check.
     const importMapTest = `<script nonce=${nonce || ''}>${
-      trustedTypesPolicyEnabled ? 't=trustedTypes.createPolicy("esmoduleshims",{createScript:s=>s});' : ''
+      policy ? 't=trustedTypes.createPolicy("es-module-shims",{createScript:s=>s});' : ''
     }b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));c=u=>import(u).then(()=>true,()=>false);i=innerText=>${
-      trustedTypesPolicyEnabled ? 't.createScript(innerText=>' : ''
+      policy ? 't.createScript(innerText=>' : ''
     }document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText}))${
-      trustedTypesPolicyEnabled ? ')' : ''
+      policy ? ')' : ''
     };i(\`{"imports":{"x":"\${b('')}"}}\`);i(\`{"imports":{"y":"\${b('')}"}}\`);cm=${
       supportsImportMaps && jsonModulesEnabled ? `c(b(\`import"\${b('{}','text/json')}"with{type:"json"}\`))` : 'false'
     };sp=${
@@ -111,12 +111,12 @@ export let featureDetectionPromise = (async function () {
       if (doc && doc.head.childNodes.length === 0) {
         const s = doc.createElement('script');
         if (nonce) s.setAttribute('nonce', nonce);
-        s.innerHTML = trustedInnerHTML( importMapTest.slice(15 + (nonce ? nonce.length : 0), -9));
+        s.innerHTML = maybeTrustedInnerHTML(importMapTest.slice(15 + (nonce ? nonce.length : 0), -9));
         doc.head.appendChild(s);
       }
     }
 
-    iframe.onload = trustedScript(doOnload);
+    iframe.onload = maybeTrustedScript(doOnload);
     // WeChat browser requires append before setting srcdoc
     document.head.appendChild(iframe);
 
@@ -124,7 +124,7 @@ export let featureDetectionPromise = (async function () {
     // setting src to a blob URL results in a navigation event in webviews
     // document.write gives usability warnings
     readyForOnload = true;
-    if ('srcdoc' in iframe) iframe.srcdoc = trustedInnerHTML(importMapTest);
+    if ('srcdoc' in iframe) iframe.srcdoc = maybeTrustedInnerHTML(importMapTest);
     else iframe.contentDocument.write(importMapTest);
     // retrigger onload for Safari only if necessary
     if (onloadCalledWhileNotReady) doOnload();

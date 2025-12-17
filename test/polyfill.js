@@ -2,7 +2,7 @@ function createPolicy(name, policyOptions) {
   return (typeof trustedTypes !== "undefined")  ? trustedTypes.createPolicy(name, policyOptions) : policyOptions;
 }
 
-const policy = createPolicy("esmoduleshims#test", { createScript: script => script });
+const policy = createPolicy("es-module-shims#test", { createScript: script => script });
 // Assume mocha html is trusted 
 createPolicy("default", { createHTML: html => html });
 

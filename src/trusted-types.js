@@ -1,26 +1,17 @@
-const policyOptions = {
-    createHTML: html => html,
-    createScript: script => script,
-};
-const { policy, policyEnabled } = createPolicy();
-
-function createPolicy() {
-    if (typeof trustedTypes !== "undefined") {
-        try {
-          return { policy: trustedTypes.createPolicy("esmoduleshims", policyOptions), policyEnabled: true};
-        } catch {
-
-        }
-    }
-  return { policy: policyOptions, policyEnabled: false };
+export let policy;
+if (typeof trustedTypes !== 'undefined') {
+  try {
+    policy = trustedTypes.createPolicy('es-module-shims', {
+      createHTML: html => html,
+      createScript: script => script
+    });
+  } catch {}
 }
 
-export const trustedTypesPolicyEnabled = policyEnabled;
-
-export function trustedInnerHTML(html) {
-    return policy.createHTML(html);
+export function maybeTrustedInnerHTML(html) {
+  return policy?.createHTML(html) ?? html;
 }
 
-export function trustedScript(script) {
-    return policy.createScript(script);
+export function maybeTrustedScript(script) {
+  return policy?.createScript(script) ?? script;
 }

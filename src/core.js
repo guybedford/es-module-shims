@@ -43,7 +43,7 @@ import {
 } from './features.js';
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
 import { hotReload, initHotReload } from './hot-reload.js';
-import { trustedInnerHTML } from './trusted-types.js';
+import { maybeTrustedInnerHTML } from './trusted-types.js';
 
 const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
@@ -160,7 +160,7 @@ const sourceCache = (importShim._s = {});
 // Ensure this version is the only version
 defineValue(self, 'importShim', Object.freeze(importShim));
 const shimModeOptions = { ...esmsInitOptions, shimMode: true };
-if (optionsScript) optionsScript.innerHTML = trustedInnerHTML(JSON.stringify(shimModeOptions));
+if (optionsScript) optionsScript.innerHTML = maybeTrustedInnerHTML(JSON.stringify(shimModeOptions));
 self.esmsInitOptions = shimModeOptions;
 
 const loadAll = async (load, seen) => {
