@@ -111,12 +111,12 @@ export let featureDetectionPromise = (async function () {
       if (doc && doc.head.childNodes.length === 0) {
         const s = doc.createElement('script');
         if (nonce) s.setAttribute('nonce', nonce);
-        s.innerHTML = maybeTrustedInnerHTML(importMapTest.slice(15 + (nonce ? nonce.length : 0), -9));
+        s.innerText = maybeTrustedScript(importMapTest.slice(15 + (nonce ? nonce.length : 0), -9));
         doc.head.appendChild(s);
       }
     }
 
-    iframe.onload = maybeTrustedScript(doOnload);
+    iframe.onload = doOnload;
     // WeChat browser requires append before setting srcdoc
     document.head.appendChild(iframe);
 
