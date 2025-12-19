@@ -9,9 +9,9 @@ if (typeof trustedTypes !== 'undefined') {
 }
 
 export function maybeTrustedInnerHTML(html) {
-  return policy?.createHTML(html) ?? html;
+  return policy ? policy.createHTML(html) : html;
 }
 
 export function maybeTrustedScript(script) {
-  return policy?.createScript(script) ?? script;
+  return policy ? policy.createScript(script) : script;
 }

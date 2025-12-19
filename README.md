@@ -469,8 +469,16 @@ import pkg from 'pkg';
 </script>
 ```
 
-#### Trusted Types
-To use the `require-trusted-types-for 'script';` directive as part of your CSP you will need to include the `es-module-shims` policy name within the trusted-types CSP directive i.e. `trusted-types 'es-module-shims';`
+## Trusted Types Support
+
+ES Module Shims supports [Trusted Types](https://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API) a browser security feature that prevents DOM-based XSS attacks. When your CSP includes `require-trusted-types-for 'script'`, the library automatically creates a policy named `es-module-shims` to handle its internal script creation and source rewriting. Browsers without Trusted Types support fall back to standard behavior automatically.
+
+To enable it, add `es-module-shims` to your CSP's trusted-types directive. If you see errors about "TrustedScript assignment," you're missing this directive.
+
+```html
+<meta http-equiv="Content-Security-Policy" 
+      content="require-trusted-types-for 'script'; trusted-types es-module-shims;">
+```
 
 #### Wasm Build
 
