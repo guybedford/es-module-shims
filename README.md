@@ -469,6 +469,9 @@ import pkg from 'pkg';
 </script>
 ```
 
+#### Trusted Types
+To use the `require-trusted-types-for 'script';` directive as part of your CSP you will need to include the `es-module-shims` policy name within the trusted-types CSP directive i.e. `trusted-types 'es-module-shims';`
+
 #### Wasm Build
 
 To use the Web Assembly / non-CSP build of ES Module Shims, this is available as a self-contained single file at `es-module-shims/wasm` or `es-module-shims/dist/es-module-shims.wasm.js` in the package folder.
