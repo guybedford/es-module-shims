@@ -1,7 +1,7 @@
 export let policy;
-if (typeof trustedTypes !== 'undefined') {
+if (typeof window.trustedTypes !== 'undefined' || typeof window.TrustedTypes !== 'undefined') {
   try {
-    policy = trustedTypes.createPolicy('es-module-shims', {
+    policy = (window.trustedTypes || window.TrustedTypes).createPolicy('es-module-shims', {
       createHTML: html => html,
       createScript: script => script
     });

@@ -72,10 +72,9 @@ export let featureDetectionPromise = (async function () {
       window.removeEventListener('message', cb, false);
     }
     window.addEventListener('message', cb, false);
-
     // Feature checking with careful avoidance of unnecessary work - all gated on initial import map supports check. CSS gates on JSON feature check, Wasm instance phase gates on wasm source phase check.
     const importMapTest = `<script nonce=${nonce || ''}>${
-      policy ? 't=trustedTypes.createPolicy("es-module-shims",{createScript:s=>s});' : ''
+      policy ? 't=(window.trustedTypes||window.TrustedTypes).createPolicy("es-module-shims",{createScript:s=>s});' : ''
     }b=(s,type='text/javascript')=>URL.createObjectURL(new Blob([s],{type}));c=u=>import(u).then(()=>true,()=>false);i=innerText=>${
       policy ? 't.createScript(innerText=>' : ''
     }document.head.appendChild(Object.assign(document.createElement('script'),{type:'importmap',nonce:"${nonce}",innerText}))${

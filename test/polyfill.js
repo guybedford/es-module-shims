@@ -1,5 +1,5 @@
 function createPolicy(name, policyOptions) {
-  return (typeof trustedTypes !== "undefined")  ? trustedTypes.createPolicy(name, policyOptions) : policyOptions;
+  return (typeof window.trustedTypes !== "undefined" || typeof window.TrustedTypes !== "undefined") ? (window.trustedTypes || window.TrustedTypes).createPolicy(name, policyOptions) : policyOptions;
 }
 
 const policy = createPolicy("es-module-shims#test", { createScript: script => script });
