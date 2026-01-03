@@ -1,5 +1,5 @@
 <!doctype html>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-asdf' 'unsafe-eval' unpkg.com; connect-src 'self' blob:; style-src-elem 'self' blob:; require-trusted-types-for 'script'; trusted-types default es-module-shims es-module-shims#test;" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-asdf' 'unsafe-eval' unpkg.com; connect-src 'self' blob:; style-src-elem 'self' blob:; require-trusted-types-for 'script'; trusted-types default es-module-shims;" />
 <link rel="stylesheet" type="text/css" href="../node_modules/mocha/mocha.css"/>
 <script src="../node_modules/mocha/mocha.js"></script>
 <script type="esms-options" nonce="asdf">{}</script>
@@ -49,6 +49,24 @@
 
 <script type="module" noshim nonce="asdf">
   import { runMochaTests } from "./runMochaTests.js";
+  // Create a Trusted Types policy to allow expected script and HTML creations within the polyfill tests.
+  // Do not use this pattern in production code
+  if (typeof window.trustedTypes !== 'undefined' || typeof window.TrustedTypes !== 'undefined') {
+    try {
+      (window.trustedTypes || window.TrustedTypes).createPolicy("default", {
+        // Assume mocha html is trusted for test purposes
+        // Ensure any new es-module-shims code that updates html fail these tests before adding maybeTrustedInnerHTML
+        createHTML: html => html,
+        // Allow the two expected dynamic import scripts within the polyfill tests with eval
+        createScript: script => {
+          if (script === "import('./fixtures/tla.js');" || script === "import('./fixtures/json.json', { with: { type: 'json' } })") {
+            return script;
+          }
+          throw new Error('Unexpected script creation: ' + script);
+        }
+      });
+    } catch { }
+  }
   runMochaTests('polyfill');
 </script>
 
