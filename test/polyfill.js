@@ -48,7 +48,7 @@ suite('Polyfill tests', () => {
     let maybeNative;
     try {
       maybeNative = await eval("import('./fixtures/json.json', { with: { type: 'json' } })");
-    } catch {}
+    } catch { }
     if (maybeNative && !window.noEval) {
       maybeNative.default.json = 'mutated';
       assert.equal(m.json, 'mutated');
