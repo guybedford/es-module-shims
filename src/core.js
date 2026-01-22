@@ -264,6 +264,7 @@ let importMapPromise = initPromise;
 let firstPolyfillLoad = true;
 let legacyAcceptingImportMaps = true;
 
+// This must always return either a module namespace or null
 export async function topLevelLoad(
   url,
   parentUrl,
@@ -306,7 +307,7 @@ export async function topLevelLoad(
         console.info(
           `es-module-shims: early exit after graph analysis of ${url} - graph ran natively without needing polyfill`
         );
-      return;
+      return null;
     }
     if (source) {
       return await dynamicImport(createBlob(source), source);
