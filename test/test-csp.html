@@ -21,7 +21,9 @@
 <script type="importmap" nonce="asdf">
 {
   "imports": {
-    "global1": "data:text/javascript,throw new Error('Polyfill should not support multiple import maps');"
+    "global1": "data:text/javascript,throw new Error('Polyfill should not support multiple import maps');",
+    "chain-parent": "/test/fixtures/chain-parent.js",
+    "chain-child": "/test/fixtures/chain-child.js"
   }
 }
 </script>
@@ -43,6 +45,9 @@
 
 <script type="module" nonce="asdf">
   import 'once';
+</script>
+<script type="module" nonce="asdf">
+  import 'chain-parent';
 </script>
 
 <script type="module" src="../src/es-module-shims.js" nonce="asdf"></script>
