@@ -369,8 +369,6 @@ suite('Errors', function () {
     assert(err.response instanceof Response);
   });
 
-  this.timeout(10000);
-
   test('Dynamic import map shim', async function () {
     insertDynamicImportMap({
       "imports": {
