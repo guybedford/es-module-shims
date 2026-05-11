@@ -109,6 +109,13 @@ suite('Polyfill tests', () => {
     assert.equal(window.cnt, 1);
   });
 
+  test('Polyfill engagement with bare specifier dependency chain from second import map', async function () {
+    if (window.chainParentCnt > 1 || window.chainChildCnt > 1)
+      throw new Error(`Polyfill engaged despite native multiple import maps support`);
+    assert.equal(window.chainParentCnt, 1);
+    assert.equal(window.chainChildCnt, 1);
+  });
+
   test('DOMContentLoaded fires at least once', async function () {
     assert.ok(window.domLoad === 1 || window.domLoad === 2);
   });

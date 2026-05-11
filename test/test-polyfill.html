@@ -17,12 +17,17 @@
 <script type="importmap">
 {
   "imports": {
-    "global1": "/test/fixtures/es-modules/global1.js"
+    "global1": "/test/fixtures/es-modules/global1.js",
+    "chain-parent": "/test/fixtures/chain-parent.js",
+    "chain-child": "/test/fixtures/chain-child.js"
   }
 }
 </script>
 <script type="module">
   import 'once';
+</script>
+<script type="module">
+  import 'chain-parent';
 </script>
 
 <script>
