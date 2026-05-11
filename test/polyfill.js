@@ -110,6 +110,7 @@ suite('Polyfill tests', () => {
   });
 
   test('Polyfill engagement with bare specifier dependency chain from second import map', async function () {
+    await importShim('chain-parent');
     if (window.chainParentCnt > 1 || window.chainChildCnt > 1)
       throw new Error(`Polyfill engaged despite native multiple import maps support`);
     assert.equal(window.chainParentCnt, 1);

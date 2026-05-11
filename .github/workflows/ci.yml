@@ -29,6 +29,7 @@ jobs:
           '89.0',  # top-level await
           '108.0',
           '126.0', # before integrity
+          'latest', # current stable - regression coverage for the native passthrough path with all features
         ]
     name: Firefox Browser Tests
     steps:
@@ -42,13 +43,14 @@ jobs:
         with:
           node-version: 
       - name: Setup Firefox ${{ matrix.firefox }}
+        id: setup-firefox
         uses: browser-actions/setup-firefox@latest
         with:
           firefox-version: ${{ matrix.firefox }}
       - name: Chomp Test
         run: chomp test
         env:
-          CI_BROWSER: C:\Program Files\Firefox_${{ matrix.firefox }}\firefox.exe
+          CI_BROWSER: ${{ steps.setup-firefox.outputs.firefox-path }}
           CI_BROWSER_FLAGS: -headless
           CI_BROWSER_FLUSH: taskkill /F /IM firefox.exe
 
@@ -62,7 +64,8 @@ jobs:
           '859178', # Mar 2021, Import Maps
           '913920', # August 2021, JSON modules + CSS modules
           '1306171', # May 2024, just before integrity
-          '1408499', #Jan 2025, multiple import maps
+          '1408499', # Jan 2025, multiple import maps
+          'latest', # current stable - regression coverage for the native passthrough path with all features
         ]
     name: Chrome Browser Tests
     steps:
@@ -74,11 +77,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
       - name: Setup Chrome ${{ matrix.chrome }}
+        id: setup-chrome
         uses: browser-actions/setup-chrome@latest
         with:
           chrome-version: ${{ matrix.chrome }}
       - name: Chomp Test
         run: chomp test
         env:
-          CI_BROWSER: C:\hostedtoolcache\windows\setup-chrome\chrome\${{ matrix.chrome }}\x64\chrome.exe
-          CI_BROWSER_FLAGS: 
+          CI_BROWSER: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CI_BROWSER_FLAGS:
