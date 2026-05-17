@@ -151,7 +151,7 @@ export const initHotReload = (topLevelLoad, importShim) => {
                 !earlyRoots.has(c) &&
                 (typeof d === 'string' ?
                   d === root && c(m)
-                : c(await Promise.all(d.map(d => (earlyRoots.push(c), importShim(toVersioned(d, getHotState(d))))))))
+                : c(await Promise.all(d.map(d => (earlyRoots.add(c), importShim(toVersioned(d, getHotState(d))))))))
             );
         });
       }, throwError);
