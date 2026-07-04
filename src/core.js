@@ -408,7 +408,7 @@ const resolveDeps = (load, seen) => {
     // dependency source replacements
     else if (dynamicImportIndex === -1) {
       let keepAssertion = false;
-      if (a > 0 && !shimMode) {
+      if (at && !shimMode) {
         // strip assertions only when unsupported in polyfill mode
         keepAssertion =
           nativePassthrough &&
@@ -691,7 +691,7 @@ const linkLoad = (load, fetchOpts) => {
   load.L = load.f.then(() => {
     let childFetchOpts = fetchOpts;
     load.d = load.a[0]
-      .map(({ n, d, t, a, se }) => {
+      .map(({ n, d, t, a, at, se }) => {
         const phaseImport = t >= 4;
         const sourcePhase = phaseImport && t < 6;
         if (phaseImport) {
@@ -700,7 +700,7 @@ const linkLoad = (load, fetchOpts) => {
           if (!sourcePhase || !supportsWasmSourcePhase) load.n = true;
         }
         let source = undefined;
-        if (a > 0 && !shimMode && nativePassthrough) {
+        if (at && !shimMode && nativePassthrough) {
           const assertion = load.S.slice(a, se - 1);
           // no need to fetch JSON/CSS if supported, since it's a leaf node, we'll just strip the assertion syntax
           if (assertion.includes('json')) {
