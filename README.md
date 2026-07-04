@@ -2,9 +2,9 @@
 
 Polyfills import maps and other ES Modules features on top of the baseline native ESM support in browsers.
 
-With import maps now supported by all major browsers, ES Module Shims entirely bypasses processing for the [94% of users](https://caniuse.com/import-maps) with native import maps support.
+With import maps now supported by all major browsers, ES Module Shims entirely bypasses processing for over [94% of users](https://caniuse.com/import-maps) with native import maps support.
 
-For the remaining ~4% of users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
+For the remaining ~5% of users, the highly performant (see [benchmarks](#benchmarks)) production and [CSP-compatible](#csp-support) shim kicks in to rewrite module specifiers driven by the [Web Assembly ES Module Lexer](https://github.com/guybedford/es-module-lexer).
 
 The following modules features are polyfilled:
 
@@ -224,7 +224,7 @@ ES Module Shims is designed for production performance. A [comprehensive benchma
 
 Benchmark summary:
 
-* [ES Module Shims Chrome Passthrough](bench/README.md#chrome-passthrough-performance) (for [94% of users](https://caniuse.com/import-maps)) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 13KB compressed download as expected.
+* [ES Module Shims Chrome Passthrough](bench/README.md#chrome-passthrough-performance) (for [94% of users](https://caniuse.com/import-maps)) results in ~5ms extra initialization time over native for ES Module Shims fetching, execution and initialization, and on a slow connection the additional non-blocking bandwidth cost of its 14KB compressed download as expected.
 * [ES Module Shims Polyfilling](bench/README.md#native-v-polyfill-performance) (for the remaining [3% of users](https://caniuse.com/import-maps)) is on average 1.4x - 1.5x slower than native module loading, and up to 1.8x slower on slow networks (most likely due to the browser preloader), both for cached and uncached loads, and this result scales linearly up to 10MB and 20k modules loaded executing on the fastest connection in just over 2 seconds in Firefox.
 * [Very large import maps](bench/README.md#large-import-maps-performance) (100s of entries) cost only a few extra milliseconds upfront for the additional loading cost.
 

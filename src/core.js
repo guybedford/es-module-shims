@@ -41,7 +41,7 @@ import {
   supportsMultipleImportMaps,
   featureDetectionPromise
 } from './features.js';
-import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
+import * as lexer from '../node_modules/es-module-lexer/dist/lexer.minimal.asm.js';
 import { hotReload, initHotReload } from './hot-reload.js';
 import { maybeTrustedScript } from './trusted-types.js';
 
