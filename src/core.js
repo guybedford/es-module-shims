@@ -408,12 +408,13 @@ const resolveDeps = (load, seen) => {
     // dependency source replacements
     else if (dynamicImportIndex === -1) {
       let keepAssertion = false;
-      if (at && !shimMode) {
+      if (a > 0 && !shimMode) {
         // strip assertions only when unsupported in polyfill mode
+        // minimal lexer builds do not provide parsed attributes, so sniff the assertion source directly
+        const assertion = source.slice(a, statementEnd - 1);
         keepAssertion =
           nativePassthrough &&
-          ((supportsJsonType && at.some(([s, t]) => s === 'type' && t === 'json')) ||
-            (supportsCssType && at.some(([s, t]) => s === 'type' && t === 'css')));
+          ((supportsJsonType && assertion.includes('json')) || (supportsCssType && assertion.includes('css')));
       }
 
       // defer phase stripping
@@ -691,7 +692,7 @@ const linkLoad = (load, fetchOpts) => {
   load.L = load.f.then(() => {
     let childFetchOpts = fetchOpts;
     load.d = load.a[0]
-      .map(({ n, d, t, a, at, se }) => {
+      .map(({ n, d, t, a, se }) => {
         const phaseImport = t >= 4;
         const sourcePhase = phaseImport && t < 6;
         if (phaseImport) {
@@ -700,7 +701,7 @@ const linkLoad = (load, fetchOpts) => {
           if (!sourcePhase || !supportsWasmSourcePhase) load.n = true;
         }
         let source = undefined;
-        if (at && !shimMode && nativePassthrough) {
+        if (a > 0 && !shimMode && nativePassthrough) {
           const assertion = load.S.slice(a, se - 1);
           // no need to fetch JSON/CSS if supported, since it's a leaf node, we'll just strip the assertion syntax
           if (assertion.includes('json')) {
