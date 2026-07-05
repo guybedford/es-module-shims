@@ -41,7 +41,7 @@ import {
   supportsMultipleImportMaps,
   featureDetectionPromise
 } from './features.js';
-import * as lexer from '../node_modules/es-module-lexer/dist/lexer.asm.js';
+import * as lexer from '../node_modules/es-module-lexer/dist/lexer.minimal.asm.js';
 import { hotReload, initHotReload } from './hot-reload.js';
 import { maybeTrustedScript } from './trusted-types.js';
 
@@ -410,10 +410,11 @@ const resolveDeps = (load, seen) => {
       let keepAssertion = false;
       if (a > 0 && !shimMode) {
         // strip assertions only when unsupported in polyfill mode
+        // minimal lexer builds do not provide parsed attributes, so sniff the assertion source directly
+        const assertion = source.slice(a, statementEnd - 1);
         keepAssertion =
           nativePassthrough &&
-          ((supportsJsonType && at.some(([s, t]) => s === 'type' && t === 'json')) ||
-            (supportsCssType && at.some(([s, t]) => s === 'type' && t === 'css')));
+          ((supportsJsonType && assertion.includes('json')) || (supportsCssType && assertion.includes('css')));
       }
 
       // defer phase stripping
