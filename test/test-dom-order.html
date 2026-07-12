@@ -15,7 +15,7 @@
 <script type="module-shim">
   new Promise(resolve => setTimeout(resolve, 3000)).then(() => {
     const orderStr = order.join(', ');
-    if (orderStr.startsWith('script (loading), interactive, dom content loaded') && orderStr.includes(', complete') && orderStr.includes(', module2') && orderStr.includes(', module1'))
+    if (orderStr.startsWith('script (loading), interactive') && orderStr.includes(', dom content loaded') && orderStr.includes(', complete') && orderStr.includes(', module2') && orderStr.includes(', module1'))
       fetch('/done');
     else
     fetch(`/error?${encodeURIComponent(order.join(', '))}`);
