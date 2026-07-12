@@ -8,6 +8,7 @@ import {
   wasmInstancePhaseEnabled,
   wasmSourcePhaseEnabled,
   hasDocument,
+  shimMode,
   version
 } from './env.js';
 import { maybeTrustedInnerHTML, maybeTrustedScript, policy } from './trusted-types.js';
@@ -26,6 +27,8 @@ export let supportsMultipleImportMaps = false;
 const wasmBytes = [0, 97, 115, 109, 1, 0, 0, 0];
 
 export let featureDetectionPromise = (async function () {
+  // In shim mode, feature detection results are unused — skip the iframe overhead
+  if (shimMode) return;
   if (!hasDocument)
     return Promise.all([
       import(createBlob(`import"${createBlob('{}', 'text/json')}"with{type:"json"}`)).then(
