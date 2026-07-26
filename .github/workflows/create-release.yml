@@ -14,7 +14,18 @@ on:
 concurrency: create-release
 
 jobs:
+  verify-branch:
+    name: 'Verify Main'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "$GITHUB_REF_NAME" != 'main' ]; then
+            echo "Releases must be dispatched from main, got $GITHUB_REF_NAME"
+            exit 1
+          fi
+
   test:
+    needs: verify-branch
     uses: ./.github/workflows/ci.yml
 
   create-release:
