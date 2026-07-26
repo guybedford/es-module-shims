@@ -9,7 +9,7 @@ concurrency: automate-pr-${{ github.event.issue.number }}
 jobs:
   automate-pr:
     name: 'Draft PR from Issue'
-    if: github.event.label.name == 'Automate PR'
+    if: github.event.label.name == 'Automate PR' && github.event.issue.state == 'open'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -69,3 +69,9 @@ jobs:
             Open the PR against main. In the description, state what you changed, cite the specific
             comments you treated as authoritative, list anything you deliberately left out, and end
             with "Closes #${{ github.event.issue.number }}".
+      # Always: the label means "run this", not "this ran" — re-applying it re-runs
+      - name: Remove Label
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh issue edit ${{ github.event.issue.number }} --remove-label 'Automate PR'
