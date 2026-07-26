@@ -9,7 +9,7 @@ jobs:
     name: 'Publish to npm'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -40,3 +40,12 @@ jobs:
             *-*) npm publish --tag next ;;
             *) npm publish ;;
           esac
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          case "$GITHUB_REF_NAME" in
+            *-*) PRERELEASE=--prerelease ;;
+            *) PRERELEASE= ;;
+          esac
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes $PRERELEASE
