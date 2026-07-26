@@ -75,6 +75,10 @@ jobs:
             Open the PR against main. In the description, state what you changed, cite the specific
             comments you treated as authoritative, list anything you deliberately left out, and end
             with "Closes #${{ github.event.issue.number }}".
+
+            Finally, label the PR you opened so that follow-up comments on it can drive further
+            revisions via the Automate PR Update workflow:
+              gh pr edit <pr-number> --add-label 'Automate PR'
       # Always: the label means "run this", not "this ran" — re-applying it re-runs
       - name: Remove Label
         if: always()
