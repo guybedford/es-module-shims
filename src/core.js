@@ -198,9 +198,9 @@ const initPromise = featureDetectionPromise.then(() => {
       const s = Symbol();
       const brand = m => defineValue(m, s, 'WebAssembly.Module');
       class AbstractModuleSource {
+        // the brand check getter returns undefined for non module sources, it does not throw
         get [Symbol.toStringTag]() {
-          if (this[s]) return this[s];
-          throw new TypeError('Not an AbstractModuleSource');
+          return this[s];
         }
       }
       const { Module: wasmModule, compile: wasmCompile, compileStreaming: wasmCompileStreaming } = WebAssembly;
