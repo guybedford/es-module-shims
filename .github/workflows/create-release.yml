@@ -1,0 +1,46 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'Release type'
+        type: choice
+        options:
+          - minor
+          - major
+        default: minor
+
+concurrency: create-release
+
+jobs:
+  create-release:
+    name: 'Bump, Tag and Push'
+    runs-on: ubuntu-latest
+    steps:
+      # RELEASE_TOKEN, not GITHUB_TOKEN: pushes from the default token do not trigger publish.yml
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Setup Chomp
+        uses: guybedford/chomp-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bump Version
+        run: npm version "${{ inputs.type }}" --no-git-tag-version
+      - name: Chomp Build
+        run: chomp build
+      - name: Commit, Tag and Push
+        run: |
+          VERSION="$(npm pkg get version | tr -d '"')"
+          git config user.name 'Guy Bedford'
+          git config user.email 'guybedford@gmail.com'
+          git add package.json README.md
+          git commit -m "$VERSION"
+          git tag "$VERSION"
+          git push --atomic origin main "$VERSION"
