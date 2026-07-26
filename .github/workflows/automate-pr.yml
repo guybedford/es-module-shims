@@ -16,11 +16,23 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+    # Commits are authored as Guy Bedford even though the bot account pushes them.
+    # Set here rather than via git config alone so any tooling that shells out to git
+    # inherits it - the env vars take precedence over repository config.
+    env:
+      GIT_AUTHOR_NAME: Guy Bedford
+      GIT_AUTHOR_EMAIL: guybedford@gmail.com
+      GIT_COMMITTER_NAME: Guy Bedford
+      GIT_COMMITTER_EMAIL: guybedford@gmail.com
     steps:
       # AUTOMATION_TOKEN must NOT be RELEASE_TOKEN: no main bypass, and it is what makes CI run on the PR
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.AUTOMATION_TOKEN }}
+      - name: Configure Git Identity
+        run: |
+          git config user.name 'Guy Bedford'
+          git config user.email 'guybedford@gmail.com'
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -71,6 +83,8 @@ jobs:
             - Run `chomp format` and `chomp build` before committing. Both must pass.
             - The browser test matrix cannot run here; do not attempt it.
             - Commit to the branch this action created. Never push to main.
+            - Commit as Guy Bedford <guybedford@gmail.com>. This is already configured; do not
+              change the git identity and do not add any co-author or attribution trailers.
 
             Open the PR against main. In the description, state what you changed, cite the specific
             comments you treated as authoritative, list anything you deliberately left out, and end
