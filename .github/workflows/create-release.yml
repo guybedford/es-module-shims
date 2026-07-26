@@ -14,39 +14,21 @@ on:
 concurrency: create-release
 
 jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
   create-release:
     name: 'Bump, Tag and Push'
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read
     steps:
       # RELEASE_TOKEN, not GITHUB_TOKEN: pushes from the default token do not trigger publish.yml
       - uses: actions/checkout@v4
         with:
           ref: main
           token: ${{ secrets.RELEASE_TOKEN }}
-      - name: Verify CI Passing
-        timeout-minutes: 60
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SHA="$(git rev-parse HEAD)"
-          while true; do
-            RUN="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&per_page=1")"
-            STATUS="$(jq -r '.workflow_runs[0].status // "none"' <<< "$RUN")"
-            CONCLUSION="$(jq -r '.workflow_runs[0].conclusion // "none"' <<< "$RUN")"
-            if [ "$STATUS" = 'completed' ]; then
-              if [ "$CONCLUSION" = 'success' ]; then
-                echo "CI passed for $SHA"
-                break
-              fi
-              echo "CI for $SHA concluded $CONCLUSION, refusing to release"
-              exit 1
-            fi
-            echo "Waiting for CI on $SHA (status: $STATUS)"
-            sleep 30
-          done
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
