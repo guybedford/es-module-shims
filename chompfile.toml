@@ -25,7 +25,7 @@ deps = ['npm:install']
 run = 'prettier -w src/*.js'
 
 [[task]]
-deps = ['node_modules/amaro/dist/index.js']
+deps = ['npm:install', 'node_modules/amaro/dist/index.js']
 target = 'dist/es-module-shims-typescript.js'
 engine = 'node'
 run = '''
