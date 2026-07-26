@@ -11,6 +11,7 @@ jobs:
     name: 'Draft PR from Issue'
     if: github.event.label.name == 'Automate PR' && github.event.issue.state == 'open'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: write
       pull-requests: write
@@ -33,9 +34,10 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.AUTOMATION_TOKEN }}
           branch_prefix: automate-pr/
+          display_report: true
           claude_args: |
             --model claude-opus-5
-            --max-turns 60
+            --max-turns 150
             --allowedTools Bash,Edit,Read,Write,Glob,Grep
           prompt: |
             Implement issue #${{ github.event.issue.number }} in this repository and open a pull request.
@@ -58,6 +60,10 @@ jobs:
             - If the authoritative direction is genuinely ambiguous, or the request conflicts with how
               the codebase works, do not guess: comment on the issue stating the ambiguity and stop
               without opening a PR.
+            - Scope-check before you start editing. If the request cannot land as one reviewable PR,
+              or the discussion does not say enough to pin down the intended behaviour, comment on the
+              issue with your proposed plan and the specific questions blocking you, then stop. Do
+              this early rather than spending your turns exploring.
 
             Implementing:
             - Source lives in src/. Do not edit dist/ (generated), package.json version, or anything
