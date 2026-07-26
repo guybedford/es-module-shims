@@ -1,0 +1,42 @@
+name: Publish
+
+on:
+  push:
+    tags: '[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  publish:
+    name: 'Publish to npm'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          registry-url: 'https://registry.npmjs.org'
+      - name: Setup Chomp
+        uses: guybedford/chomp-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify Tag Matches Version
+        run: |
+          PKG_VERSION="$(npm pkg get version | tr -d '"')"
+          if [ "$PKG_VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+      - name: Chomp Build
+        run: chomp build
+      # Trusted publishing (OIDC) requires npm >= 11.5.1
+      - name: Update npm
+        run: npm install -g npm@latest
+      - name: Publish
+        run: |
+          case "$GITHUB_REF_NAME" in
+            *-*) npm publish --tag next ;;
+            *) npm publish ;;
+          esac
