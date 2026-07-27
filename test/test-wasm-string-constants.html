@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Testing Wasm imported string constants</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Imported string constants are `(ref extern)` globals, which need the typed function references
+// proposal (Chrome 119+, Firefox 120+), so the test is skipped on the older browsers in the matrix.
+// As with the js-string builtins test, the import lives in a separate module so that the native
+// evaluation fails at load rather than throwing out of this page.
+if (WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 7, 1, 96, 1, 111, 1, 100, 111])))
+  document.write('<script type=module src="./fixtures/wasm-string-constants.js"><\/script>');
+else {
+  setup({ single_test: true });
+  done();
+}
+</script>
