@@ -44,7 +44,24 @@ jobs:
         uses: guybedford/chomp-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Most work here is browser behaviour. Without a sanctioned way to run a test the
+      # agent builds its own harness and backgrounds it, which no timeout can bound.
+      - name: Setup Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: latest
+      - name: Setup Firefox
+        id: setup-firefox
+        uses: browser-actions/setup-firefox@latest
+        with:
+          firefox-version: latest
       - uses: anthropics/claude-code-action@v1
+        env:
+          CI_BROWSER: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CI_BROWSER_FLAGS: '--headless=new --no-sandbox'
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+          FIREFOX_PATH: ${{ steps.setup-firefox.outputs.firefox-path }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.AUTOMATION_TOKEN }}
@@ -84,8 +101,15 @@ jobs:
             - Source lives in src/. Do not edit dist/ (generated), package.json version, or anything
               under .github/.
             - Run `chomp format` and `chomp build` before committing. Both must pass.
-            - Never run `chomp test`, `chomp test-watch` or `node test/server.mjs`. With no
-              CI_BROWSER set they launch a browser and block until the job times out.
+            - Headless Chrome is configured, so you can and should verify browser behaviour.
+              Run a single test with `chomp test:<name>`, which runs test/test-<name>.html -
+              for example `chomp test:polyfill-wasm`. It exits non-zero on failure.
+            - To check the same test in Firefox:
+              CI_BROWSER="$FIREFOX_PATH" CI_BROWSER_FLAGS=-headless chomp test:<name>
+            - Do not run bare `chomp test` (runs the whole suite serially, too slow) or
+              `chomp test-watch` (never exits). Do not invoke test/server.mjs directly, and
+              do not launch browsers yourself or background any command - anything you start
+              with & outlives its timeout and will hang the job.
             - Commit to the branch this action created. Never push to main.
             - Commit as Guy Bedford <guybedford@gmail.com>. This is already configured; do not
               change the git identity and do not add any co-author or attribution trailers.
