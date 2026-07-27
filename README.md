@@ -554,7 +554,7 @@ If only using Wasm modules in both the instance and source phase set `polyfillEn
 
 When enabling the source phase feature either way, `WebAssembly.Module` is also polyfilled to extend from `AbstractModuleSource` per the source phase proposal.
 
-Wasm modules are compiled with the [`wasm:js-string` builtins](https://github.com/WebAssembly/js-string-builtins) enabled per the ESM integration spec. Where the engine does not support these builtins natively, a JS implementation of the builtin namespace is provided to instantiation instead, so that modules using them still link. Native builtins always take precedence, and any names not provided by the builtin namespace continue to resolve from the instantiation import object.
+Wasm modules are compiled with the [`wasm:js-string` builtins](https://github.com/WebAssembly/js-string-builtins) enabled and with `wasm:js/string-constants` as the imported string constants namespace, per the ESM integration spec. Where the engine does not support these natively, a JS implementation of the builtin namespace, and a namespace resolving every string constant to its own import name, are provided to instantiation instead, so that modules using them still link. Native builtins always take precedence, and any names not provided by the builtin namespace continue to resolve from the instantiation import object.
 
 WebAssembly modules require native top-level await support to be polyfilled, see the [compatibility table](#browser-support) above.
 

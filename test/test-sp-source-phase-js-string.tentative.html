@@ -3,34 +3,17 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script type=module>
-setup({ single_test: true });
-
+<script>
 // The upstream module is typed with non-nullable `(ref extern)` results, which need the typed function
 // references proposal (Chrome 119+, Firefox 120+). Below that the binary cannot be compiled at all, so
-// there is nothing for the `wasm:js-string` builtins polyfill to apply to. A dynamic source phase import
-// is therefore used in place of upstream's `import source module from ...`, so that older browsers in the
-// test matrix skip the compile entirely instead of failing at module load.
-if (WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 7, 1, 96, 1, 111, 1, 100, 111]))) {
-  const module = await import.source("./resources/js-string-module.wasm");
-
-  const instance = await WebAssembly.instantiate(module, {
-    "wasm:js-string": {
-      // Example builtin polyfill for function returning the number of uppercase letters
-      newbuiltin: (str) => {
-        if (typeof str !== "string") return 0;
-        return (str.match(/[A-Z]/g) || []).length;
-      }
-    }
-  });
-
-  assert_equals(instance.exports.useBuiltins("hello"), 5);
-  assert_equals(instance.exports.useBuiltins(123), -1);
-
-  assert_equals(instance.exports.concatStrings("Hello", " World"), "Hello World");
-
-  assert_equals(instance.exports.useNewBuiltin("Hello World"), 2);
+// there is nothing for the `wasm:js-string` builtins polyfill to apply to and the test is skipped.
+// The `import source` statement itself has to live in a separate module, so that engines without native
+// source phase support fail it at parse time and let the polyfill re-execute it, instead of the native
+// evaluation of this page throwing before the polyfill gets to run.
+if (WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 7, 1, 96, 1, 111, 1, 100, 111])))
+  document.write('<script type=module src="./fixtures/source-phase-js-string.js"><\/script>');
+else {
+  setup({ single_test: true });
+  done();
 }
-
-done();
 </script>

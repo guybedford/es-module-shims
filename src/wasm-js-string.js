@@ -1,9 +1,11 @@
-// Wasm ESM integration compiles with the `wasm:js-string` builtins enabled. Where the engine supports them natively
-// the builtin namespace shadows the import object, so these implementations are only reached on engines without
-// builtins support. Kept as small as possible since this ships in the base bundle - see the reference polyfill at
+// Wasm ESM integration compiles with the `wasm:js-string` builtins enabled and `wasm:js/string-constants` as the
+// imported string constants namespace. Where the engine supports these natively they are resolved at compile time
+// and shadow the import object, so the namespaces here are only reached on engines without that support. Kept as
+// small as possible since this ships in the base bundle - see the reference polyfill at
 // https://github.com/WebAssembly/js-string-builtins/blob/main/test/js-api/js-string/polyfill.js.
 
 export const jsStringBuiltins = 'wasm:js-string';
+export const jsStringConstants = 'wasm:js/string-constants';
 
 const trap = () => {
   throw new WebAssembly.RuntimeError();
@@ -77,11 +79,19 @@ export const jsStringImports = {
     : 1
 };
 
-// The builtin namespace is merged under any user-provided imports so that unknown `wasm:js-string` names
+// Every imported string constant evaluates to its own import name, so the namespace is unbounded and can
+// only be provided as a proxy.
+export const jsStringNamespaces = {
+  [jsStringBuiltins]: jsStringImports,
+  [jsStringConstants]: new Proxy({}, { get: (_, name) => name })
+};
+
+// The builtin namespaces are merged under any user-provided imports so that unknown `wasm:js-string` names
 // still resolve against the import object, matching the native builtins fallback.
 export const withJsStringImports = imports => ({
+  ...jsStringNamespaces,
   ...imports,
   [jsStringBuiltins]: { ...jsStringImports, ...(imports && imports[jsStringBuiltins]) }
 });
 
-export const jsStringCompileOptions = { builtins: ['js-string'] };
+export const jsStringCompileOptions = { builtins: ['js-string'], importedStringConstants: jsStringConstants };

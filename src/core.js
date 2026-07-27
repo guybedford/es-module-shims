@@ -44,7 +44,13 @@ import {
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.minimal.asm.js';
 import { hotReload, initHotReload } from './hot-reload.js';
 import { maybeTrustedScript } from './trusted-types.js';
-import { jsStringBuiltins, jsStringCompileOptions, jsStringImports, withJsStringImports } from './wasm-js-string.js';
+import {
+  jsStringBuiltins,
+  jsStringCompileOptions,
+  jsStringConstants,
+  jsStringNamespaces,
+  withJsStringImports
+} from './wasm-js-string.js';
 
 const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
@@ -157,8 +163,8 @@ const registry = (importShim._r = {});
 // Wasm caches
 const sourceCache = (importShim._s = {});
 /* const instanceCache = */ importShim._i = new WeakMap();
-// js-string builtins namespace for the Wasm module instantiation source
-importShim._j = jsStringImports;
+// js-string builtins and imported string constants namespaces for the Wasm module instantiation source
+importShim._j = jsStringNamespaces;
 
 // Ensure this version is the only version
 defineValue(self, 'importShim', Object.freeze(importShim));
@@ -599,18 +605,19 @@ const fetchModule = async (reqUrl, fetchOpts, parent) => {
     source = `import*as $_ns from${rStr};`;
     let i = 0,
       obj = '',
-      jsString = false;
+      builtinNs = false;
     for (const { module, kind } of imports) {
-      // the js-string builtins namespace comes from the engine or its polyfill, it is not a module resolution
-      if (module === jsStringBuiltins) {
-        jsString = true;
+      // the js-string builtins and imported string constants namespaces come from the engine or its
+      // polyfill, they are not module resolutions
+      if (module === jsStringBuiltins || module === jsStringConstants) {
+        builtinNs = true;
         continue;
       }
       const specifier = urlJsString(module);
       source += `import*as impt${i} from${specifier};\n`;
       obj += `${specifier}:${kind === 'global' ? `importShim._i.get(impt${i})||impt${i++}` : `impt${i++}`},`;
     }
-    if (jsString) obj += `"${jsStringBuiltins}":importShim._j,`;
+    if (builtinNs) obj += '...importShim._j,';
     source += `${hotPrefix}i=await WebAssembly.instantiate(importShim._s[${rStr}],{${obj}});importShim._i.set($_ns,i);`;
     obj = '';
     for (const { name, kind } of exports) {
