@@ -37,6 +37,9 @@ jobs:
       GIT_AUTHOR_EMAIL: guybedford@gmail.com
       GIT_COMMITTER_NAME: Guy Bedford
       GIT_COMMITTER_EMAIL: guybedford@gmail.com
+      # A blocked command costs 2 minutes, not the whole job
+      BASH_DEFAULT_TIMEOUT_MS: '120000'
+      BASH_MAX_TIMEOUT_MS: '300000'
     steps:
       # AUTOMATION_TOKEN must NOT be RELEASE_TOKEN: no main bypass, and it is what makes CI run on the PR
       - uses: actions/checkout@v4
@@ -110,7 +113,8 @@ jobs:
             - Source lives in src/. Do not edit dist/ (generated), package.json version, or anything
               under .github/.
             - Run `chomp format` and `chomp build` before committing. Both must pass.
-            - The browser test matrix cannot run here; do not attempt it.
+            - Never run `chomp test`, `chomp test-watch` or `node test/server.mjs`. With no
+              CI_BROWSER set they launch a browser and block until the job times out.
             - If the feedback is ambiguous or out of scope, say so in your report and stop.
 
             End your report with a list of the comments you addressed in this run.
