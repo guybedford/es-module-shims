@@ -150,12 +150,6 @@ suite('Source Phase WPT', () => {
     const toStringTag = Object.getOwnPropertyDescriptor(AbstractModuleSource.prototype, Symbol.toStringTag).get;
   
     assert.equal(toStringTag.call(module), "WebAssembly.Module");
-
-    try {
-      toStringTag.call({});
-      assert.fail("expected an error");
-    } catch (e) {
-      assert.ok(e instanceof TypeError);
-    }
+    assert.equal(toStringTag.call({}), undefined);
   });
 });
