@@ -154,8 +154,37 @@ const server = http.createServer(async function (req, res) {
   else
     mime = mimes[path.extname(filePath)] || 'text/plain';
 
+  // wpt serves all text resources as utf-8, matched here so that non-ASCII expectations in test
+  // sources survive parsing
   const headers = filePath.endsWith('content-type-none.json') ?
-    {} : { 'Access-Control-Allow-Origin': '*', 'Content-Type': mime, 'Cache-Control': 'no-cache' }
+    {} : { 'Access-Control-Allow-Origin': '*', 'Content-Type': mime === 'application/wasm' ? mime : `${mime}; charset=utf-8`, 'Cache-Control': 'no-cache' }
+
+  // The Wasm ESM integration WPT ports (test-esm-*) are kept byte-identical to upstream, where they
+  // use regular dynamic imports inside promise_test bodies. In polyfill mode the browser's native
+  // evaluation of those module scripts records its own failures before the polyfill re-executes them,
+  // so these pages are served as shim mode pages instead, upgrading their module scripts to
+  // module-shim so that only es-module-shims executes them, once. The source phase ports are excluded
+  // as their native evaluation already fails at parse time on engines needing the polyfill, and shim
+  // mode does not apply the source phase global polyfills.
+  if (/^(skip-)?test-esm-.*\.html$/.test(path.basename(filePath))) {
+    fileStream.destroy();
+    const source = fs.readFileSync(filePath, 'utf8')
+      .replace(/type=("?)module\1/g, 'type=$1module-shim$1')
+      .replace('<script src="/resources/testharness.js">', '<script type=module-shim></script><script src="/resources/testharness.js">')
+      .replace('<script src="/resources/testharnessreport.js"></script>', `<script src="/resources/testharnessreport.js"></script>
+<script>
+// The Wasm ESM integration tests baseline is typed function references support (Chrome 119+,
+// Firefox 120+), below which the Wasm test resources cannot be compiled at all
+if (!WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 7, 1, 96, 1, 111, 1, 100, 111]))) {
+  setup({ single_test: true });
+  promise_test = function () {};
+  done();
+}
+</script>`);
+    res.writeHead(200, headers);
+    res.end(source);
+    return;
+  }
 
   res.writeHead(200, headers);
   fileStream.pipe(res);
