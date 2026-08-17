@@ -44,6 +44,17 @@ import {
 import * as lexer from '../node_modules/es-module-lexer/dist/lexer.minimal.asm.js';
 import { hotReload, initHotReload } from './hot-reload.js';
 import { maybeTrustedScript } from './trusted-types.js';
+import {
+  applyNamespaceInstance,
+  applyWasmPolyfills,
+  compileStreaming,
+  hasBuiltinImports,
+  jsStringNamespaces,
+  moduleExports,
+  moduleImports,
+  supportsJsStringBuiltins,
+  wasmInstances
+} from './wasm-module-shims.js';
 
 const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);
@@ -155,7 +166,9 @@ importShim.version = version;
 const registry = (importShim._r = {});
 // Wasm caches
 const sourceCache = (importShim._s = {});
-/* const instanceCache = */ importShim._i = new WeakMap();
+/* const instanceCache = */ importShim._i = wasmInstances;
+// js-string builtins and imported string constants namespaces for the Wasm module instantiation source
+importShim._j = jsStringNamespaces;
 
 // Ensure this version is the only version
 defineValue(self, 'importShim', Object.freeze(importShim));
@@ -193,32 +206,9 @@ const initPromise = featureDetectionPromise.then(() => {
     (!multipleImportMaps || supportsMultipleImportMaps) &&
     !importMapSrc &&
     !hasCustomizationHooks;
-  if (!shimMode && typeof WebAssembly !== 'undefined') {
-    if (wasmSourcePhaseEnabled && !Object.getPrototypeOf(WebAssembly.Module).name) {
-      const s = Symbol();
-      const brand = m => defineValue(m, s, 'WebAssembly.Module');
-      class AbstractModuleSource {
-        get [Symbol.toStringTag]() {
-          if (this[s]) return this[s];
-          throw new TypeError('Not an AbstractModuleSource');
-        }
-      }
-      const { Module: wasmModule, compile: wasmCompile, compileStreaming: wasmCompileStreaming } = WebAssembly;
-      WebAssembly.Module = Object.setPrototypeOf(
-        Object.assign(function Module(...args) {
-          return brand(new wasmModule(...args));
-        }, wasmModule),
-        AbstractModuleSource
-      );
-      WebAssembly.Module.prototype = Object.setPrototypeOf(wasmModule.prototype, AbstractModuleSource.prototype);
-      WebAssembly.compile = function compile(...args) {
-        return wasmCompile(...args).then(brand);
-      };
-      WebAssembly.compileStreaming = function compileStreaming(...args) {
-        return wasmCompileStreaming(...args).then(brand);
-      };
-    }
-  }
+  // wasm modules are always supported in shim mode
+  if (shimMode || wasmSourcePhaseEnabled) applyWasmPolyfills();
+  else if (wasmInstancePhaseEnabled) applyNamespaceInstance();
   if (hasDocument) {
     if (!supportsImportMaps) {
       const supports = HTMLScriptElement.supports || (type => type === 'classic' || type === 'module');
@@ -321,6 +311,11 @@ export async function topLevelLoad(
   : import(load.u));
   // if the top-level load is a shell, run its update function
   if (load.s) (await dynamicImport(load.s, load.u)).u$_(module);
+  // register the resolved namespace against its instance for WebAssembly.namespaceInstance
+  if (load.t === 'wasm') {
+    const instance = wasmInstances.get(sourceCache[load.r]);
+    if (instance) wasmInstances.set(module, instance);
+  }
   revokeObjectURLs(Object.keys(seen));
   return module;
 }
@@ -565,7 +560,7 @@ async function defaultSourceHook(url, fetchOpts, parent) {
   }
   return {
     url: res.url,
-    source: await (type > 'v' ? WebAssembly.compileStreaming(res) : res.text()),
+    source: await (type > 'v' ? compileStreaming(res) : res.text()),
     type
   };
 }
@@ -580,25 +575,40 @@ const fetchModule = async (reqUrl, fetchOpts, parent) => {
     type
   } = (await (sourceHook || defaultSourceHook)(reqUrl, fetchOpts, parent, defaultSourceHook)) || {};
   if (type === 'wasm') {
-    const exports = WebAssembly.Module.exports((sourceCache[url] = source));
-    const imports = WebAssembly.Module.imports(source);
+    const exports = moduleExports((sourceCache[url] = source));
+    const imports = moduleImports(source);
+    const builtinNs = hasBuiltinImports(source) && supportsJsStringBuiltins();
     const rStr = urlJsString(url);
-    source = `import*as $_ns from${rStr};`;
+    source = '';
+    // the js-string builtins and imported string constants namespaces come from the engine or its
+    // polyfill, they are filtered from the module resolutions and provided to instantiation directly
     let i = 0,
-      obj = '';
+      obj = builtinNs ? '...importShim._j,' : '';
     for (const { module, kind } of imports) {
       const specifier = urlJsString(module);
       source += `import*as impt${i} from${specifier};\n`;
-      obj += `${specifier}:${kind === 'global' ? `importShim._i.get(impt${i})||impt${i++}` : `impt${i++}`},`;
+      // global imports from Wasm dependencies link the underlying WebAssembly.Global objects through
+      // the instance registry, keyed by module source, since the JS namespace unwraps global values
+      let wasmDep = '';
+      if (kind === 'global')
+        try {
+          wasmDep = `importShim._i.get(importShim._s[${urlJsString(resolve(module, url).r)}])?.exports||`;
+        } catch (_) {}
+      obj += `${specifier}:${wasmDep}impt${i++},`;
     }
-    source += `${hotPrefix}i=await WebAssembly.instantiate(importShim._s[${rStr}],{${obj}});importShim._i.set($_ns,i);`;
+    source += `${hotPrefix}i=await WebAssembly.instantiate(importShim._s[${rStr}],{${obj}});importShim._i.set(importShim._s[${rStr}],i);`;
     obj = '';
+    // exports are bound through positional identifiers as Wasm export names are arbitrary strings
+    let e = 0;
     for (const { name, kind } of exports) {
-      source += `export let ${name}=i.exports['${name}'];`;
-      if (kind === 'global') source += `try{${name}=${name}.value}catch(_){${name}=undefined}`;
-      obj += `${name},`;
+      const nStr = JSON.stringify(name);
+      source += `let e$_${e}=i.exports[${nStr}];`;
+      if (kind === 'global') source += `try{e$_${e}=e$_${e}.value}catch(_){e$_${e}=undefined}`;
+      source += `export{e$_${e} as ${nStr}};`;
+      obj += `e$_${e}=m[${nStr}];`;
+      e++;
     }
-    source += `if(h)h.accept(m=>({${obj}}=m))`;
+    source += `if(h)h.accept(m=>{${obj}})`;
   } else if (type === 'json') {
     source = `${hotPrefix}j=JSON.parse(${JSON.stringify(source)});export{j as default};if(h)h.accept(m=>j=m.default)`;
   } else if (type === 'css') {
