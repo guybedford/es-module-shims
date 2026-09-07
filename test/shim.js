@@ -197,6 +197,12 @@ suite('Circular dependencies', function() {
     assert.equal(m.default[1], 6);
     assert.equal(m.default[2], 7);
   });
+
+  test('should support shell updates alongside reexports', async function () {
+    var m = await importShim('./fixtures/test-self-import-reexport.js');
+    assert.equal(m.default, 5);
+    assert.equal(m.f(), 'f');
+  });
 });
 
 suite('Loading order', function() {
