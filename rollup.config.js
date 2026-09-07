@@ -26,8 +26,8 @@ function config(isWasm, isDebug) {
     plugins: [
       {
         resolveId(id) {
-          if (isWasm && id === '../node_modules/es-module-lexer/dist/lexer.asm.js')
-            return path.resolve('node_modules/es-module-lexer/dist/lexer.js');
+          if (isWasm && id === '../node_modules/es-module-lexer/dist/lexer.minimal.asm.js')
+            return path.resolve('node_modules/es-module-lexer/dist/lexer.minimal.js');
         },
         renderChunk(code) {
           return { code: code.replace('$ret()', 'return') };
