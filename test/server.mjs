@@ -182,7 +182,16 @@ async function start () {
     else
       args.push(`--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--no-sandbox', '--disable-gpu');
     console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
-    spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
+    spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`], {
+      env: {
+        ...process.env,
+        MOZ_DISABLE_CONTENT_SANDBOX: '1',
+        MOZ_DISABLE_GPU_SANDBOX: '1',
+        MOZ_DISABLE_RDD_SANDBOX: '1',
+        MOZ_DISABLE_SOCKET_PROCESS_SANDBOX: '1',
+        MOZ_DISABLE_UTILITY_SANDBOX: '1'
+      }
+    });
     const ps = spawnPs;
     ps.on('error', err => console.log('Browser spawn error: ' + err));
     ps.on('exit', (code, signal) => console.log(`Browser exited: code ${code}, signal ${signal}`));
