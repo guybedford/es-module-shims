@@ -54,7 +54,7 @@ import {
   moduleImports,
   supportsJsStringBuiltins,
   wasmInstances
-} from './wasm-module-shims.js';
+} from '../node_modules/wasm-module-shims/src/wasm-module-shims.js';
 
 const _resolve = (id, parentUrl = pageBaseUrl) => {
   const urlResolved = resolveIfNotPlainOrUrl(id, parentUrl) || asURL(id);

@@ -45,7 +45,8 @@
     "rimraf": "^3.0.2",
     "rollup": "^2.58.0",
     "tachometer": "^0.5.10",
-    "terser": "^5.10.0"
+    "terser": "^5.10.0",
+    "wasm-module-shims": "0.1.1"
   },
   "directories": {
     "test": "test"
