@@ -11,7 +11,7 @@ import {
   shimMode,
   version
 } from './env.js';
-import { maybeTrustedInnerHTML, maybeTrustedScript, policy } from './trusted-types.js';
+import { maybeTrustedInnerHTML, policy } from './trusted-types.js';
 
 // support browsers without dynamic import support (eg Firefox 6x)
 export let supportsJsonType = false;
@@ -96,38 +96,13 @@ export let featureDetectionPromise = (async function () {
       : 'false'
     }]).then(a=>parent.postMessage(['${msgTag}'].concat(a),'*'))<${''}/script>`;
 
-    // Safari will call onload eagerly on head injection, but we don't want the Wechat
-    // path to trigger before setting srcdoc, therefore we track the timing
-    let readyForOnload = false,
-      onloadCalledWhileNotReady = false;
-    function doOnload() {
-      if (!readyForOnload) {
-        onloadCalledWhileNotReady = true;
-        return;
-      }
-      // WeChat browser doesn't support setting srcdoc scripts
-      // But iframe sandboxes don't support contentDocument so we do this as a fallback
-      const doc = iframe.contentDocument;
-      if (doc && doc.head.childNodes.length === 0) {
-        const s = doc.createElement('script');
-        if (nonce) s.setAttribute('nonce', nonce);
-        s.innerText = maybeTrustedScript(importMapTest.slice(15 + (nonce ? nonce.length : 0), -9));
-        doc.head.appendChild(s);
-      }
-    }
-
-    iframe.onload = doOnload;
-    // WeChat browser requires append before setting srcdoc
     document.head.appendChild(iframe);
 
     // setting srcdoc is not supported in React native webviews on iOS
     // setting src to a blob URL results in a navigation event in webviews
     // document.write gives usability warnings
-    readyForOnload = true;
     if ('srcdoc' in iframe) iframe.srcdoc = maybeTrustedInnerHTML(importMapTest);
     else iframe.contentDocument.write(importMapTest);
-    // retrigger onload for Safari only if necessary
-    if (onloadCalledWhileNotReady) doOnload();
   });
 })();
 
