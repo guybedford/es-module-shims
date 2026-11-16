@@ -177,6 +177,11 @@ async function start () {
     }
     console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
     spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
+    const ps = spawnPs;
+    ps.on('error', err => console.log('Browser spawn error: ' + err));
+    ps.on('exit', (code, signal) => console.log(`Browser exited: code ${code}, signal ${signal}`));
+    ps.stdout.on('data', data => console.log('Browser stdout: ' + data));
+    ps.stderr.on('data', data => console.log('Browser stderr: ' + data));
   }
   else {
     open(`${baseURL}/test/${testName}.html`, { app: { name: open.apps[process.env.BROWSER || 'chrome'] } });
@@ -185,5 +190,6 @@ async function start () {
 
 server.listen(port, 'localhost', function() {
   baseURL = `http://localhost:${server.address().port}`;
+  if (process.env.CI_BROWSER) console.log('Listening on ' + JSON.stringify(server.address()));
   start();
 });
