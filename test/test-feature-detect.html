@@ -1,0 +1,22 @@
+<!doctype html>
+<head>
+<script>
+  let injectedIntoInitialDocument;
+  const done = error => fetch(error ? `/error?${encodeURIComponent(error)}` : '/done');
+  const timeout = setTimeout(() => done('Feature detection did not complete'), 10000);
+  // Runs as a microtask after the detection iframe setup, before its srcdoc navigation
+  new MutationObserver(records => {
+    for (const { addedNodes, removedNodes } of records) {
+      for (const node of addedNodes) {
+        if (node.tagName === 'IFRAME') injectedIntoInitialDocument = node.contentDocument.head.childNodes.length > 0;
+      }
+      for (const node of removedNodes) {
+        if (node.tagName !== 'IFRAME') continue;
+        clearTimeout(timeout);
+        done(injectedIntoInitialDocument && 'Feature detection ran in the initial about:blank document');
+      }
+    }
+  }).observe(document.head, { childList: true });
+</script>
+<script type="module" src="../src/es-module-shims.js"></script>
+</head>
