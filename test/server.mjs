@@ -2,7 +2,6 @@ import http from "http";
 import fs from "fs";
 import {once} from "events";
 import path from "path";
-import os from "os";
 import {fileURLToPath} from "url";
 import open from "open";
 import kleur from 'kleur';
@@ -176,11 +175,6 @@ async function start () {
       }
       await new Promise(resolve => setTimeout(resolve, 500));
     }
-    // a fresh profile per launch avoids state from the runner's own browser installs
-    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'esms-profile-'));
-    if (/firefox/i.test(process.env.CI_BROWSER)) args.push('-profile', profile);
-    else
-      args.push(`--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--no-sandbox', '--disable-gpu');
     console.log('Spawning browser: ' + process.env.CI_BROWSER + ' ' + args.join(' '));
     spawnPs = spawn(process.env.CI_BROWSER, [...args, `${baseURL}/test/${testName}.html`]);
     const ps = spawnPs;
@@ -194,8 +188,7 @@ async function start () {
   }
 }
 
-// CI listens on both IPv4 and IPv6 since older browsers may only try one for localhost
-server.listen(port, process.env.CI_BROWSER ? undefined : 'localhost', function() {
+server.listen(port, 'localhost', function() {
   baseURL = `http://localhost:${server.address().port}`;
   if (process.env.CI_BROWSER) console.log('Listening on ' + JSON.stringify(server.address()));
   start();
