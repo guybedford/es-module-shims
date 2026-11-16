@@ -32,7 +32,30 @@ let retry = 0;
 if (testName.startsWith('test-chrome') && process.env.CI_BROWSER && !process.env.CI_BROWSER.includes('chrome'))
   process.exit(0);
 
-let failTimeout, browserTimeout;
+const LAUNCH_TIMEOUT = 20_000;
+// must exceed the mocha test timeout, since a running test makes no requests
+const IDLE_TIMEOUT = 25_000;
+const PAGE_TIMEOUT = 90_000;
+
+let browserTimeout, connected = false;
+
+// the browser must be killed as a process tree before exiting, as otherwise
+// its children outlive this process and keep the parent task open
+function killBrowser () {
+  if (!spawnPs) return;
+  if (process.platform !== 'win32') return spawnPs.kill('SIGKILL');
+  // by image name as well, since a browser relaunched by its own launcher process is not in the tree
+  for (const target of [`/PID ${spawnPs.pid}`, `/IM ${path.basename(process.env.CI_BROWSER)}`]) {
+    try {
+      execSync(`taskkill /F /T ${target}`, { stdio: 'ignore' });
+    } catch {}
+  }
+}
+
+function exit (code) {
+  killBrowser();
+  process.exit(code);
+}
 
 function setBrowserTimeout () {
   if (!shouldExit)
@@ -40,26 +63,31 @@ function setBrowserTimeout () {
   if (browserTimeout)
     clearTimeout(browserTimeout);
   browserTimeout = setTimeout(() => {
-    retry += 1;
-    if (retry > 1) {
-      console.log('No browser requests made to server for 10s, closing.');
-      process.exit(failTimeout || process.env.CI_BROWSER ? 1 : 0);
-    }
-    else {
-      console.log('Retrying...');
+    if (!connected && retry++ === 0) {
+      console.log(`No browser connection after ${LAUNCH_TIMEOUT / 1000}s, relaunching...`);
       setBrowserTimeout();
       start();
+      return;
     }
-  }, 60_000);
+    console.log(`No browser requests made to server for ${(connected ? IDLE_TIMEOUT : LAUNCH_TIMEOUT) / 1000}s, closing.`);
+    exit(1);
+  }, connected ? IDLE_TIMEOUT : LAUNCH_TIMEOUT);
 }
 
 setBrowserTimeout();
+
+if (shouldExit)
+  setTimeout(() => {
+    console.log(`Test page did not complete within ${PAGE_TIMEOUT / 1000}s, closing.`);
+    exit(1);
+  }, PAGE_TIMEOUT);
 
 let latestStartTitle;
 const server = http.createServer(async function (req, res) {
   // Helps CI debugging:
   if (process.env.CI_BROWSER)
     console.log("REQ: " + req.url);
+  connected = true;
   setBrowserTimeout();
   if (req.url.startsWith('/done')) {
     res.writeHead(200, { 'content-type': 'text/plain' });
@@ -72,11 +100,7 @@ const server = http.createServer(async function (req, res) {
       clearTimeout(browserTimeout);
     const message = new URL(req.url, rootURL).searchParams.get('message');
     if (message) console.log(message);
-    if (shouldExit) {
-      if (spawnPs)
-        spawnPs.kill('SIGKILL');
-      setTimeout(() => process.exit(), 500);
-    }
+    if (shouldExit) setTimeout(() => exit(0), 500);
     return;
   }
   else if (req.url.startsWith('/error?')) {
@@ -87,9 +111,7 @@ const server = http.createServer(async function (req, res) {
     }
     const msg = decodeURIComponent(req.url.slice(7));
     console.log(kleur.red('Test failures: ') + msg);
-    if (shouldExit) {
-      failTimeout = setTimeout(() => process.exit(1), 30000);
-    }
+    if (shouldExit) setTimeout(() => exit(1), 500);
     return;
   }
   else if (req.url.startsWith('/mocha/start?')) {
@@ -115,10 +137,6 @@ const server = http.createServer(async function (req, res) {
     console.log(kleur.red('Fail ') + fullTitle + ': ' + msg);
     latestStartTitle = undefined;
     return;
-  }
-  else if (failTimeout) {
-    clearTimeout(failTimeout);
-    failTimeout = null;
   }
 
   const url = new URL(req.url[0] === '/' ? req.url.slice(1) : req.url, rootURL);
@@ -167,6 +185,7 @@ const server = http.createServer(async function (req, res) {
 let spawnPs;
 let baseURL;
 async function start () {
+  killBrowser();
   if (process.env.CI_BROWSER) {
     const args = process.env.CI_BROWSER_FLAGS ? process.env.CI_BROWSER_FLAGS.split(' ') : [];
     if (process.env.CI_BROWSER_FLUSH) {
