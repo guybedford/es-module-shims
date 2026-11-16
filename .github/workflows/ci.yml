@@ -49,6 +49,7 @@ jobs:
         with:
           firefox-version: ${{ matrix.firefox }}
       - name: Chomp Test
+        timeout-minutes: 10
         run: chomp test
         env:
           CI_BROWSER: ${{ steps.setup-firefox.outputs.firefox-path }}
@@ -83,6 +84,7 @@ jobs:
         with:
           chrome-version: ${{ matrix.chrome }}
       - name: Chomp Test
+        timeout-minutes: 10
         run: chomp test
         env:
           CI_BROWSER: ${{ steps.setup-chrome.outputs.chrome-path }}

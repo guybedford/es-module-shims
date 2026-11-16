@@ -42,11 +42,14 @@ let browserTimeout, connected = false;
 // the browser must be killed as a process tree before exiting, as otherwise
 // its children outlive this process and keep the parent task open
 function killBrowser () {
-  if (!spawnPs || !spawnPs.pid) return;
-  try {
-    if (process.platform === 'win32') execSync(`taskkill /F /T /PID ${spawnPs.pid}`, { stdio: 'ignore' });
-    else spawnPs.kill('SIGKILL');
-  } catch {}
+  if (!spawnPs) return;
+  if (process.platform !== 'win32') return spawnPs.kill('SIGKILL');
+  // by image name as well, since a browser relaunched by its own launcher process is not in the tree
+  for (const target of [`/PID ${spawnPs.pid}`, `/IM ${path.basename(process.env.CI_BROWSER)}`]) {
+    try {
+      execSync(`taskkill /F /T ${target}`, { stdio: 'ignore' });
+    } catch {}
+  }
 }
 
 function exit (code) {
