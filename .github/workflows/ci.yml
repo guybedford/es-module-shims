@@ -21,7 +21,7 @@ jobs:
         run: chomp format-check
 
   test-firefox:
-    runs-on: windows-2022
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
@@ -56,7 +56,7 @@ jobs:
           CI_BROWSER_FLUSH: taskkill /F /IM firefox.exe
 
   test-chrome:
-    runs-on: windows-2022
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
