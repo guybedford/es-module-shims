@@ -10,17 +10,22 @@
       return url.includes('reexport') ? { ...result, url } : result;
     }
   };
+  // The Wasm test resources baseline is typed function references support (Chrome 119+, Firefox 120+)
+  window.supported = WebAssembly.validate(
+    new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 7, 1, 96, 1, 111, 1, 100, 111])
+  );
+  if (!supported) fetch('/done');
 </script>
 <script type="module" src="../src/es-module-shims.js"></script>
 <script type="module-shim">
-  let error;
-  try {
-    const reexporter = await import('./alias/mutable-global-reexport.wasm');
-    const exporter = await import('./alias/mutable-global-export.wasm');
-    exporter.setGlobal(500);
-    if (reexporter.getImportedGlobal() !== 500) error = 'Mutable global not shared with redirected dependency';
-  } catch (e) {
-    error = e.message;
-  }
-  fetch(error ? `/error?${encodeURIComponent(error)}` : '/done');
+  if (supported)
+    Promise.all([import('./alias/mutable-global-reexport.wasm'), import('./alias/mutable-global-export.wasm')])
+      .then(([reexporter, exporter]) => {
+        exporter.setGlobal(500);
+        if (reexporter.getImportedGlobal() !== 500) throw new Error('Mutable global not shared with redirected dependency');
+      })
+      .then(
+        () => fetch('/done'),
+        e => fetch(`/error?${encodeURIComponent(e.message)}`)
+      );
 </script>
