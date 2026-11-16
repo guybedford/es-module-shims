@@ -341,6 +341,10 @@ const revokeObjectURLs = registryKeys => {
 const urlJsString = url => `'${url.replace(/'/g, "\\'")}'`;
 
 let resolvedSource, lastIndex;
+
+// spliced out source must retain its newlines for source maps to still apply
+const newlines = str => str.replace(/[^\n]/g, '');
+
 const pushStringTo = (load, originalIndex, dynamicImportEndStack) => {
   while (dynamicImportEndStack[dynamicImportEndStack.length - 1] < originalIndex) {
     const dynamicImportEnd = dynamicImportEndStack.pop();
@@ -452,6 +456,7 @@ const resolveDeps = (load, seen) => {
         resolvedSource += `;import*as m$_${depIndex} from'${depLoad.b}';import{u$_ as u$_${depIndex}}from'${depLoad.s}';u$_${depIndex}(m$_${depIndex})`;
         depLoad.s = undefined;
       }
+      if (!keepAssertion) resolvedSource += newlines(source.slice(end + 1, statementEnd));
       lastIndex = keepAssertion ? end + 1 : statementEnd;
     }
     // import.meta
@@ -459,15 +464,15 @@ const resolveDeps = (load, seen) => {
       load.m = { url: load.r, resolve: metaResolve };
       if (metaHook) metaHook(load.m, load.u);
       pushStringTo(load, start, dynamicImportEndStack);
-      resolvedSource += `importShim._r[${urlJsString(load.u)}].m`;
+      resolvedSource += `importShim._r[${urlJsString(load.u)}].m${newlines(source.slice(start, statementEnd))}`;
       lastIndex = statementEnd;
     }
     // dynamic import
     else {
       pushStringTo(load, statementStart + 6, dynamicImportEndStack);
-      resolvedSource += `Shim${t === 5 ? '.source' : ''}(`;
+      resolvedSource += `Shim${t === 5 ? '.source' : ''}${newlines(source.slice(statementStart + 6, dynamicImportIndex))}(`;
       dynamicImportEndStack.push(statementEnd - 1);
-      lastIndex = start;
+      lastIndex = dynamicImportIndex + 1;
     }
   }
 

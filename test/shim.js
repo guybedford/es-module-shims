@@ -442,6 +442,19 @@ suite('Source maps', () => {
     assert(blobContent.includes(`//# sourceURL=${moduleURL}`))
   });
 
+  test('should preserve line numbers when rewriting multi-line imports', async () => {
+    const moduleURL = new URL('./fixtures/es-modules/multiline-rewrites.js', location.href).href;
+    const m = await importShim(moduleURL);
+    const blobContent = await fetch(importShim._r[moduleURL].b).then(r => r.text());
+    const source = await fetch(moduleURL).then(r => r.text());
+    const markerLine = source => source.split('\n').findIndex(line => line.includes('LINE_MARKER'));
+    assert.equal(markerLine(blobContent), markerLine(source));
+    assert.equal(m.url, moduleURL);
+    assert.ok(m.json);
+    assert.ok(await m.dynamic());
+    assert.ok(await m.spaced());
+  });
+
   test('should replace relative paths in `//# sourceURL=` directive with absolute URL', async () => {
     const moduleURL = new URL('./fixtures/es-modules/with-relative-source-url.js', location.href).href;
     await importShim(moduleURL);
