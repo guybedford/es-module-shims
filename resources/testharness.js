@@ -4996,19 +4996,23 @@ window.addEventListener = function (evt, callback) {
     });
 };
 
-(async () => {
+window.tlaUnsupported = (async () => {
 try {
     await eval("import('./fixtures/tla.js');");
+    return false;
 } catch (e) {
     // Does not support TLA -> skip test
     await fetch('/TLA UNSUPPORTED');
     fetch('/done');
+    return true;
 }
 })();
 
 </script>`);
 setup({ allow_uncaught_exception: true });
-add_completion_callback((tests, status, asserts) => {
+add_completion_callback(async (tests, status, asserts) => {
+    // skipped tests have already reported done, and must not also report their failures
+    if (await window.tlaUnsupported) return;
     const err = tests.find(test => test.status !== 0);
     if (!err && tests.length > 0)
         fetch('/done');
