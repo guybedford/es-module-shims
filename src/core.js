@@ -234,7 +234,7 @@ const initPromise = featureDetectionPromise.then(() => {
     }
     processScriptsAndPreloads();
   }
-  return lexer.init;
+  return lexer.init();
 });
 
 const attachMutationObserver = () => {
