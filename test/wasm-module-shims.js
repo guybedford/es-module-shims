@@ -5,6 +5,7 @@ import {
   jsStringNamespaces,
   jsStringCompileOptions,
   withJsStringImports,
+  builtinOptions,
   compileStreaming,
   moduleImports,
   moduleExports,
@@ -193,9 +194,41 @@ suite('withJsStringImports', () => {
   // below the typed function references baseline the builtin namespaces are not installed at all,
   // and user imports pass through untouched
   const builtinsSupported = supportsJsStringBuiltins();
+  const opts = builtinOptions(jsStringCompileOptions);
+
+  test('only layers for modules compiled with the builtin compile options', () => {
+    const imports = { [jsStringBuiltins]: {} };
+    assert.equal(withJsStringImports(imports, undefined), imports);
+    assert.equal(withJsStringImports(imports, builtinOptions({})), imports);
+    assert.equal(withJsStringImports(undefined, undefined), undefined);
+    const custom = () => 'x';
+    const builtinsOnly = withJsStringImports(
+      { [jsStringBuiltins]: { concat: custom }, [jsStringConstants]: { hello: 'other' } },
+      builtinOptions({ builtins: ['js-string'] })
+    );
+    assert.equal(builtinsOnly[jsStringBuiltins].concat, builtinsSupported ? jsStringImports.concat : custom);
+    assert.equal(builtinsOnly[jsStringConstants].hello, 'other');
+  });
+
+  test('layers the imported string constants namespace of the compile options', () => {
+    const imports = withJsStringImports(
+      { myns: { hello: 'other' }, [jsStringBuiltins]: 1 },
+      builtinOptions({ importedStringConstants: 'myns' })
+    );
+    assert.equal(imports.myns.hello, builtinsSupported ? 'hello' : 'other');
+    assert.equal(imports[jsStringBuiltins], 1);
+  });
+
+  test('layers over frozen import objects without modifying them', () => {
+    const custom = () => 'x';
+    const frozen = Object.freeze({ [jsStringBuiltins]: Object.freeze({ concat: custom }) });
+    const imports = withJsStringImports(frozen, opts);
+    assert.equal(imports[jsStringBuiltins].concat, builtinsSupported ? jsStringImports.concat : custom);
+    assert.equal(frozen[jsStringBuiltins].concat, custom);
+  });
 
   test('provides the builtin namespaces when no imports are given', () => {
-    const imports = withJsStringImports(undefined);
+    const imports = withJsStringImports(undefined, opts);
     if (!builtinsSupported) {
       assert.equal(imports[jsStringBuiltins], undefined);
       assert.equal(imports[jsStringConstants], undefined);
@@ -207,25 +240,30 @@ suite('withJsStringImports', () => {
 
   test('builtin implementations take precedence over user entries for recognized names', () => {
     const custom = () => 'x';
-    const ns = withJsStringImports({ [jsStringBuiltins]: { concat: custom, newbuiltin: custom } })[jsStringBuiltins];
+    const ns = withJsStringImports({ [jsStringBuiltins]: { concat: custom, newbuiltin: custom } }, opts)[
+      jsStringBuiltins
+    ];
     assert.equal(ns.concat, builtinsSupported ? jsStringImports.concat : custom);
     assert.equal(ns.newbuiltin, custom);
   });
 
   test('string constants always resolve to their import name', () => {
-    const imports = withJsStringImports({ [jsStringConstants]: { hello: 'other' } });
+    const imports = withJsStringImports({ [jsStringConstants]: { hello: 'other' } }, opts);
     assert.equal(imports[jsStringConstants].hello, builtinsSupported ? 'hello' : 'other');
   });
 
   test('preserves lazy [[Get]] semantics for other namespaces', () => {
     let reads = 0;
     const env = { mem: 1 };
-    const imports = withJsStringImports({
-      get env() {
-        reads++;
-        return env;
-      }
-    });
+    const imports = withJsStringImports(
+      {
+        get env() {
+          reads++;
+          return env;
+        }
+      },
+      opts
+    );
     assert.equal(reads, 0);
     assert.equal(imports.env, env);
     assert.equal(reads, 1);
@@ -233,7 +271,7 @@ suite('withJsStringImports', () => {
 
   test('resolves prototype-inherited namespaces', () => {
     const env = {};
-    const imports = withJsStringImports(Object.create({ env }));
+    const imports = withJsStringImports(Object.create({ env }), opts);
     assert.equal(imports.env, env);
   });
 });
@@ -389,12 +427,29 @@ suite('source phase globals', () => {
       if (!WebAssembly.validate(bytes)) return;
       const newbuiltin = str => (typeof str === 'string' ? (str.match(/[A-Z]/g) || []).length : 0);
       const imports = { [jsStringBuiltins]: { newbuiltin } };
-      const { instance } = await WebAssembly.instantiate(bytes, imports);
+      const opts = { builtins: ['js-string'] };
+      const { instance } = await WebAssembly.instantiate(bytes, imports, opts);
       assert.equal(instance.exports.useBuiltins('hello'), 5);
       assert.equal(instance.exports.concatStrings('a', 'b'), 'ab');
       assert.equal(instance.exports.useNewBuiltin('Hello World'), 2);
-      const viaInstance = new WebAssembly.Instance(new WebAssembly.Module(bytes), imports);
+      const viaInstance = new WebAssembly.Instance(new WebAssembly.Module(bytes, opts), imports);
       assert.equal(viaInstance.exports.concatStrings('a', 'b'), 'ab');
+      const viaCompile = await WebAssembly.instantiate(await WebAssembly.compile(bytes, opts), imports);
+      assert.equal(viaCompile.exports.concatStrings('a', 'b'), 'ab');
+    });
+
+    test('modules compiled without the builtins link against the import object only', async () => {
+      const bytes = new Uint8Array(await (await fetch('./resources/js-string-module.wasm')).arrayBuffer());
+      if (!WebAssembly.validate(bytes)) return;
+      const imports = { [jsStringBuiltins]: { newbuiltin: () => 0 } };
+      assertThrows(WebAssembly.LinkError, () => new WebAssembly.Instance(new WebAssembly.Module(bytes), imports));
+      try {
+        await WebAssembly.instantiate(bytes, imports);
+      } catch (e) {
+        assert.ok(e instanceof WebAssembly.LinkError);
+        return;
+      }
+      fail('Expected a LinkError');
     });
   }
 });

@@ -593,11 +593,12 @@ const fetchModule = async (reqUrl, fetchOpts, parent) => {
       const specifier = urlJsString(module);
       source += `import*as impt${i} from${specifier};\n`;
       // global imports from Wasm dependencies link the underlying WebAssembly.Global objects through
-      // the instance registry, keyed by module source, since the JS namespace unwraps global values
+      // the instance registry, keyed by module source, since the JS namespace unwraps global values.
+      // The source is looked up through the dependency's load record as its response URL may differ.
       let wasmDep = '';
       if (kind === 'global')
         try {
-          wasmDep = `importShim._i.get(importShim._s[${urlJsString(resolve(module, url).r)}])?.exports||`;
+          wasmDep = `importShim._i.get(importShim._s[importShim._r[${urlJsString(resolve(module, url).r)}]?.r])?.exports||`;
         } catch (_) {}
       obj += `${specifier}:${wasmDep}impt${i++},`;
     }

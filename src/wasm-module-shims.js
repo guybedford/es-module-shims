@@ -18,6 +18,14 @@ const s = Symbol();
 const o = Symbol();
 const brand = m => Object.defineProperty(m, s, { value: 'WebAssembly.Module' });
 
+// Native builtins and string constants only apply to modules compiled with those compile options, so
+// the options are recorded on the module at compilation to gate the polyfill at instantiation.
+export const builtinOptions = opts => {
+  let { builtins: b, importedStringConstants: c } = opts || {};
+  if ((b = b && [...b].includes('js-string')) || c != null) return { b, c };
+};
+const compiled = (m, opts) => brand(opts ? Object.defineProperty(m, o, { value: opts }) : m);
+
 const trap = () => {
   throw new WebAssembly.RuntimeError();
 };
@@ -86,9 +94,10 @@ export const jsStringImports = {
 
 // Every imported string constant evaluates to its own import name, so the namespace is unbounded and can
 // only be provided as a proxy.
+const stringConstants = new Proxy({}, { get: (_, name) => name });
 export const jsStringNamespaces = {
   [jsStringBuiltins]: jsStringImports,
-  [jsStringConstants]: new Proxy({}, { get: (_, name) => name })
+  [jsStringConstants]: stringConstants
 };
 
 // The js-string builtins polyfill baseline is its own i16 array accessor module validating (WasmGC
@@ -100,29 +109,31 @@ export const supportsJsStringBuiltins = () =>
   jsStringSupport === undefined ? (jsStringSupport = hasWasm && WebAssembly.validate(i16Bytes())) : jsStringSupport;
 
 // Native engines compile-resolve the recognized builtins and string constants so that the import object is
-// never consulted for them. Emulated here by lazily layering the builtin namespaces over the user import
-// object, preserving its [[Get]] semantics for all other namespaces, with user-provided entries only
-// reachable for unrecognized builtin names, matching the native builtins fallback. The baseline check only
-// runs if a builtin namespace is actually resolved from the import object.
-export const withJsStringImports = imports =>
-  imports != null && Object(imports) !== imports ?
-    imports
-  : new Proxy(imports || {}, {
-      get: (target, name) => {
-        const value = Reflect.get(target, name);
-        if ((name !== jsStringBuiltins && name !== jsStringConstants) || !supportsJsStringBuiltins()) return value;
-        if (name === jsStringConstants) return jsStringNamespaces[jsStringConstants];
-        return { ...value, ...jsStringImports };
-      }
+// never consulted for them. Emulated here, for modules compiled with those options only, by lazily layering
+// the builtin namespaces over an object inheriting from the user import object, leaving it untouched and
+// preserving its [[Get]] semantics for all other namespaces. User-provided entries are only reachable for
+// unrecognized builtin names, matching the native builtins fallback. The baseline check only runs if a
+// builtin namespace is actually resolved from the import object.
+export const withJsStringImports = (imports, opts) => {
+  if (!opts || (imports != null && Object(imports) !== imports)) return imports;
+  const layered = Object.create((imports = imports || {}));
+  const layer = (name, ns) =>
+    Object.defineProperty(layered, name, {
+      configurable: true,
+      get: () => (supportsJsStringBuiltins() ? ns(imports[name]) : imports[name])
     });
+  if (opts.b) layer(jsStringBuiltins, value => ({ ...value, ...jsStringImports }));
+  if (opts.c != null) layer(opts.c, () => stringConstants);
+  return layered;
+};
 
 export const jsStringCompileOptions = { builtins: ['js-string'], importedStringConstants: jsStringConstants };
 
 // Module source compilation for the module loader, used in both shim and polyfill modes independently of any
-// global patching: applies the ESM integration compile options and the source phase brand, marking the
-// module as compiled with the builtins for imports reflection.
+// global patching: applies the ESM integration compile options and the source phase brand, recording the
+// options on the module for imports reflection and instantiation.
 export const compileStreaming = source =>
-  wasmCompileStreaming(source, jsStringCompileOptions).then(m => brand(Object.defineProperty(m, o, { value: 1 })));
+  wasmCompileStreaming(source, jsStringCompileOptions).then(m => compiled(m, builtinOptions(jsStringCompileOptions)));
 
 const builtinNs = m => m === jsStringBuiltins || m === jsStringConstants;
 
@@ -177,39 +188,42 @@ export const applyWasmPolyfills = () => {
   const Module = (WebAssembly.Module = Object.setPrototypeOf(
     Object.assign(function Module(...args) {
       if (!new.target) throw new TypeError(`Constructor WebAssembly.Module requires 'new'`);
-      return brand(Reflect.construct(wasmModule, args, new.target));
+      return compiled(Reflect.construct(wasmModule, args, new.target), builtinOptions(args[1]));
     }, wasmModule),
     AbstractModuleSource
   ));
   Module.prototype = Object.setPrototypeOf(wasmModule.prototype, AbstractModuleSource.prototype);
   Object.defineProperty(wasmModule.prototype, 'constructor', { value: Module });
-  // modules compiled with the loader's compile options reflect without their compiled-in builtin
-  // imports, matching native reflection with the builtins enabled
+  // modules compiled with the builtins or string constants compile options reflect without those
+  // compiled-in imports, matching native reflection
   Module.imports = function imports(module, ...args) {
+    const opts = module[o];
     return wasmModuleImports(module, ...args).filter(
       ({ module: m, name }) =>
-        !module[o] || (m !== jsStringConstants && !(m === jsStringBuiltins && jsStringImports.hasOwnProperty(name)))
+        !opts || (m !== opts.c && !(opts.b && m === jsStringBuiltins && jsStringImports.hasOwnProperty(name)))
     );
   };
   WebAssembly.compile = function compile(...args) {
-    return wasmCompile(...args).then(brand);
+    return wasmCompile(...args).then(m => compiled(m, builtinOptions(args[1])));
   };
   WebAssembly.compileStreaming = function compileStreaming(...args) {
-    return wasmCompileStreaming(...args).then(brand);
+    return wasmCompileStreaming(...args).then(m => compiled(m, builtinOptions(args[1])));
   };
-  const brandResult = result => {
-    if (result.module) brand(result.module);
+  const instantiated = opts => result => {
+    if (result.module) compiled(result.module, opts);
     return result;
   };
   WebAssembly.instantiate = function instantiate(source, imports, ...args) {
-    return wasmInstantiate(source, withJsStringImports(imports), ...args).then(brandResult);
+    const opts = source instanceof wasmModule ? source[o] : builtinOptions(args[0]);
+    return wasmInstantiate(source, withJsStringImports(imports, opts), ...args).then(instantiated(opts));
   };
   WebAssembly.instantiateStreaming = function instantiateStreaming(source, imports, ...args) {
-    return wasmInstantiateStreaming(source, withJsStringImports(imports), ...args).then(brandResult);
+    const opts = builtinOptions(args[0]);
+    return wasmInstantiateStreaming(source, withJsStringImports(imports, opts), ...args).then(instantiated(opts));
   };
   const Instance = (WebAssembly.Instance = function Instance(module, imports) {
     if (!new.target) throw new TypeError(`Constructor WebAssembly.Instance requires 'new'`);
-    return Reflect.construct(wasmInstance, [module, withJsStringImports(imports)], new.target);
+    return Reflect.construct(wasmInstance, [module, withJsStringImports(imports, module && module[o])], new.target);
   });
   Instance.prototype = wasmInstance.prototype;
   Object.defineProperty(wasmInstance.prototype, 'constructor', { value: Instance });

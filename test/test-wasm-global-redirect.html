@@ -1,0 +1,26 @@
+<!doctype html>
+<script>
+  // Serves the Wasm resources under an alias path, with the dependency responding from its
+  // resources URL as for a redirect, so that its request and response URLs differ
+  window.esmsInitOptions = {
+    shimMode: true,
+    source: async (url, fetchOpts, parent, defaultSourceHook) => {
+      if (!url.includes('/alias/')) return defaultSourceHook(url, fetchOpts, parent);
+      const result = await defaultSourceHook(url.replace('/alias/', '/resources/'), fetchOpts, parent);
+      return url.includes('reexport') ? { ...result, url } : result;
+    }
+  };
+</script>
+<script type="module" src="../src/es-module-shims.js"></script>
+<script type="module-shim">
+  let error;
+  try {
+    const reexporter = await import('./alias/mutable-global-reexport.wasm');
+    const exporter = await import('./alias/mutable-global-export.wasm');
+    exporter.setGlobal(500);
+    if (reexporter.getImportedGlobal() !== 500) error = 'Mutable global not shared with redirected dependency';
+  } catch (e) {
+    error = e.message;
+  }
+  fetch(error ? `/error?${encodeURIComponent(error)}` : '/done');
+</script>

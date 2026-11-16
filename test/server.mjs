@@ -182,9 +182,7 @@ const server = http.createServer(async function (req, res) {
   // use regular dynamic imports inside promise_test bodies. In polyfill mode the browser's native
   // evaluation of those module scripts records its own failures before the polyfill re-executes them,
   // so these pages are served as shim mode pages instead, upgrading their module scripts to
-  // module-shim so that only es-module-shims executes them, once. The source phase ports are excluded
-  // as their native evaluation already fails at parse time on engines needing the polyfill, and shim
-  // mode does not apply the source phase global polyfills.
+  // module-shim so that only es-module-shims executes them, once.
   if (/^(skip-)?test-esm-.*\.html$/.test(path.basename(filePath))) {
     fileStream.destroy();
     const source = fs.readFileSync(filePath, 'utf8')
